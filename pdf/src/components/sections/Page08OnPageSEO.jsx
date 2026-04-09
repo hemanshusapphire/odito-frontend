@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
 import API_BASE_URL from '@/lib/apiConfig';
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 const sevMap = { CRITICAL: 'critical', HIGH: 'high', MEDIUM: 'medium', LOW: 'low', INFO: 'low' };
 const impMap = { High: 'critical', Medium: 'medium', Low: 'low' };

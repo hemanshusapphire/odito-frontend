@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 
 export default function KeyStrengthsPage() {
+  useEffect(() => {
+    console.log('[KEY STRENGTHS] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('key-strengths', 'Key Strengths');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('key-strengths', true, 'Key Strengths');
+    }
+    console.log('[KEY STRENGTHS] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const strengths = [
     'Valid SSL — HTTPS enforced site-wide via 301',
     'XML Sitemap with 298 URLs correctly declared',

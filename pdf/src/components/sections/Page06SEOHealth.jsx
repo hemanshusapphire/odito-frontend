@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 export default function Page06SEOHealth({ projectId }) {
   const [coverData, setCoverData] = useState(null);

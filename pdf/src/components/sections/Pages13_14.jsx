@@ -5,7 +5,6 @@ import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } fr
 
 // API configuration
 import API_BASE_URL from "@/lib/apiConfig";
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Helper Functions for Rating and Priority ----
 function getRating(metric, value) {
@@ -344,6 +343,20 @@ export function CoreWebVitalsPage({ projectId }) {
 
 // ---- Page 14: Performance Opportunities ----
 export function PerformanceOpportunitiesPage() {
+  React.useEffect(() => {
+    console.log('[PERFORMANCE OPPORTUNITIES] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('performance-opportunities', 'Performance Opportunities');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
+    }
+    console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const opps = [
     ['Eliminate render-blocking resources', '840ms', 'Medium', '-840ms', 'HIGH'],
     ['Remove unused JavaScript', '620ms', 'Medium', '-1460ms', 'MEDIUM'],

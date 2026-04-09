@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Page 9: Structured Data Analysis ----
 export function StructuredDataPage({ projectId }) {

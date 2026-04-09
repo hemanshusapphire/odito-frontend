@@ -255,6 +255,11 @@ export class PDFRenderer {
         // Get iframe document
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
+        // Reset ready state for new page
+        if (iframe.contentWindow && iframe.contentWindow.__PDF_RESET_READY__) {
+          iframe.contentWindow.__PDF_RESET_READY__();
+        }
+
         // Render React component to HTML string
         const tempContainer = document.createElement('div');
         tempContainer.style.width = '960px';
@@ -286,17 +291,9 @@ export class PDFRenderer {
           iframe.contentWindow.__PDF_RESET_READY__();
         }
 
-        // Wait for fonts to load in iframe
-        console.log('[PDF RENDERER] Waiting for fonts to load in iframe');
-        await Promise.all([
-          iframe.contentWindow.document.fonts.load('1em Syne'),
-          iframe.contentWindow.document.fonts.load('1em DM Sans'),
-          iframe.contentWindow.document.fonts.ready
-        ]);
-
-        console.log('[PDF RENDERER] Fonts loaded, now waiting for page readiness...');
-
-        // CRITICAL: Wait for page to be ready (data loaded)
+        // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
+        console.log('[PDF RENDERER] Waiting for page readiness BEFORE font loading...');
+        
         await new Promise((resolve) => {
           const maxTime = 15000; // 15 second timeout
           const interval = 100; // Check every 100ms
@@ -306,13 +303,13 @@ export class PDFRenderer {
             const ready = iframe.contentWindow?.__PDF_ALL_READY__;
             
             if (ready === true) {
-              console.log('[PDF RENDERER] ✅ Page ready detected - capturing screenshot');
+              console.log('[PDF RENDERER] ✅ Page ready detected - now loading fonts');
               resolve();
             } else {
               waited += interval;
 
               if (waited >= maxTime) {
-                console.warn('[PDF RENDERER] ⚠️ Ready timeout - capturing anyway (fallback)');
+                console.warn('[PDF RENDERER] ⚠️ Ready timeout - proceeding with font loading (fallback)');
                 resolve();
               } else {
                 // Log status every 2 seconds
@@ -331,6 +328,16 @@ export class PDFRenderer {
 
           checkReady();
         });
+
+        // Now wait for fonts to load AFTER data is ready
+        console.log('[PDF RENDERER] Page ready - now waiting for fonts to load in iframe');
+        await Promise.all([
+          iframe.contentWindow.document.fonts.load('1em Syne'),
+          iframe.contentWindow.document.fonts.load('1em DM Sans'),
+          iframe.contentWindow.document.fonts.ready
+        ]);
+
+        console.log('[PDF RENDERER] ✅ Fonts loaded - proceeding with capture');
 
         // Capture iframe body
         const canvas = await html2canvas(iframeDoc.body, {

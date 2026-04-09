@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
@@ -245,6 +244,20 @@ export function AIVisibilityOverviewPage({ projectId }) {
 
 // ---- Page 21: LLM Citation Growth Forecast (insight-only page) ----
 export function LLMCitationForecastPage() {
+  React.useEffect(() => {
+    console.log('[LLM CITATION FORECAST] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('llm-citation-forecast', 'LLM Citation Forecast');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
+    }
+    console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{ width: 960, minHeight: 1280, background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 40px rgba(0,0,0,0.12)', margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>
       <PageHeader page={21} />

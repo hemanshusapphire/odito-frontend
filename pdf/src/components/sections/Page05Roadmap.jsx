@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, Badge, InsightBox } from '../layout';
 
 const rows = [
@@ -19,6 +19,20 @@ const effortMap = { Easy: 'pass', Medium: 'warn', Hard: 'fail' };
 const gainColors = { '+8 pts': '#10B981', '+6 pts': '#10B981', '+4 pts': '#10B981', '+15 pts': '#10B981', '+5 pts': '#10B981', '+2 pts': '#10B981', '+10 pts': '#10B981' };
 
 export default function PriorityRoadmapPage() {
+  useEffect(() => {
+    console.log('[PRIORITY ROADMAP] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('priority-roadmap', 'Priority Roadmap');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('priority-roadmap', true, 'Priority Roadmap');
+    }
+    console.log('[PRIORITY ROADMAP] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{
       width: 960, minHeight: 1280, background: '#fff', display: 'flex',

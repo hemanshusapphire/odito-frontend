@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 
 export default function KnowledgeGraphPage() {
+  useEffect(() => {
+    console.log('[KNOWLEDGE GRAPH] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('knowledge-graph', 'Knowledge Graph');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('knowledge-graph', true, 'Knowledge Graph');
+    }
+    console.log('[KNOWLEDGE GRAPH] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const entities = [
     { name: 'SEO Audit', status: 'Linked', pages: 3, action: 'No action needed' },
     { name: 'Technical SEO', status: 'Linked', pages: 5, action: 'No action needed' },

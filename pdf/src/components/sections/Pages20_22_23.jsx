@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
@@ -40,6 +39,20 @@ const getPDFPageData = async (projectId, page) => {
 
 // ---- Page 20: LLM Visibility Analysis ----
 export function LLMVisibilityPage() {
+  React.useEffect(() => {
+    console.log('[LLM VISIBILITY] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('llm-visibility', 'LLM Visibility');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
+    }
+    console.log('[LLM VISIBILITY] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const platforms = [
     { name: 'ChatGPT', pct: 18, color: '#10B981', gap: '25% gap' },
     { name: 'Perplexity', pct: 12, color: '#10B981', gap: '31% gap' },
@@ -302,6 +315,20 @@ export function AIContentReadinessPage({ projectId }) {
 
 // ---- Page 23: AI Content Strategy (insight only page) ----
 export function AIContentStrategyPage() {
+  React.useEffect(() => {
+    console.log('[AI CONTENT STRATEGY] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('ai-content-strategy', 'AI Content Strategy');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
+    }
+    console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{
       width: 960, minHeight: 1280, background: '#fff', display: 'flex',

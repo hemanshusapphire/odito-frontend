@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import apiService from '../../../../lib/apiService.js';
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Page 16: Keyword Ranking Analysis ----
 export function KeywordRankingPage({ projectId }) {
@@ -167,6 +166,20 @@ export function KeywordRankingPage({ projectId }) {
 
 // ---- Page 17: Keyword Opportunity Analysis ----
 export function KeywordOpportunityPage() {
+  React.useEffect(() => {
+    console.log('[KEYWORD OPPORTUNITY] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('keyword-opportunity', 'Keyword Opportunity');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('keyword-opportunity', true, 'Keyword Opportunity');
+    }
+    console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const opportunities = [
     { kw: 'seo audit software', vol: '4,400', pos: '#11', gap: '1 positions', clicks: '+120/mo' },
     { kw: 'technical seo checker', vol: '3,200', pos: '#14', gap: '4 positions', clicks: '+274/mo' },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader } from '../layout';
 
 const features = [
@@ -11,6 +11,20 @@ const features = [
 ];
 
 export default function AboutOditoPage() {
+  useEffect(() => {
+    console.log('[ABOUT ODITO] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('about-odito', 'About Odito');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('about-odito', true, 'About Odito');
+    }
+    console.log('[ABOUT ODITO] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{
       width: 960, minHeight: 1280, background: '#fff', display: 'flex',

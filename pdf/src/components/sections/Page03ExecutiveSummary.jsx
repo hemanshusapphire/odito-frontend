@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from '@/lib/apiConfig';
-import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 function DonutChart({ value, max = 100, color, size = 100 }) {
   const r = 38;

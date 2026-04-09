@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, Badge } from '../layout';
 
 const actions = [
@@ -32,6 +32,20 @@ const effortMap = { Easy: 'pass', Medium: 'warn', Hard: 'fail' };
 const priorityColors = { P1: '#EF4444', P2: '#F59E0B', P3: '#F59E0B', P4: '#F59E0B', P5: '#F59E0B', P6: '#10B981' };
 
 export default function AIOptimisationPage() {
+  useEffect(() => {
+    console.log('[AI OPTIMISATION] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('ai-optimisation', 'AI Optimisation');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('ai-optimisation', true, 'AI Optimisation');
+    }
+    console.log('[AI OPTIMISATION] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{ width: 960, minHeight: 1280, background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 40px rgba(0,0,0,0.12)', margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>
       <PageHeader page={26} />

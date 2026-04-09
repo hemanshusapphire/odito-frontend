@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 
 const weeks = [
@@ -41,6 +41,20 @@ const weeks = [
 ];
 
 export default function ActionPlanPage() {
+  useEffect(() => {
+    console.log('[ACTION PLAN] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('action-plan', 'Action Plan');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('action-plan', true, 'Action Plan');
+    }
+    console.log('[ACTION PLAN] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{
       width: 960, minHeight: 1280, background: '#fff', display: 'flex',

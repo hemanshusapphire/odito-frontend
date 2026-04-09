@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter } from '../layout';
 
 export default function SectionDividerPage({ pageNum, sectionNum, title, subtitle }) {
+  useEffect(() => {
+    console.log('[SECTION DIVIDER] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('section-divider', 'Section Divider');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('section-divider', true, 'Section Divider');
+    }
+    console.log('[SECTION DIVIDER] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   return (
     <div style={{
       width: 960, minHeight: 1280, background: '#fff', display: 'flex',

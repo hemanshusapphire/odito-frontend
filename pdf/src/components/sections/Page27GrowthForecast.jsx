@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 
 const forecastData = [
@@ -16,6 +16,20 @@ const milestones = [
 ];
 
 export default function AIGrowthForecastPage() {
+  useEffect(() => {
+    console.log('[AI GROWTH FORECAST] Component mounted - registering with ready system');
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('ai-growth-forecast', 'AI Growth Forecast');
+    }
+    
+    // This component doesn't fetch data, so mark as ready immediately
+    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+      window.__PDF_SET_READY__('ai-growth-forecast', true, 'AI Growth Forecast');
+    }
+    console.log('[AI GROWTH FORECAST] PDF READY - Component marked as ready (no data to fetch)');
+  }, []);
   const maxVal = 100;
   const chartH = 160;
 
