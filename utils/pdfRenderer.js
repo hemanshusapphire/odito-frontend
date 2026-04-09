@@ -14,20 +14,39 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
   <title>Odito AI Report - Page ${pageIndex + 1}</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
   
-  <!-- Global PDF Ready System -->
+  <!-- Unified PDF Ready System -->
   <script>
+    /**
+     * Global PDF Ready Signal System
+     * 
+     * Solves the race condition between React data fetching and PDF screenshot capture.
+     * 
+     * Usage:
+     * 1. Each PDF component calls window.__PDF_REGISTER_COMPONENT__(componentId) when mounting
+     * 2. Components call window.__PDF_SET_READY__(componentId, true) when data is loaded
+     * 3. Renderer waits for window.__PDF_ALL_READY__ to be true
+     * 4. System tracks all components and provides comprehensive logging
+     */
     (function() {
       'use strict';
-      
+
+      // Global state
       const PDF_READY_STATE = {
         components: new Map(),
         isReady: false,
         debugMode: true,
         startTime: Date.now()
       };
-      
+
+      // Initialize global window object
       window.__PDF_READY_STATE__ = PDF_READY_STATE;
       
+      /**
+       * Set component ready status
+       * @param {string} componentId - Unique component identifier
+       * @param {boolean} ready - Ready status
+       * @param {string} componentName - Human readable name (optional)
+       */
       window.__PDF_SET_READY__ = function(componentId, ready, componentName = componentId) {
         const timestamp = Date.now() - PDF_READY_STATE.startTime;
         
@@ -44,9 +63,15 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
           console.log('[PDF READY] ❌ ' + componentName + ' removed');
         }
         
+        // Check if all registered components are ready
         checkAllReady();
       };
-      
+
+      /**
+       * Register component (marks as pending)
+       * @param {string} componentId - Unique component identifier
+       * @param {string} componentName - Human readable name (optional)
+       */
       window.__PDF_REGISTER_COMPONENT__ = function(componentId, componentName = componentId) {
         PDF_READY_STATE.components.set(componentId, {
           name: componentName,
@@ -56,7 +81,10 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
         
         console.log('[PDF READY] 📝 ' + componentName + ' registered');
       };
-      
+
+      /**
+       * Get current ready status
+       */
       window.__PDF_GET_STATUS__ = function() {
         const components = Array.from(PDF_READY_STATE.components.entries()).map(function(entry) {
           return { id: entry[0], name: entry[1].name, ready: entry[1].ready, timestamp: entry[1].timestamp };
@@ -73,18 +101,25 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
           timestamp: Date.now() - PDF_READY_STATE.startTime
         };
       };
-      
+
+      /**
+       * Reset the ready state (for new PDF generation)
+       */
       window.__PDF_RESET_READY__ = function() {
         PDF_READY_STATE.components.clear();
         PDF_READY_STATE.isReady = false;
         PDF_READY_STATE.startTime = Date.now();
         console.log('[PDF READY] 🔄 Reset - Ready for new PDF generation');
       };
-      
+
+      /**
+       * Check if all components are ready
+       */
       function checkAllReady() {
         const components = Array.from(PDF_READY_STATE.components.values());
         
         if (components.length === 0) {
+          // No components registered - consider ready
           PDF_READY_STATE.isReady = true;
           window.__PDF_ALL_READY__ = true;
           console.log('[PDF READY] 🎉 No components to wait for - READY');
@@ -100,18 +135,22 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
           const timestamp = Date.now() - PDF_READY_STATE.startTime;
           console.log('[PDF READY] 🎉 ALL COMPONENTS READY - PDF can be generated (' + timestamp + 'ms)');
           
+          // Log component timing
           components.forEach(function(comp) {
             console.log('[PDF READY] ⏱️  ' + comp.name + ': ' + comp.timestamp + 'ms');
           });
         } else if (!allReady && PDF_READY_STATE.isReady) {
+          // Should not happen, but handle it
           PDF_READY_STATE.isReady = false;
           window.__PDF_ALL_READY__ = false;
           console.log('[PDF READY] ⚠️ Ready state changed to false');
         }
         
+        // Update global flag
         window.__PDF_ALL_READY__ = PDF_READY_STATE.isReady;
       }
-      
+
+      // Initialize
       window.__PDF_ALL_READY__ = false;
       console.log('[PDF READY] 🚀 Global PDF Ready System initialized');
     })();
@@ -255,11 +294,7 @@ export class PDFRenderer {
         // Get iframe document
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-        // Reset ready state for new page
-        if (iframe.contentWindow && iframe.contentWindow.__PDF_RESET_READY__) {
-          iframe.contentWindow.__PDF_RESET_READY__();
-        }
-
+        
         // Render React component to HTML string
         const tempContainer = document.createElement('div');
         tempContainer.style.width = '960px';
@@ -286,10 +321,8 @@ export class PDFRenderer {
         iframeDoc.write(PDF_HTML_TEMPLATE(pageContent, pageIndex));
         iframeDoc.close();
 
-        // Reset ready state for new page
-        if (iframe.contentWindow && iframe.contentWindow.__PDF_RESET_READY__) {
-          iframe.contentWindow.__PDF_RESET_READY__();
-        }
+        // Give PDF ready system time to initialize
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
         console.log('[PDF RENDERER] Waiting for page readiness BEFORE font loading...');
