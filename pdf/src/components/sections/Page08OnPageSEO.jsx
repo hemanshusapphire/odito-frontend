@@ -22,6 +22,67 @@ export default function OnPageSEOPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (pageData) {
+      console.log('[ON-PAGE SEO] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[ON-PAGE SEO] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[ON-PAGE SEO] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[ON-PAGE SEO] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('On-Page SEO');
+            console.log('[ON-PAGE SEO] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
+            console.log('[ON-PAGE SEO] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[ON-PAGE SEO] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[ON-PAGE SEO] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[ON-PAGE SEO] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [pageData]);
+
   useEffect(() => {
     console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
     
@@ -93,15 +154,7 @@ export default function OnPageSEOPage({ projectId }) {
 
         console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
-        
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
-            console.log('[ON-PAGE SEO] Component marked as ready via global system');
-          }
-          console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
         console.error('[ON-PAGE SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);

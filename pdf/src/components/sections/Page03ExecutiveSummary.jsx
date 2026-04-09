@@ -27,6 +27,67 @@ export default function ExecutiveSummaryPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (executiveData) {
+      console.log('[EXECUTIVE SUMMARY] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[EXECUTIVE SUMMARY] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[EXECUTIVE SUMMARY] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[EXECUTIVE SUMMARY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Executive Summary');
+            console.log('[EXECUTIVE SUMMARY] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
+            console.log('[EXECUTIVE SUMMARY] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[EXECUTIVE SUMMARY] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[EXECUTIVE SUMMARY] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [executiveData]);
+
   useEffect(() => {
     console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
     
@@ -40,32 +101,51 @@ export default function ExecutiveSummaryPage({ projectId }) {
     }
 
     const fetchExecutiveData = async () => {
+      let timeoutId;
       try {
+        setLoading(true);
         console.log('[EXECUTIVE SUMMARY] DATA FETCH START');
         
         // Set timeout to prevent infinite loading
-        const timeoutId = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           console.warn('[EXECUTIVE SUMMARY] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
           
-          // Mark as ready to prevent PDF generation hanging
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('executive-summary', true, 'Executive Summary (Timeout)');
-          }
+          // Mark component as ready to prevent PDF generation hanging
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+              window.__PDF_SET_READY__('executive-summary', true, 'Executive Summary (Timeout)');
+            }
+          }, 200);
         }, 25000); // 25 second timeout
+        
+        const token = localStorage.getItem('token');
+        console.log('[EXECUTIVE SUMMARY] Token from localStorage:', token ? 'Present' : 'Missing');
+        
+        if (!token) {
+          console.error('[EXECUTIVE SUMMARY] No authentication token found');
+          clearTimeout(timeoutId);
+          setError('Authentication required - please login again');
+          setLoading(false);
+          return;
+        }
         
         const response = await fetch(`${API_BASE_URL}/pdf/${projectId}/executive`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
 
+        console.log('[EXECUTIVE SUMMARY] Response status:', response.status);
+
         if (!response.ok) {
           clearTimeout(timeoutId);
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[EXECUTIVE SUMMARY] API Error:', errorData);
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
@@ -80,36 +160,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
 
         console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
-        
-        // Mark component as ready using parent window system
-        setTimeout(() => {
-          console.log('[EXECUTIVE SUMMARY] Marking component as ready after data fetch...');
-          
-          // Helper to get correct PDF window (parent for iframe context)
-          const getPDFWindow = () => {
-            return window.parent && window.parent !== window ? window.parent : window;
-          };
-          
-          const markReady = () => {
-            const pdfWindow = getPDFWindow();
-            
-            // Debug: Check system availability
-            console.log('[EXECUTIVE SUMMARY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-            
-            if (pdfWindow.__PDF_READY__) {
-              pdfWindow.__PDF_READY__.markReady('Executive Summary');
-              console.log('[EXECUTIVE SUMMARY] ✅ Marked ready in parent system');
-            } else if (pdfWindow.__PDF_SET_READY__) {
-              pdfWindow.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
-              console.log('[EXECUTIVE SUMMARY] ✅ Marked ready via legacy system');
-            } else {
-              console.error('[EXECUTIVE SUMMARY] ❌ PDF system not found in parent');
-            }
-          };
-          
-          markReady();
-          console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches executiveData
         
       } catch (err) {
         console.error('[EXECUTIVE SUMMARY] Error fetching executive summary data:', err);

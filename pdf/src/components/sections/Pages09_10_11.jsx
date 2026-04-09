@@ -11,6 +11,67 @@ export function StructuredDataPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (pageData) {
+      console.log('[STRUCTURED DATA] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[STRUCTURED DATA] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[STRUCTURED DATA] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[STRUCTURED DATA] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Structured Data');
+            console.log('[STRUCTURED DATA] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('structured-data', true, 'Structured Data');
+            console.log('[STRUCTURED DATA] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[STRUCTURED DATA] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[STRUCTURED DATA] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[STRUCTURED DATA] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [pageData]);
+
   useEffect(() => {
     console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
     
@@ -82,15 +143,7 @@ export function StructuredDataPage({ projectId }) {
 
         console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
-        
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('structured-data', true, 'Structured Data');
-            console.log('[STRUCTURED DATA] Component marked as ready via global system');
-          }
-          console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
         console.error('[STRUCTURED DATA] Error fetching page data:', err);
         clearTimeout(timeoutId);
@@ -281,6 +334,67 @@ export function TechnicalSEOPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (pageData) {
+      console.log('[TECHNICAL SEO] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[TECHNICAL SEO] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[TECHNICAL SEO] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[TECHNICAL SEO] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Technical SEO');
+            console.log('[TECHNICAL SEO] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
+            console.log('[TECHNICAL SEO] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[TECHNICAL SEO] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[TECHNICAL SEO] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[TECHNICAL SEO] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [pageData]);
+
   useEffect(() => {
     console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
     
@@ -352,15 +466,7 @@ export function TechnicalSEOPage({ projectId }) {
 
         console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
-        
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
-            console.log('[TECHNICAL SEO] Component marked as ready via global system');
-          }
-          console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
         console.error('[TECHNICAL SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);
@@ -468,6 +574,67 @@ export function CrawlabilityPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (pageData) {
+      console.log('[CRAWLABILITY] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[CRAWLABILITY] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[CRAWLABILITY] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[CRAWLABILITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Crawlability');
+            console.log('[CRAWLABILITY] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('crawlability', true, 'Crawlability');
+            console.log('[CRAWLABILITY] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[CRAWLABILITY] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[CRAWLABILITY] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[CRAWLABILITY] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [pageData]);
+
   useEffect(() => {
     console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
     
@@ -527,8 +694,6 @@ export function CrawlabilityPage({ projectId }) {
 
         const result = await response.json();
         
-        console.log('[CRAWLABILITY] API response:', result);
-        
         if (!result.success) {
           clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch page data');
@@ -539,15 +704,7 @@ export function CrawlabilityPage({ projectId }) {
 
         console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
-        
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('crawlability', true, 'Crawlability');
-            console.log('[CRAWLABILITY] Component marked as ready via global system');
-          }
-          console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
         console.error('[CRAWLABILITY] Error fetching page data:', err);
         clearTimeout(timeoutId);

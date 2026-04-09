@@ -79,6 +79,67 @@ export function CoreWebVitalsPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (data) {
+      console.log('[CORE WEB VITALS] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[CORE WEB VITALS] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[CORE WEB VITALS] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[CORE WEB VITALS] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Core Web Vitals');
+            console.log('[CORE WEB VITALS] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
+            console.log('[CORE WEB VITALS] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[CORE WEB VITALS] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[CORE WEB VITALS] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[CORE WEB VITALS] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [data]);
+
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
     console.log('[CORE WEB VITALS] Component registration handled by inline system');
@@ -129,15 +190,7 @@ export function CoreWebVitalsPage({ projectId }) {
         clearTimeout(timeoutId);
         
         setData(result.data);
-        
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
-            console.log('[CORE WEB VITALS] Component marked as ready via global system');
-          }
-          console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches data
       } catch (err) {
         console.error('Failed to fetch performance data:', err);
         clearTimeout(timeoutId);
@@ -370,10 +423,42 @@ export function PerformanceOpportunitiesPage() {
     // Component registration is now handled inline by the PDF renderer
     console.log('[PERFORMANCE OPPORTUNITIES] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    const waitForRenderComplete = async () => {
+      // Double requestAnimationFrame for proper render timing
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Helper to get correct PDF window (parent for iframe context)
+      const getPDFWindow = () => {
+        return window.parent && window.parent !== window ? window.parent : window;
+      };
+      
+      const markReady = () => {
+        const pdfWindow = getPDFWindow();
+        
+        // Debug: Check system availability
+        console.log('[PERFORMANCE OPPORTUNITIES] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.markReady('Performance Opportunities');
+          console.log('[PERFORMANCE OPPORTUNITIES] ✅ Marked ready in parent system');
+        } else if (pdfWindow.__PDF_SET_READY__) {
+          pdfWindow.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
+          console.log('[PERFORMANCE OPPORTUNITIES] ✅ Marked ready via legacy system');
+        } else {
+          console.error('[PERFORMANCE OPPORTUNITIES] ❌ PDF system not found in parent');
+          // Retry mechanism - system might still be initializing
+          console.log('[PERFORMANCE OPPORTUNITIES] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready after DOM render');
+    };
+    
+    waitForRenderComplete();
     console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const opps = [

@@ -26,6 +26,67 @@ export default function CoverPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (coverData) {
+      console.log('[COVER PAGE] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[COVER PAGE] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[COVER PAGE] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[COVER PAGE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Cover Page');
+            console.log('[COVER PAGE] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('cover-page', true, 'Cover Page');
+            console.log('[COVER PAGE] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[COVER PAGE] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[COVER PAGE] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[COVER PAGE] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [coverData]);
+
   useEffect(() => {
     console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
     
@@ -99,36 +160,7 @@ export default function CoverPage({ projectId }) {
         
         console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
-        
-        // Mark component as ready using parent window system
-        setTimeout(() => {
-          console.log('[COVER PAGE] Marking component as ready after data fetch...');
-          
-          // Helper to get correct PDF window (parent for iframe context)
-          const getPDFWindow = () => {
-            return window.parent && window.parent !== window ? window.parent : window;
-          };
-          
-          const markReady = () => {
-            const pdfWindow = getPDFWindow();
-            
-            // Debug: Check system availability
-            console.log('[COVER PAGE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-            
-            if (pdfWindow.__PDF_READY__) {
-              pdfWindow.__PDF_READY__.markReady('Cover Page');
-              console.log('[COVER PAGE] ✅ Marked ready in parent system');
-            } else if (pdfWindow.__PDF_SET_READY__) {
-              pdfWindow.__PDF_SET_READY__('cover-page', true, 'Cover Page');
-              console.log('[COVER PAGE] ✅ Marked ready via legacy system');
-            } else {
-              console.error('[COVER PAGE] ❌ PDF system not found in parent');
-            }
-          };
-          
-          markReady();
-          console.log('[COVER PAGE] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
+        // NOTE: markReady is now called in the useEffect that watches coverData
         
       } catch (err) {
         console.error('[COVER PAGE] Error fetching cover page data:', err);

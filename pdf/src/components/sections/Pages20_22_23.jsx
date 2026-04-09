@@ -42,15 +42,45 @@ export function LLMVisibilityPage() {
   React.useEffect(() => {
     console.log('[LLM VISIBILITY] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('llm-visibility', 'LLM Visibility');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[LLM VISIBILITY] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    const waitForRenderComplete = async () => {
+      // Double requestAnimationFrame for proper render timing
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Helper to get correct PDF window (parent for iframe context)
+      const getPDFWindow = () => {
+        return window.parent && window.parent !== window ? window.parent : window;
+      };
+      
+      const markReady = () => {
+        const pdfWindow = getPDFWindow();
+        
+        // Debug: Check system availability
+        console.log('[LLM VISIBILITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.markReady('LLM Visibility');
+          console.log('[LLM VISIBILITY] ✅ Marked ready in parent system');
+        } else if (pdfWindow.__PDF_SET_READY__) {
+          pdfWindow.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
+          console.log('[LLM VISIBILITY] ✅ Marked ready via legacy system');
+        } else {
+          console.error('[LLM VISIBILITY] ❌ PDF system not found in parent');
+          // Retry mechanism - system might still be initializing
+          console.log('[LLM VISIBILITY] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[LLM VISIBILITY] PDF READY - Component marked as ready after DOM render');
+    };
+    
+    waitForRenderComplete();
     console.log('[LLM VISIBILITY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const platforms = [
@@ -148,6 +178,67 @@ export function AIContentReadinessPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (data) {
+      console.log('[AI CONTENT READINESS] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[AI CONTENT READINESS] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[AI CONTENT READINESS] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[AI CONTENT READINESS] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('AI Content Readiness');
+            console.log('[AI CONTENT READINESS] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
+            console.log('[AI CONTENT READINESS] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[AI CONTENT READINESS] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[AI CONTENT READINESS] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [data]);
+
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
     console.log('[AI CONTENT READINESS] Component registration handled by inline system');
@@ -186,15 +277,7 @@ export function AIContentReadinessPage({ projectId }) {
           clearTimeout(timeoutId);
           
           setData(response.data);
-          
-          // Mark component as ready using global system (inline system already registered it)
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-              window.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
-              console.log('[AI CONTENT READINESS] Component marked as ready via global system');
-            }
-            console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
-          }, 100); // 100ms delay
+          // NOTE: markReady is now called in the useEffect that watches data
         } else {
           clearTimeout(timeoutId);
           console.error('AIContentReadinessPage: Invalid response structure:', response);
@@ -339,15 +422,46 @@ export function AIContentStrategyPage() {
   React.useEffect(() => {
     console.log('[AI CONTENT STRATEGY] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('ai-content-strategy', 'AI Content Strategy');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[AI CONTENT STRATEGY] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    const waitForRenderComplete = async () => {
+      // Double requestAnimationFrame for proper render timing
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Helper to get correct PDF window (parent for iframe context)
+      const getPDFWindow = () => {
+        return window.parent && window.parent !== window ? window.parent : window;
+      };
+      
+      const markReady = () => {
+        const pdfWindow = getPDFWindow();
+        
+        // Debug: Check system availability
+        console.log('[AI CONTENT STRATEGY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.markReady('AI Content Strategy');
+          console.log('[AI CONTENT STRATEGY] ✅ Marked ready in parent system');
+        } else if (pdfWindow.__PDF_SET_READY__) {
+          pdfWindow.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
+          console.log('[AI CONTENT STRATEGY] ✅ Marked ready via legacy system');
+        } else {
+          console.error('[AI CONTENT STRATEGY] ❌ PDF system not found in parent');
+          // Retry mechanism - system might still be initializing
+          console.log('[AI CONTENT STRATEGY] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready after DOM render');
+    };
+    
+    waitForRenderComplete();
+    console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready (no data to fetch)');
     console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (

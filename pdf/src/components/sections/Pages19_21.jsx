@@ -44,6 +44,67 @@ export function AIVisibilityOverviewPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (pageData) {
+      console.log('[AI VISIBILITY OVERVIEW] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[AI VISIBILITY OVERVIEW] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[AI VISIBILITY OVERVIEW] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[AI VISIBILITY OVERVIEW] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('AI Visibility Overview');
+            console.log('[AI VISIBILITY OVERVIEW] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
+            console.log('[AI VISIBILITY OVERVIEW] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[AI VISIBILITY OVERVIEW] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[AI VISIBILITY OVERVIEW] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [pageData]);
+
   const concepts = [
     {
       tag: 'GEO', color: '#4F6EF7', bg: '#EEF2FF',
@@ -108,15 +169,7 @@ export function AIVisibilityOverviewPage({ projectId }) {
           clearTimeout(timeoutId);
           
           setPageData(response.data);
-          
-          // Mark component as ready using global system (inline system already registered it)
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-              window.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
-              console.log('[AI VISIBILITY OVERVIEW] Component marked as ready via global system');
-            }
-            console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
-          }, 100); // 100ms delay
+          // NOTE: markReady is now called in the useEffect that watches pageData
         } else {
           clearTimeout(timeoutId);
           console.error('Page19 - Invalid response structure:', response);
@@ -271,10 +324,43 @@ export function LLMCitationForecastPage() {
     // Component registration is now handled inline by the PDF renderer
     console.log('[LLM CITATION FORECAST] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    const waitForRenderComplete = async () => {
+      // Double requestAnimationFrame for proper render timing
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Helper to get correct PDF window (parent for iframe context)
+      const getPDFWindow = () => {
+        return window.parent && window.parent !== window ? window.parent : window;
+      };
+      
+      const markReady = () => {
+        const pdfWindow = getPDFWindow();
+        
+        // Debug: Check system availability
+        console.log('[LLM CITATION FORECAST] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.markReady('LLM Citation Forecast');
+          console.log('[LLM CITATION FORECAST] ✅ Marked ready in parent system');
+        } else if (pdfWindow.__PDF_SET_READY__) {
+          pdfWindow.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
+          console.log('[LLM CITATION FORECAST] ✅ Marked ready via legacy system');
+        } else {
+          console.error('[LLM CITATION FORECAST] ❌ PDF system not found in parent');
+          // Retry mechanism - system might still be initializing
+          console.log('[LLM CITATION FORECAST] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready after DOM render');
+    };
+    
+    waitForRenderComplete();
+    console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
     console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (

@@ -11,6 +11,67 @@ export function KeywordRankingPage({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (keywordData) {
+      console.log('[KEYWORD RANKING] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[KEYWORD RANKING] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[KEYWORD RANKING] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[KEYWORD RANKING] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('Keyword Ranking');
+            console.log('[KEYWORD RANKING] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
+            console.log('[KEYWORD RANKING] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[KEYWORD RANKING] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[KEYWORD RANKING] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[KEYWORD RANKING] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [keywordData]);
+
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
     console.log('[KEYWORD RANKING] Component registration handled by inline system');
@@ -43,15 +104,7 @@ export function KeywordRankingPage({ projectId }) {
           clearTimeout(timeoutId);
           
           setKeywordData(result.data);
-          
-          // Mark component as ready using global system (inline system already registered it)
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-              window.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
-              console.log('[KEYWORD RANKING] Component marked as ready via global system');
-            }
-            console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
-          }, 100); // 100ms delay
+          // NOTE: markReady is now called in the useEffect that watches keywordData
         } else {
           clearTimeout(timeoutId);
           setError(result.error?.message || 'Failed to load keyword data');
@@ -194,10 +247,43 @@ export function KeywordOpportunityPage() {
     // Component registration is now handled inline by the PDF renderer
     console.log('[KEYWORD OPPORTUNITY] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('keyword-opportunity', true, 'Keyword Opportunity');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    const waitForRenderComplete = async () => {
+      // Double requestAnimationFrame for proper render timing
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Helper to get correct PDF window (parent for iframe context)
+      const getPDFWindow = () => {
+        return window.parent && window.parent !== window ? window.parent : window;
+      };
+      
+      const markReady = () => {
+        const pdfWindow = getPDFWindow();
+        
+        // Debug: Check system availability
+        console.log('[KEYWORD OPPORTUNITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.markReady('Keyword Opportunity');
+          console.log('[KEYWORD OPPORTUNITY] ✅ Marked ready in parent system');
+        } else if (pdfWindow.__PDF_SET_READY__) {
+          pdfWindow.__PDF_SET_READY__('keyword-opportunity', true, 'Keyword Opportunity');
+          console.log('[KEYWORD OPPORTUNITY] ✅ Marked ready via legacy system');
+        } else {
+          console.error('[KEYWORD OPPORTUNITY] ❌ PDF system not found in parent');
+          // Retry mechanism - system might still be initializing
+          console.log('[KEYWORD OPPORTUNITY] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready after DOM render');
+    };
+    
+    waitForRenderComplete();
+    console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready (no data to fetch)');
     console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const opportunities = [

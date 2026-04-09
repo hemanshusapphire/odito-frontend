@@ -10,6 +10,67 @@ export default function Page06SEOHealth({ projectId }) {
   const [error, setError] = useState(null);
   const [timeoutReached, setTimeoutReached] = useState(false);
 
+  // Mark component as ready AFTER DOM render is complete
+  useEffect(() => {
+    if (coverData) {
+      console.log('[SEO HEALTH PAGE] Data available - waiting for DOM render to complete...');
+      
+      // Wait for DOM to fully render with data
+      const waitForRenderComplete = async () => {
+        // Double requestAnimationFrame for proper render timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Wait for images to load (if any)
+        const images = document.querySelectorAll("img");
+        if (images.length > 0) {
+          console.log('[SEO HEALTH PAGE] Waiting for images to load...');
+          await Promise.all(
+            Array.from(images).map(img =>
+              img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Handle broken images
+              })
+            )
+          );
+        }
+        
+        // Now mark as ready
+        console.log('[SEO HEALTH PAGE] DOM render complete - marking component as ready');
+        
+        // Helper to get correct PDF window (parent for iframe context)
+        const getPDFWindow = () => {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        const markReady = () => {
+          const pdfWindow = getPDFWindow();
+          
+          // Debug: Check system availability
+          console.log('[SEO HEALTH PAGE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+          
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('SEO Health');
+            console.log('[SEO HEALTH PAGE] ✅ Marked ready in parent system');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('seo-health', true, 'SEO Health');
+            console.log('[SEO HEALTH PAGE] ✅ Marked ready via legacy system');
+          } else {
+            console.error('[SEO HEALTH PAGE] ❌ PDF system not found in parent');
+            // Retry mechanism - system might still be initializing
+            console.log('[SEO HEALTH PAGE] 🔄 Retrying in 50ms...');
+            setTimeout(markReady, 50);
+          }
+        };
+        
+        markReady();
+        console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready after DOM render');
+      };
+      
+      waitForRenderComplete();
+    }
+  }, [coverData]);
+
   useEffect(() => {
     console.log('[SEO HEALTH PAGE] useEffect triggered with projectId:', projectId);
     
@@ -24,11 +85,12 @@ export default function Page06SEOHealth({ projectId }) {
     }
 
     const fetchCoverData = async () => {
+      let timeoutId;
       try {
         console.log('[SEO HEALTH PAGE] Fetching cover data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
-        const timeoutId = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           console.warn('[SEO HEALTH PAGE] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
@@ -69,11 +131,9 @@ export default function Page06SEOHealth({ projectId }) {
 
         const result = await response.json();
         
-        console.log('[SEO HEALTH PAGE] API response:', result);
-        
         if (!result.success) {
           clearTimeout(timeoutId);
-          throw new Error(result.error?.message || 'Failed to fetch cover data');
+          throw new Error(result.error?.message || 'Failed to fetch SEO health data');
         }
 
         // Clear timeout on successful response
@@ -81,15 +141,8 @@ export default function Page06SEOHealth({ projectId }) {
 
         console.log('[SEO HEALTH PAGE] Cover data loaded successfully:', result.data);
         setCoverData(result.data);
+        // NOTE: markReady is now called in the useEffect that watches coverData
         
-        // Mark component as ready using global system (inline system already registered it)
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('seo-health', true, 'SEO Health');
-            console.log('[SEO HEALTH PAGE] Component marked as ready via global system');
-          }
-          console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready');
-        }, 100); // 100ms delay
       } catch (err) {
         console.error('[SEO HEALTH PAGE] Error fetching cover page data:', err);
         clearTimeout(timeoutId);
