@@ -12,10 +12,8 @@ export function KeywordRankingPage({ projectId }) {
   const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('keyword-ranking', 'Keyword Ranking');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[KEYWORD RANKING] Component registration handled by inline system');
     
     if (!projectId) return;
     
@@ -46,11 +44,14 @@ export function KeywordRankingPage({ projectId }) {
           
           setKeywordData(result.data);
           
-          // Mark component as ready using global system
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
-          }
-          console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
+          // Mark component as ready using global system (inline system already registered it)
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+              window.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
+              console.log('[KEYWORD RANKING] Component marked as ready via global system');
+            }
+            console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
+          }, 100); // 100ms delay
         } else {
           clearTimeout(timeoutId);
           setError(result.error?.message || 'Failed to load keyword data');
@@ -190,10 +191,8 @@ export function KeywordOpportunityPage() {
   React.useEffect(() => {
     console.log('[KEYWORD OPPORTUNITY] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('keyword-opportunity', 'Keyword Opportunity');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[KEYWORD OPPORTUNITY] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready immediately
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {

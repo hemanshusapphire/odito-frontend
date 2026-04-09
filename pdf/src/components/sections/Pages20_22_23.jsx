@@ -149,10 +149,8 @@ export function AIContentReadinessPage({ projectId }) {
   const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('ai-content-readiness', 'AI Content Readiness');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[AI CONTENT READINESS] Component registration handled by inline system');
     
     const fetchPage22Data = async () => {
       if (!projectId) {
@@ -189,11 +187,14 @@ export function AIContentReadinessPage({ projectId }) {
           
           setData(response.data);
           
-          // Mark component as ready using global system
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
-          }
-          console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
+          // Mark component as ready using global system (inline system already registered it)
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+              window.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
+              console.log('[AI CONTENT READINESS] Component marked as ready via global system');
+            }
+            console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
+          }, 100); // 100ms delay
         } else {
           clearTimeout(timeoutId);
           console.error('AIContentReadinessPage: Invalid response structure:', response);

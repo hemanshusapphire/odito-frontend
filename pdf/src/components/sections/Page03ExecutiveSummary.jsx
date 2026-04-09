@@ -30,10 +30,8 @@ export default function ExecutiveSummaryPage({ projectId }) {
   useEffect(() => {
     console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('executive-summary', 'Executive Summary');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[EXECUTIVE SUMMARY] Component registration handled by inline system');
     
     if (!projectId) {
       setError('Project ID is required');
@@ -83,11 +81,35 @@ export default function ExecutiveSummaryPage({ projectId }) {
         console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
-        }
-        console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready');
+        // Mark component as ready using parent window system
+        setTimeout(() => {
+          console.log('[EXECUTIVE SUMMARY] Marking component as ready after data fetch...');
+          
+          // Helper to get correct PDF window (parent for iframe context)
+          const getPDFWindow = () => {
+            return window.parent && window.parent !== window ? window.parent : window;
+          };
+          
+          const markReady = () => {
+            const pdfWindow = getPDFWindow();
+            
+            // Debug: Check system availability
+            console.log('[EXECUTIVE SUMMARY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+            
+            if (pdfWindow.__PDF_READY__) {
+              pdfWindow.__PDF_READY__.markReady('Executive Summary');
+              console.log('[EXECUTIVE SUMMARY] ✅ Marked ready in parent system');
+            } else if (pdfWindow.__PDF_SET_READY__) {
+              pdfWindow.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
+              console.log('[EXECUTIVE SUMMARY] ✅ Marked ready via legacy system');
+            } else {
+              console.error('[EXECUTIVE SUMMARY] ❌ PDF system not found in parent');
+            }
+          };
+          
+          markReady();
+          console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
         
       } catch (err) {
         console.error('[EXECUTIVE SUMMARY] Error fetching executive summary data:', err);

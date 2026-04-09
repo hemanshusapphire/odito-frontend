@@ -13,10 +13,8 @@ export default function Page06SEOHealth({ projectId }) {
   useEffect(() => {
     console.log('[SEO HEALTH PAGE] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('seo-health', 'SEO Health');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[SEO HEALTH PAGE] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[SEO HEALTH PAGE] Project ID is missing or undefined');
@@ -84,11 +82,14 @@ export default function Page06SEOHealth({ projectId }) {
         console.log('[SEO HEALTH PAGE] Cover data loaded successfully:', result.data);
         setCoverData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('seo-health', true, 'SEO Health');
-        }
-        console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('seo-health', true, 'SEO Health');
+            console.log('[SEO HEALTH PAGE] Component marked as ready via global system');
+          }
+          console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('[SEO HEALTH PAGE] Error fetching cover page data:', err);
         clearTimeout(timeoutId);

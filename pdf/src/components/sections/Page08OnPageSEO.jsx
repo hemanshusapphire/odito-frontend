@@ -25,10 +25,8 @@ export default function OnPageSEOPage({ projectId }) {
   useEffect(() => {
     console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('onpage-seo', 'On-Page SEO');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[ON-PAGE SEO] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[ON-PAGE SEO] Project ID is missing or undefined');
@@ -96,11 +94,14 @@ export default function OnPageSEOPage({ projectId }) {
         console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
-        }
-        console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
+            console.log('[ON-PAGE SEO] Component marked as ready via global system');
+          }
+          console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('[ON-PAGE SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);

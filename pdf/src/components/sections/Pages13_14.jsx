@@ -80,10 +80,8 @@ export function CoreWebVitalsPage({ projectId }) {
   const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('core-web-vitals', 'Core Web Vitals');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[CORE WEB VITALS] Component registration handled by inline system');
     
     if (!projectId) {
       setLoading(false);
@@ -132,11 +130,14 @@ export function CoreWebVitalsPage({ projectId }) {
         
         setData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
-        }
-        console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
+            console.log('[CORE WEB VITALS] Component marked as ready via global system');
+          }
+          console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('Failed to fetch performance data:', err);
         clearTimeout(timeoutId);
@@ -366,10 +367,8 @@ export function PerformanceOpportunitiesPage() {
   React.useEffect(() => {
     console.log('[PERFORMANCE OPPORTUNITIES] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('performance-opportunities', 'Performance Opportunities');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[PERFORMANCE OPPORTUNITIES] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready immediately
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {

@@ -63,10 +63,8 @@ export function AIVisibilityOverviewPage({ projectId }) {
   ];
 
   useEffect(() => {
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('ai-visibility-overview', 'AI Visibility Overview');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[AI VISIBILITY OVERVIEW] Component registration handled by inline system');
     
     const fetchPageData = async () => {
       if (!projectId) {
@@ -111,11 +109,14 @@ export function AIVisibilityOverviewPage({ projectId }) {
           
           setPageData(response.data);
           
-          // Mark component as ready using global system
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
-          }
-          console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
+          // Mark component as ready using global system (inline system already registered it)
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+              window.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
+              console.log('[AI VISIBILITY OVERVIEW] Component marked as ready via global system');
+            }
+            console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
+          }, 100); // 100ms delay
         } else {
           clearTimeout(timeoutId);
           console.error('Page19 - Invalid response structure:', response);
@@ -267,10 +268,8 @@ export function LLMCitationForecastPage() {
   React.useEffect(() => {
     console.log('[LLM CITATION FORECAST] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('llm-citation-forecast', 'LLM Citation Forecast');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[LLM CITATION FORECAST] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready immediately
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {

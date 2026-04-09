@@ -14,10 +14,8 @@ export function StructuredDataPage({ projectId }) {
   useEffect(() => {
     console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('structured-data', 'Structured Data');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[STRUCTURED DATA] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[STRUCTURED DATA] Project ID is missing or undefined');
@@ -85,11 +83,14 @@ export function StructuredDataPage({ projectId }) {
         console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('structured-data', true, 'Structured Data');
-        }
-        console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('structured-data', true, 'Structured Data');
+            console.log('[STRUCTURED DATA] Component marked as ready via global system');
+          }
+          console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('[STRUCTURED DATA] Error fetching page data:', err);
         clearTimeout(timeoutId);
@@ -283,10 +284,8 @@ export function TechnicalSEOPage({ projectId }) {
   useEffect(() => {
     console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('technical-seo', 'Technical SEO');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[TECHNICAL SEO] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[TECHNICAL SEO] Project ID is missing or undefined');
@@ -354,11 +353,14 @@ export function TechnicalSEOPage({ projectId }) {
         console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
-        }
-        console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
+            console.log('[TECHNICAL SEO] Component marked as ready via global system');
+          }
+          console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('[TECHNICAL SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);
@@ -469,10 +471,8 @@ export function CrawlabilityPage({ projectId }) {
   useEffect(() => {
     console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('crawlability', 'Crawlability');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[CRAWLABILITY] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[CRAWLABILITY] Project ID is missing or undefined');
@@ -540,11 +540,14 @@ export function CrawlabilityPage({ projectId }) {
         console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('crawlability', true, 'Crawlability');
-        }
-        console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
+        // Mark component as ready using global system (inline system already registered it)
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('crawlability', true, 'Crawlability');
+            console.log('[CRAWLABILITY] Component marked as ready via global system');
+          }
+          console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
       } catch (err) {
         console.error('[CRAWLABILITY] Error fetching page data:', err);
         clearTimeout(timeoutId);

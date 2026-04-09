@@ -14,145 +14,106 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
   <title>Odito AI Report - Page ${pageIndex + 1}</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
   
-  <!-- Unified PDF Ready System -->
+  <!-- PDF Ready System - Initialize in PARENT window -->
   <script>
     /**
      * Global PDF Ready Signal System
      * 
-     * Solves the race condition between React data fetching and PDF screenshot capture.
-     * 
-     * Usage:
-     * 1. Each PDF component calls window.__PDF_REGISTER_COMPONENT__(componentId) when mounting
-     * 2. Components call window.__PDF_SET_READY__(componentId, true) when data is loaded
-     * 3. Renderer waits for window.__PDF_ALL_READY__ to be true
-     * 4. System tracks all components and provides comprehensive logging
+     * CRITICAL: Initialize in PARENT window, not iframe!
+     * Components and renderer expect it in parent context.
      */
     (function() {
       'use strict';
 
-      // Global state
-      const PDF_READY_STATE = {
-        components: new Map(),
-        isReady: false,
-        debugMode: true,
-        startTime: Date.now()
-      };
-
-      // Initialize global window object
-      window.__PDF_READY_STATE__ = PDF_READY_STATE;
+      // Determine target window (parent for iframe, current for standalone)
+      const targetWindow = window.parent && window.parent !== window ? window.parent : window;
       
-      /**
-       * Set component ready status
-       * @param {string} componentId - Unique component identifier
-       * @param {boolean} ready - Ready status
-       * @param {string} componentName - Human readable name (optional)
-       */
-      window.__PDF_SET_READY__ = function(componentId, ready, componentName = componentId) {
-        const timestamp = Date.now() - PDF_READY_STATE.startTime;
-        
-        if (ready) {
-          PDF_READY_STATE.components.set(componentId, {
-            name: componentName,
-            ready: true,
-            timestamp: timestamp
-          });
-          
-          console.log('[PDF READY] ✅ ' + componentName + ' ready (' + timestamp + 'ms)');
-        } else {
-          PDF_READY_STATE.components.delete(componentId);
-          console.log('[PDF READY] ❌ ' + componentName + ' removed');
-        }
-        
-        // Check if all registered components are ready
-        checkAllReady();
-      };
-
-      /**
-       * Register component (marks as pending)
-       * @param {string} componentId - Unique component identifier
-       * @param {string} componentName - Human readable name (optional)
-       */
-      window.__PDF_REGISTER_COMPONENT__ = function(componentId, componentName = componentId) {
-        PDF_READY_STATE.components.set(componentId, {
-          name: componentName,
-          ready: false,
-          timestamp: 0
-        });
-        
-        console.log('[PDF READY] 📝 ' + componentName + ' registered');
-      };
-
-      /**
-       * Get current ready status
-       */
-      window.__PDF_GET_STATUS__ = function() {
-        const components = Array.from(PDF_READY_STATE.components.entries()).map(function(entry) {
-          return { id: entry[0], name: entry[1].name, ready: entry[1].ready, timestamp: entry[1].timestamp };
-        });
-        
-        const readyCount = components.filter(function(c) { return c.ready; }).length;
-        const totalCount = components.length;
-        
-        return {
-          allReady: PDF_READY_STATE.isReady,
-          readyCount: readyCount,
-          totalCount: totalCount,
-          components: components,
-          timestamp: Date.now() - PDF_READY_STATE.startTime
-        };
-      };
-
-      /**
-       * Reset the ready state (for new PDF generation)
-       */
-      window.__PDF_RESET_READY__ = function() {
-        PDF_READY_STATE.components.clear();
-        PDF_READY_STATE.isReady = false;
-        PDF_READY_STATE.startTime = Date.now();
-        console.log('[PDF READY] 🔄 Reset - Ready for new PDF generation');
-      };
-
-      /**
-       * Check if all components are ready
-       */
-      function checkAllReady() {
-        const components = Array.from(PDF_READY_STATE.components.values());
-        
-        if (components.length === 0) {
-          // No components registered - consider ready
-          PDF_READY_STATE.isReady = true;
-          window.__PDF_ALL_READY__ = true;
-          console.log('[PDF READY] 🎉 No components to wait for - READY');
-          return;
-        }
-        
-        const allReady = components.every(function(comp) { return comp.ready === true; });
-        
-        if (allReady && !PDF_READY_STATE.isReady) {
-          PDF_READY_STATE.isReady = true;
-          window.__PDF_ALL_READY__ = true;
-          
-          const timestamp = Date.now() - PDF_READY_STATE.startTime;
-          console.log('[PDF READY] 🎉 ALL COMPONENTS READY - PDF can be generated (' + timestamp + 'ms)');
-          
-          // Log component timing
-          components.forEach(function(comp) {
-            console.log('[PDF READY] ⏱️  ' + comp.name + ': ' + comp.timestamp + 'ms');
-          });
-        } else if (!allReady && PDF_READY_STATE.isReady) {
-          // Should not happen, but handle it
-          PDF_READY_STATE.isReady = false;
-          window.__PDF_ALL_READY__ = false;
-          console.log('[PDF READY] ⚠️ Ready state changed to false');
-        }
-        
-        // Update global flag
-        window.__PDF_ALL_READY__ = PDF_READY_STATE.isReady;
+      // Only initialize once
+      if (targetWindow.__PDF_READY__) {
+        console.log('[PDF READY] 🔄 System already exists in target window');
+        return;
       }
 
-      // Initialize
-      window.__PDF_ALL_READY__ = false;
-      console.log('[PDF READY] 🚀 Global PDF Ready System initialized');
+      // Initialize PDF Ready System in target window
+      targetWindow.__PDF_READY__ = {
+        components: {},
+        
+        register: function(name) {
+          if (!this.components[name]) {
+            this.components[name] = { ready: false };
+          }
+          console.log('[PDF READY] 📝 ' + name + ' registered');
+        },
+        
+        markReady: function(name) {
+          if (!this.components[name]) {
+            this.components[name] = {};
+          }
+          this.components[name].ready = true;
+          console.log('[PDF READY] ✅ ' + name + ' marked ready');
+          
+          // Check if all components are ready
+          if (this.isAllReady()) {
+            console.log('[PDF READY] 🎉 ALL COMPONENTS READY - PDF can be generated');
+            targetWindow.__PDF_ALL_READY__ = true;
+          }
+        },
+        
+        isAllReady: function() {
+          return Object.values(this.components).every(c => c.ready);
+        },
+        
+        getStatus: function() {
+          const componentList = Object.entries(this.components).map(([id, comp]) => ({
+            id: id,
+            name: id,
+            ready: comp.ready
+          }));
+          
+          const readyCount = componentList.filter(c => c.ready).length;
+          const totalCount = componentList.length;
+          
+          return {
+            allReady: this.isAllReady(),
+            readyCount: readyCount,
+            totalCount: totalCount,
+            components: componentList
+          };
+        },
+        
+        reset: function() {
+          this.components = {};
+          targetWindow.__PDF_ALL_READY__ = false;
+          console.log('[PDF READY] 🔄 Reset - Ready for new PDF generation');
+        }
+      };
+
+      // Initialize global flag
+      targetWindow.__PDF_ALL_READY__ = false;
+      
+      // Debug logs
+      console.log('[PDF READY] 🚀 Initialized in CORRECT window');
+      console.log('[PDF READY] 📍 iframe:', !!window.__PDF_READY__);
+      console.log('[PDF READY] 📍 parent:', !!window.parent.__PDF_READY__);
+      
+      // Legacy compatibility - expose old API
+      targetWindow.__PDF_REGISTER_COMPONENT__ = function(id, name) {
+        targetWindow.__PDF_READY__.register(name || id);
+      };
+      
+      targetWindow.__PDF_SET_READY__ = function(id, ready, name) {
+        if (ready) {
+          targetWindow.__PDF_READY__.markReady(name || id);
+        }
+      };
+      
+      targetWindow.__PDF_GET_STATUS__ = function() {
+        return targetWindow.__PDF_READY__.getStatus();
+      };
+      
+      targetWindow.__PDF_RESET_READY__ = function() {
+        targetWindow.__PDF_READY__.reset();
+      };
     })();
   </script>
   <style>
@@ -240,6 +201,96 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
 `;
 
 /**
+ * Add inline component registration and ready calls to HTML
+ */
+function addInlineComponentRegistration(pageContent, pageIndex) {
+  // Define component mappings based on page index
+  const componentMap = {
+    0: { id: 'cover-page', name: 'Cover Page' },
+    1: { id: 'section-divider-2', name: 'Section Divider - Executive Summary' },
+    2: { id: 'executive-summary', name: 'Executive Summary' },
+    3: { id: 'key-strengths', name: 'Key Strengths' },
+    4: { id: 'priority-roadmap', name: 'Priority Roadmap' },
+    5: { id: 'seo-health-overview', name: 'SEO Health Overview' },
+    6: { id: 'section-divider-7', name: 'Section Divider - SEO Audit' },
+    7: { id: 'on-page-seo', name: 'On Page SEO' },
+    8: { id: 'structured-data', name: 'Structured Data' },
+    9: { id: 'technical-seo', name: 'Technical SEO' },
+    10: { id: 'crawlability', name: 'Crawlability' },
+    11: { id: 'section-divider-12', name: 'Section Divider - Performance' },
+    12: { id: 'core-web-vitals', name: 'Core Web Vitals' },
+    13: { id: 'performance-opportunities', name: 'Performance Opportunities' },
+    14: { id: 'section-divider-15', name: 'Section Divider - Keywords' },
+    15: { id: 'keyword-ranking', name: 'Keyword Ranking' },
+    16: { id: 'keyword-opportunity', name: 'Keyword Opportunity' },
+    17: { id: 'section-divider-18', name: 'Section Divider - AI Visibility' },
+    18: { id: 'ai-visibility-overview', name: 'AI Visibility Overview' },
+    19: { id: 'llm-visibility', name: 'LLM Visibility' },
+    20: { id: 'llm-citation-forecast', name: 'LLM Citation Forecast' },
+    21: { id: 'ai-content-readiness', name: 'AI Content Readiness' },
+    22: { id: 'ai-content-strategy', name: 'AI Content Strategy' },
+    23: { id: 'knowledge-graph', name: 'Knowledge Graph' },
+    24: { id: 'section-divider-25', name: 'Section Divider - Action Plan' },
+    25: { id: 'ai-optimisation', name: 'AI Optimisation' },
+    26: { id: 'ai-growth-forecast', name: 'AI Growth Forecast' },
+    27: { id: 'action-plan', name: 'Action Plan' },
+    28: { id: 'audit-methodology', name: 'Audit Methodology' },
+    29: { id: 'about-odito', name: 'About Odito' }
+  };
+
+  const component = componentMap[pageIndex];
+  if (!component) {
+    console.warn(`[PDF RENDERER] No component mapping for page ${pageIndex}`);
+    return pageContent;
+  }
+
+  // Add inline registration and ready script at the beginning of the content
+  const inlineScript = `
+    <script>
+      (function() {
+        // Helper to get correct PDF window (parent for iframe context)
+        var getPDFWindow = function() {
+          return window.parent && window.parent !== window ? window.parent : window;
+        };
+        
+        var pdfWindow = getPDFWindow();
+        console.log('[PDF INLINE] Registering component: ${component.name} in parent window context');
+        
+        // Debug: Check if system exists
+        console.log('[PDF INLINE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+        
+        if (pdfWindow.__PDF_READY__) {
+          pdfWindow.__PDF_READY__.register('${component.name}');
+        } else if (pdfWindow.__PDF_REGISTER_COMPONENT__) {
+          pdfWindow.__PDF_REGISTER_COMPONENT__('${component.id}', '${component.name}');
+        } else {
+          console.error('[PDF INLINE] ❌ Registration function not available in parent window');
+        }
+        
+        // For pages that don't fetch data, mark as ready immediately
+        // For pages that fetch data, they'll call SET_READY when done
+        var needsDataFetch = ${pageIndex === 0 || pageIndex === 2 || pageIndex === 5 || pageIndex === 7 || pageIndex === 8 || pageIndex === 9 || pageIndex === 10 || pageIndex === 12 || pageIndex === 15 || pageIndex === 16 || pageIndex === 18 || pageIndex === 21 || pageIndex === 22 || pageIndex === 25 || pageIndex === 26 || pageIndex === 27 ? 'true' : 'false'};
+        
+        if (!needsDataFetch) {
+          console.log('[PDF INLINE] Marking component as ready (no data fetch needed): ${component.name}');
+          if (pdfWindow.__PDF_READY__) {
+            pdfWindow.__PDF_READY__.markReady('${component.name}');
+          } else if (pdfWindow.__PDF_SET_READY__) {
+            pdfWindow.__PDF_SET_READY__('${component.id}', true, '${component.name}');
+          } else {
+            console.error('[PDF INLINE] ❌ Ready function not available in parent window');
+          }
+        } else {
+          console.log('[PDF INLINE] Component will mark itself as ready after data fetch: ${component.name}');
+        }
+      })();
+    </script>
+  `;
+
+  return inlineScript + pageContent;
+}
+
+/**
  * Utility for rendering React components to PDF
  */
 export class PDFRenderer {
@@ -316,9 +367,10 @@ export class PDFRenderer {
         // Clean up React root
         root.unmount();
 
-        // Write full HTML to iframe
+        // Write full HTML to iframe with inline component registration
+        const pageWithRegistration = addInlineComponentRegistration(pageContent, pageIndex);
         iframeDoc.open();
-        iframeDoc.write(PDF_HTML_TEMPLATE(pageContent, pageIndex));
+        iframeDoc.write(PDF_HTML_TEMPLATE(pageWithRegistration, pageIndex));
         iframeDoc.close();
 
         // Give PDF ready system time to initialize
@@ -327,25 +379,30 @@ export class PDFRenderer {
         // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
         console.log('[PDF RENDERER] Waiting for page readiness BEFORE font loading...');
         
+        // Debug: Check window contexts
+        console.log('[PDF RENDERER] 📍 iframe has __PDF_ALL_READY__:', !!iframe.contentWindow?.__PDF_ALL_READY__);
+        console.log('[PDF RENDERER] 📍 parent has __PDF_ALL_READY__:', !!window.__PDF_ALL_READY__);
+        
         await new Promise((resolve, reject) => {
           const maxTime = 30000;
           const start = Date.now();
 
           const checkReady = () => {
-            const isReady = iframe.contentWindow?.__PDF_ALL_READY__;
+            // Check parent window for ready state (NEW: system is in parent)
+            const isReady = window.__PDF_ALL_READY__;
 
             if (isReady === true) {
               console.log('[PDF RENDERER] ✅ Page ready detected - now loading fonts');
               resolve();
             } else if (Date.now() - start > maxTime) {
-              const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
+              const status = window.__PDF_GET_STATUS__?.();
               const statusStr = status ? ` (${status.readyCount}/${status.totalCount} components ready)` : '';
               reject(new Error(`PDF render timeout: data not ready after ${maxTime}ms${statusStr}`));
             } else {
               // Log status every 2 seconds
               const waited = Date.now() - start;
               if (waited % 2000 === 0) {
-                const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
+                const status = window.__PDF_GET_STATUS__?.();
                 if (status) {
                   console.log(`[PDF RENDERER] ⏳ Waiting... ${status.readyCount}/${status.totalCount} components ready (${waited}ms)`);
                 } else {

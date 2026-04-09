@@ -29,10 +29,8 @@ export default function CoverPage({ projectId }) {
   useEffect(() => {
     console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('cover-page', 'Cover Page');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[COVER PAGE] Component registration handled by inline system');
     
     if (!projectId) {
       console.error('[COVER PAGE] Project ID is missing or undefined');
@@ -52,10 +50,12 @@ export default function CoverPage({ projectId }) {
           setError('Data loading timeout - please try again');
           setLoading(false);
           
-          // Mark as ready to prevent PDF generation hanging
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('cover-page', true, 'Cover Page (Timeout)');
-          }
+          // Mark component as ready to prevent PDF generation hanging
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+              window.__PDF_SET_READY__('cover-page', true, 'Cover Page (Timeout)');
+            }
+          }, 200);
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
@@ -100,11 +100,35 @@ export default function CoverPage({ projectId }) {
         console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
         
-        // Mark component as ready using global system
-        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-          window.__PDF_SET_READY__('cover-page', true, 'Cover Page');
-        }
-        console.log('[COVER PAGE] PDF READY - Component marked as ready');
+        // Mark component as ready using parent window system
+        setTimeout(() => {
+          console.log('[COVER PAGE] Marking component as ready after data fetch...');
+          
+          // Helper to get correct PDF window (parent for iframe context)
+          const getPDFWindow = () => {
+            return window.parent && window.parent !== window ? window.parent : window;
+          };
+          
+          const markReady = () => {
+            const pdfWindow = getPDFWindow();
+            
+            // Debug: Check system availability
+            console.log('[COVER PAGE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
+            
+            if (pdfWindow.__PDF_READY__) {
+              pdfWindow.__PDF_READY__.markReady('Cover Page');
+              console.log('[COVER PAGE] ✅ Marked ready in parent system');
+            } else if (pdfWindow.__PDF_SET_READY__) {
+              pdfWindow.__PDF_SET_READY__('cover-page', true, 'Cover Page');
+              console.log('[COVER PAGE] ✅ Marked ready via legacy system');
+            } else {
+              console.error('[COVER PAGE] ❌ PDF system not found in parent');
+            }
+          };
+          
+          markReady();
+          console.log('[COVER PAGE] PDF READY - Component marked as ready');
+        }, 100); // 100ms delay
         
       } catch (err) {
         console.error('[COVER PAGE] Error fetching cover page data:', err);
