@@ -9,6 +9,7 @@ export function KeywordRankingPage({ projectId }) {
   const [loading, setLoading] = useState(true);
   const [keywordData, setKeywordData] = useState(null);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     // Register component with global ready system
@@ -21,10 +22,28 @@ export function KeywordRankingPage({ projectId }) {
     const fetchKeywordData = async () => {
       try {
         setLoading(true);
+        
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[KEYWORD RANKING] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const result = await apiService.getKeywordRankingAnalysis(projectId);
         
         if (result.success) {
           console.log('[KEYWORD RANKING] DATA FETCH COMPLETE - Setting keyword data');
+          
+          // Clear timeout on successful response
+          clearTimeout(timeoutId);
+          
           setKeywordData(result.data);
           
           // Mark component as ready using global system
@@ -33,9 +52,11 @@ export function KeywordRankingPage({ projectId }) {
           }
           console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
         } else {
+          clearTimeout(timeoutId);
           setError(result.error?.message || 'Failed to load keyword data');
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         setError('Network error loading keyword data');
         console.error('Keyword data fetch error:', err);
       } finally {

@@ -42,6 +42,7 @@ export function AIVisibilityOverviewPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   const concepts = [
     {
@@ -78,6 +79,19 @@ export function AIVisibilityOverviewPage({ projectId }) {
         setLoading(true);
         console.log('Page19 - Fetching data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[AI VISIBILITY OVERVIEW] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const response = await getPDFPageData(projectId, '19');
         
         if (response.success && response.data) {
@@ -91,6 +105,10 @@ export function AIVisibilityOverviewPage({ projectId }) {
           console.log('Page19 - Top Score (ai_visibility.score):', response.data.topScore);
           console.log('Page19 - Overall Score for header:', response.data.topScore);
           console.log('[AI VISIBILITY OVERVIEW] DATA FETCH COMPLETE - Setting AI visibility data');
+          
+          // Clear timeout on successful response
+          clearTimeout(timeoutId);
+          
           setPageData(response.data);
           
           // Mark component as ready using global system
@@ -99,11 +117,13 @@ export function AIVisibilityOverviewPage({ projectId }) {
           }
           console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
         } else {
+          clearTimeout(timeoutId);
           console.error('Page19 - Invalid response structure:', response);
           setError('Invalid data structure received');
         }
       } catch (err) {
         console.error('Page19 - Error fetching data:', err);
+        clearTimeout(timeoutId);
         setError(err.message || 'Failed to fetch AI visibility data');
       } finally {
         setLoading(false);

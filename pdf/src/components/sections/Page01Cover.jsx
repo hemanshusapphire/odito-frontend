@@ -24,6 +24,7 @@ export default function CoverPage({ projectId }) {
   const [coverData, setCoverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
@@ -44,11 +45,25 @@ export default function CoverPage({ projectId }) {
       try {
         console.log('[COVER PAGE] DATA FETCH START');
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[COVER PAGE] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('cover-page', true, 'Cover Page (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         console.log('[COVER PAGE] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
           console.error('[COVER PAGE] No authentication token found');
+          clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
           return;
@@ -64,6 +79,7 @@ export default function CoverPage({ projectId }) {
         console.log('[COVER PAGE] Response status:', response.status);
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
           console.error('[COVER PAGE] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -74,9 +90,13 @@ export default function CoverPage({ projectId }) {
         console.log('[COVER PAGE] API response:', result);
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch cover data');
         }
 
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
+        
         console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
         
@@ -88,6 +108,7 @@ export default function CoverPage({ projectId }) {
         
       } catch (err) {
         console.error('[COVER PAGE] Error fetching cover page data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);

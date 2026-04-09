@@ -146,6 +146,7 @@ export function AIContentReadinessPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     // Register component with global ready system
@@ -164,11 +165,28 @@ export function AIContentReadinessPage({ projectId }) {
         setLoading(true);
         console.log('AIContentReadinessPage: Fetching data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[AI CONTENT READINESS] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const response = await getPDFPageData(projectId, '22');
         
         if (response.success && response.data) {
           console.log('AIContentReadinessPage: Data received:', response.data);
           console.log('[AI CONTENT READINESS] DATA FETCH COMPLETE - Setting AI content readiness data');
+          
+          // Clear timeout on successful response
+          clearTimeout(timeoutId);
+          
           setData(response.data);
           
           // Mark component as ready using global system
@@ -177,12 +195,14 @@ export function AIContentReadinessPage({ projectId }) {
           }
           console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
         } else {
+          clearTimeout(timeoutId);
           console.error('AIContentReadinessPage: Invalid response structure:', response);
           throw new Error(response.error?.message || 'Invalid data format received');
         }
         
       } catch (err) {
         console.error('AIContentReadinessPage: Error fetching data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);

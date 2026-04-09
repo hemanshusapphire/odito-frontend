@@ -294,35 +294,32 @@ export class PDFRenderer {
         // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
         console.log('[PDF RENDERER] Waiting for page readiness BEFORE font loading...');
         
-        await new Promise((resolve) => {
-          const maxTime = 15000; // 15 second timeout
-          const interval = 100; // Check every 100ms
-          let waited = 0;
+        await new Promise((resolve, reject) => {
+          const maxTime = 30000;
+          const start = Date.now();
 
           const checkReady = () => {
-            const ready = iframe.contentWindow?.__PDF_ALL_READY__;
-            
-            if (ready === true) {
+            const isReady = iframe.contentWindow?.__PDF_ALL_READY__;
+
+            if (isReady === true) {
               console.log('[PDF RENDERER] ✅ Page ready detected - now loading fonts');
               resolve();
+            } else if (Date.now() - start > maxTime) {
+              const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
+              const statusStr = status ? ` (${status.readyCount}/${status.totalCount} components ready)` : '';
+              reject(new Error(`PDF render timeout: data not ready after ${maxTime}ms${statusStr}`));
             } else {
-              waited += interval;
-
-              if (waited >= maxTime) {
-                console.warn('[PDF RENDERER] ⚠️ Ready timeout - proceeding with font loading (fallback)');
-                resolve();
-              } else {
-                // Log status every 2 seconds
-                if (waited % 2000 === 0) {
-                  const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
-                  if (status) {
-                    console.log(`[PDF RENDERER] ⏳ Waiting... ${status.readyCount}/${status.totalCount} components ready (${waited}ms)`);
-                  } else {
-                    console.log(`[PDF RENDERER] ⏳ Waiting for page readiness... (${waited}ms)`);
-                  }
+              // Log status every 2 seconds
+              const waited = Date.now() - start;
+              if (waited % 2000 === 0) {
+                const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
+                if (status) {
+                  console.log(`[PDF RENDERER] ⏳ Waiting... ${status.readyCount}/${status.totalCount} components ready (${waited}ms)`);
+                } else {
+                  console.log(`[PDF RENDERER] ⏳ Waiting for page readiness... (${waited}ms)`);
                 }
-                setTimeout(checkReady, interval);
               }
+              setTimeout(checkReady, 100);
             }
           };
 

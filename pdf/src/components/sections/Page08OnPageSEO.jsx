@@ -20,6 +20,7 @@ export default function OnPageSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
@@ -40,11 +41,25 @@ export default function OnPageSEOPage({ projectId }) {
       try {
         console.log('[ON-PAGE SEO] Fetching page data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[ON-PAGE SEO] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         console.log('[ON-PAGE SEO] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
           console.error('[ON-PAGE SEO] No authentication token found');
+          clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
           return;
@@ -60,6 +75,7 @@ export default function OnPageSEOPage({ projectId }) {
         console.log('[ON-PAGE SEO] Response status:', response.status);
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
           console.error('[ON-PAGE SEO] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -70,8 +86,12 @@ export default function OnPageSEOPage({ projectId }) {
         console.log('[ON-PAGE SEO] API response:', result);
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch page data');
         }
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
 
         console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
@@ -83,6 +103,7 @@ export default function OnPageSEOPage({ projectId }) {
         console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[ON-PAGE SEO] Error fetching page data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);

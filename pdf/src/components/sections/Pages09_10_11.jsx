@@ -9,6 +9,7 @@ export function StructuredDataPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
@@ -29,11 +30,25 @@ export function StructuredDataPage({ projectId }) {
       try {
         console.log('[STRUCTURED DATA] Fetching page data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[STRUCTURED DATA] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('structured-data', true, 'Structured Data (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         console.log('[STRUCTURED DATA] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
           console.error('[STRUCTURED DATA] No authentication token found');
+          clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
           return;
@@ -49,6 +64,7 @@ export function StructuredDataPage({ projectId }) {
         console.log('[STRUCTURED DATA] Response status:', response.status);
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
           console.error('[STRUCTURED DATA] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -59,8 +75,12 @@ export function StructuredDataPage({ projectId }) {
         console.log('[STRUCTURED DATA] API response:', result);
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch page data');
         }
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
 
         console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
@@ -72,6 +92,7 @@ export function StructuredDataPage({ projectId }) {
         console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[STRUCTURED DATA] Error fetching page data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -257,6 +278,7 @@ export function TechnicalSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
@@ -277,11 +299,25 @@ export function TechnicalSEOPage({ projectId }) {
       try {
         console.log('[TECHNICAL SEO] Fetching page data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[TECHNICAL SEO] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('technical-seo', true, 'Technical SEO (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         console.log('[TECHNICAL SEO] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
           console.error('[TECHNICAL SEO] No authentication token found');
+          clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
           return;
@@ -297,6 +333,7 @@ export function TechnicalSEOPage({ projectId }) {
         console.log('[TECHNICAL SEO] Response status:', response.status);
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
           console.error('[TECHNICAL SEO] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -307,8 +344,12 @@ export function TechnicalSEOPage({ projectId }) {
         console.log('[TECHNICAL SEO] API response:', result);
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch page data');
         }
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
 
         console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
@@ -320,6 +361,7 @@ export function TechnicalSEOPage({ projectId }) {
         console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[TECHNICAL SEO] Error fetching page data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -422,6 +464,7 @@ export function CrawlabilityPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
@@ -442,11 +485,25 @@ export function CrawlabilityPage({ projectId }) {
       try {
         console.log('[CRAWLABILITY] Fetching page data for projectId:', projectId);
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[CRAWLABILITY] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('crawlability', true, 'Crawlability (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         console.log('[CRAWLABILITY] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
           console.error('[CRAWLABILITY] No authentication token found');
+          clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
           return;
@@ -462,6 +519,7 @@ export function CrawlabilityPage({ projectId }) {
         console.log('[CRAWLABILITY] Response status:', response.status);
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
           console.error('[CRAWLABILITY] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -472,8 +530,12 @@ export function CrawlabilityPage({ projectId }) {
         console.log('[CRAWLABILITY] API response:', result);
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch page data');
         }
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
 
         console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
@@ -485,6 +547,7 @@ export function CrawlabilityPage({ projectId }) {
         console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[CRAWLABILITY] Error fetching page data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);

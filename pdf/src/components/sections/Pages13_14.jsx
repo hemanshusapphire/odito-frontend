@@ -77,6 +77,7 @@ export function CoreWebVitalsPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     // Register component with global ready system
@@ -91,6 +92,19 @@ export function CoreWebVitalsPage({ projectId }) {
 
     const fetchPerformanceData = async () => {
       try {
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[CORE WEB VITALS] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/app_user/projects/${projectId}/performance`, {
           headers: {
@@ -100,6 +114,7 @@ export function CoreWebVitalsPage({ projectId }) {
         });
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -111,6 +126,10 @@ export function CoreWebVitalsPage({ projectId }) {
         console.log("Mobile TBT structure:", result.data?.mobile?.metrics?.tbt);
         console.log("Mobile diagnostics TTFB:", getTTFBFromDiagnostics(result.data?.mobile?.diagnostics));
         console.log('[CORE WEB VITALS] DATA FETCH COMPLETE - Setting performance data');
+        
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
+        
         setData(result.data);
         
         // Mark component as ready using global system
@@ -120,6 +139,7 @@ export function CoreWebVitalsPage({ projectId }) {
         console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('Failed to fetch performance data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);

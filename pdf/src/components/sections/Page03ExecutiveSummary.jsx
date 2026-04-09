@@ -25,6 +25,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
   const [executiveData, setExecutiveData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
     console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
@@ -44,6 +45,19 @@ export default function ExecutiveSummaryPage({ projectId }) {
       try {
         console.log('[EXECUTIVE SUMMARY] DATA FETCH START');
         
+        // Set timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('[EXECUTIVE SUMMARY] Timeout reached - marking as timeout error');
+          setTimeoutReached(true);
+          setError('Data loading timeout - please try again');
+          setLoading(false);
+          
+          // Mark as ready to prevent PDF generation hanging
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('executive-summary', true, 'Executive Summary (Timeout)');
+          }
+        }, 25000); // 25 second timeout
+        
         const response = await fetch(`${API_BASE_URL}/pdf/${projectId}/executive`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -52,14 +66,19 @@ export default function ExecutiveSummaryPage({ projectId }) {
         });
 
         if (!response.ok) {
+          clearTimeout(timeoutId);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
         if (!result.success) {
+          clearTimeout(timeoutId);
           throw new Error(result.error?.message || 'Failed to fetch executive summary data');
         }
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
 
         console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
@@ -72,6 +91,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
         
       } catch (err) {
         console.error('[EXECUTIVE SUMMARY] Error fetching executive summary data:', err);
+        clearTimeout(timeoutId);
         setError(err.message);
       } finally {
         setLoading(false);
