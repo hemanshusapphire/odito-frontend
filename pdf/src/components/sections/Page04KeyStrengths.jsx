@@ -7,15 +7,34 @@ export default function KeyStrengthsPage() {
   useEffect(() => {
     console.log('[KEY STRENGTHS] Component mounted - registering with ready system');
     
-    // Register component with global ready system
-    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
-      window.__PDF_REGISTER_COMPONENT__('key-strengths', 'Key Strengths');
-    }
+    // Component registration is now handled inline by the PDF renderer
+    console.log('[KEY STRENGTHS] Component registration handled by inline system');
     
-    // This component doesn't fetch data, so mark as ready immediately
-    if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-      window.__PDF_SET_READY__('key-strengths', true, 'Key Strengths');
-    }
+    // This component doesn't fetch data, so mark as ready after DOM render
+    requestAnimationFrame(() => {
+      console.log('[KEY STRENGTHS] DOM render complete - marking component as ready');
+      
+      // PINPOINT FIX: Use correct window targeting
+      const markReady = () => {
+        const target = window.parent || window;
+
+        if (target && target.__PDF_READY__) {
+          target.__PDF_READY__.markReady("Key Strengths");
+          console.log("[KEY STRENGTHS] ✅ Marked ready in parent");
+        } else if (target && target.__PDF_SET_READY__) {
+          target.__PDF_SET_READY__('key-strengths', true, 'Key Strengths');
+          console.log('[KEY STRENGTHS] ✅ Marked ready via legacy system');
+        } else {
+          console.error("[KEY STRENGTHS] ❌ PDF READY system not found");
+          // Retry mechanism - system might still be initializing
+          console.log('[KEY STRENGTHS] 🔄 Retrying in 50ms...');
+          setTimeout(markReady, 50);
+        }
+      };
+      
+      markReady();
+      console.log('[KEY STRENGTHS] PDF READY - Component marked as ready after DOM render');
+    });
     console.log('[KEY STRENGTHS] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const strengths = [

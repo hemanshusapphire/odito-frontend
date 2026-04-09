@@ -57,19 +57,16 @@ export function LLMVisibilityPage() {
       };
       
       const markReady = () => {
-        const pdfWindow = getPDFWindow();
-        
-        // Debug: Check system availability
-        console.log('[LLM VISIBILITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-        
-        if (pdfWindow.__PDF_READY__) {
-          pdfWindow.__PDF_READY__.markReady('LLM Visibility');
-          console.log('[LLM VISIBILITY] ✅ Marked ready in parent system');
-        } else if (pdfWindow.__PDF_SET_READY__) {
-          pdfWindow.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
+        const target = window.parent || window;
+
+        if (target && target.__PDF_READY__) {
+          target.__PDF_READY__.markReady("LLM Visibility");
+          console.log("[LLM VISIBILITY] ✅ Marked ready in parent");
+        } else if (target && target.__PDF_SET_READY__) {
+          target.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
           console.log('[LLM VISIBILITY] ✅ Marked ready via legacy system');
         } else {
-          console.error('[LLM VISIBILITY] ❌ PDF system not found in parent');
+          console.error("[LLM VISIBILITY] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
           console.log('[LLM VISIBILITY] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
@@ -183,48 +180,22 @@ export function AIContentReadinessPage({ projectId }) {
     if (data) {
       console.log('[AI CONTENT READINESS] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[AI CONTENT READINESS] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[AI CONTENT READINESS] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[AI CONTENT READINESS] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('AI Content Readiness');
-            console.log('[AI CONTENT READINESS] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("AI Content Readiness");
+            console.log("[AI CONTENT READINESS] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
             console.log('[AI CONTENT READINESS] ✅ Marked ready via legacy system');
           } else {
-            console.error('[AI CONTENT READINESS] ❌ PDF system not found in parent');
+            console.error("[AI CONTENT READINESS] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[AI CONTENT READINESS] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -233,9 +204,7 @@ export function AIContentReadinessPage({ projectId }) {
         
         markReady();
         console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [data]);
 
@@ -437,19 +406,16 @@ export function AIContentStrategyPage() {
       };
       
       const markReady = () => {
-        const pdfWindow = getPDFWindow();
-        
-        // Debug: Check system availability
-        console.log('[AI CONTENT STRATEGY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-        
-        if (pdfWindow.__PDF_READY__) {
-          pdfWindow.__PDF_READY__.markReady('AI Content Strategy');
-          console.log('[AI CONTENT STRATEGY] ✅ Marked ready in parent system');
-        } else if (pdfWindow.__PDF_SET_READY__) {
-          pdfWindow.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
+        const target = window.parent || window;
+
+        if (target && target.__PDF_READY__) {
+          target.__PDF_READY__.markReady("AI Content Strategy");
+          console.log("[AI CONTENT STRATEGY] ✅ Marked ready in parent");
+        } else if (target && target.__PDF_SET_READY__) {
+          target.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
           console.log('[AI CONTENT STRATEGY] ✅ Marked ready via legacy system');
         } else {
-          console.error('[AI CONTENT STRATEGY] ❌ PDF system not found in parent');
+          console.error("[AI CONTENT STRATEGY] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
           console.log('[AI CONTENT STRATEGY] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);

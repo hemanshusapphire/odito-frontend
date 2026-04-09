@@ -16,48 +16,22 @@ export function StructuredDataPage({ projectId }) {
     if (pageData) {
       console.log('[STRUCTURED DATA] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[STRUCTURED DATA] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[STRUCTURED DATA] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[STRUCTURED DATA] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('Structured Data');
-            console.log('[STRUCTURED DATA] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('structured-data', true, 'Structured Data');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("Structured Data");
+            console.log("[STRUCTURED DATA] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('structured-data', true, 'Structured Data');
             console.log('[STRUCTURED DATA] ✅ Marked ready via legacy system');
           } else {
-            console.error('[STRUCTURED DATA] ❌ PDF system not found in parent');
+            console.error("[STRUCTURED DATA] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[STRUCTURED DATA] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -66,9 +40,7 @@ export function StructuredDataPage({ projectId }) {
         
         markReady();
         console.log('[STRUCTURED DATA] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [pageData]);
 
@@ -339,48 +311,22 @@ export function TechnicalSEOPage({ projectId }) {
     if (pageData) {
       console.log('[TECHNICAL SEO] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[TECHNICAL SEO] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[TECHNICAL SEO] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[TECHNICAL SEO] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('Technical SEO');
-            console.log('[TECHNICAL SEO] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("Technical SEO");
+            console.log("[TECHNICAL SEO] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
             console.log('[TECHNICAL SEO] ✅ Marked ready via legacy system');
           } else {
-            console.error('[TECHNICAL SEO] ❌ PDF system not found in parent');
+            console.error("[TECHNICAL SEO] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[TECHNICAL SEO] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -389,9 +335,7 @@ export function TechnicalSEOPage({ projectId }) {
         
         markReady();
         console.log('[TECHNICAL SEO] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [pageData]);
 
@@ -579,48 +523,22 @@ export function CrawlabilityPage({ projectId }) {
     if (pageData) {
       console.log('[CRAWLABILITY] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[CRAWLABILITY] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[CRAWLABILITY] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[CRAWLABILITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('Crawlability');
-            console.log('[CRAWLABILITY] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('crawlability', true, 'Crawlability');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("Crawlability");
+            console.log("[CRAWLABILITY] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('crawlability', true, 'Crawlability');
             console.log('[CRAWLABILITY] ✅ Marked ready via legacy system');
           } else {
-            console.error('[CRAWLABILITY] ❌ PDF system not found in parent');
+            console.error("[CRAWLABILITY] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[CRAWLABILITY] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -629,9 +547,7 @@ export function CrawlabilityPage({ projectId }) {
         
         markReady();
         console.log('[CRAWLABILITY] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [pageData]);
 

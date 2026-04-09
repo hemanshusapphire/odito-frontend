@@ -15,48 +15,22 @@ export default function Page06SEOHealth({ projectId }) {
     if (coverData) {
       console.log('[SEO HEALTH PAGE] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[SEO HEALTH PAGE] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[SEO HEALTH PAGE] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[SEO HEALTH PAGE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('SEO Health');
-            console.log('[SEO HEALTH PAGE] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('seo-health', true, 'SEO Health');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("SEO Health");
+            console.log("[SEO HEALTH PAGE] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('seo-health', true, 'SEO Health');
             console.log('[SEO HEALTH PAGE] ✅ Marked ready via legacy system');
           } else {
-            console.error('[SEO HEALTH PAGE] ❌ PDF system not found in parent');
+            console.error("[SEO HEALTH PAGE] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[SEO HEALTH PAGE] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -65,9 +39,7 @@ export default function Page06SEOHealth({ projectId }) {
         
         markReady();
         console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [coverData]);
 
@@ -96,10 +68,18 @@ export default function Page06SEOHealth({ projectId }) {
           setError('Data loading timeout - please try again');
           setLoading(false);
           
-          // Mark as ready to prevent PDF generation hanging
-          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
-            window.__PDF_SET_READY__('seo-health', true, 'SEO Health (Timeout)');
-          }
+          // Mark as ready to prevent PDF generation hanging using proper system
+          const markReady = () => {
+            const target = window.parent || window;
+            if (target && target.__PDF_READY__) {
+              target.__PDF_READY__.markReady("SEO Health (Timeout)");
+              console.log("[SEO HEALTH PAGE] ✅ Marked ready in parent (timeout)");
+            } else if (target && target.__PDF_SET_READY__) {
+              target.__PDF_SET_READY__('seo-health', true, 'SEO Health (Timeout)');
+              console.log('[SEO HEALTH PAGE] ✅ Marked ready via legacy system (timeout)');
+            }
+          };
+          markReady();
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');

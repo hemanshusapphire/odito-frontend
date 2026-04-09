@@ -49,48 +49,22 @@ export function AIVisibilityOverviewPage({ projectId }) {
     if (pageData) {
       console.log('[AI VISIBILITY OVERVIEW] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[AI VISIBILITY OVERVIEW] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[AI VISIBILITY OVERVIEW] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[AI VISIBILITY OVERVIEW] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('AI Visibility Overview');
-            console.log('[AI VISIBILITY OVERVIEW] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("AI Visibility Overview");
+            console.log("[AI VISIBILITY OVERVIEW] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
             console.log('[AI VISIBILITY OVERVIEW] ✅ Marked ready via legacy system');
           } else {
-            console.error('[AI VISIBILITY OVERVIEW] ❌ PDF system not found in parent');
+            console.error("[AI VISIBILITY OVERVIEW] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[AI VISIBILITY OVERVIEW] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -99,9 +73,7 @@ export function AIVisibilityOverviewPage({ projectId }) {
         
         markReady();
         console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [pageData]);
 
@@ -325,30 +297,20 @@ export function LLMCitationForecastPage() {
     console.log('[LLM CITATION FORECAST] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
-    const waitForRenderComplete = async () => {
-      // Double requestAnimationFrame for proper render timing
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      
-      // Helper to get correct PDF window (parent for iframe context)
-      const getPDFWindow = () => {
-        return window.parent && window.parent !== window ? window.parent : window;
-      };
+    requestAnimationFrame(() => {
+      console.log('[LLM CITATION FORECAST] DOM render complete - marking component as ready');
       
       const markReady = () => {
-        const pdfWindow = getPDFWindow();
-        
-        // Debug: Check system availability
-        console.log('[LLM CITATION FORECAST] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-        
-        if (pdfWindow.__PDF_READY__) {
-          pdfWindow.__PDF_READY__.markReady('LLM Citation Forecast');
-          console.log('[LLM CITATION FORECAST] ✅ Marked ready in parent system');
-        } else if (pdfWindow.__PDF_SET_READY__) {
-          pdfWindow.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
+        const target = window.parent || window;
+
+        if (target && target.__PDF_READY__) {
+          target.__PDF_READY__.markReady("LLM Citation Forecast");
+          console.log("[LLM CITATION FORECAST] ✅ Marked ready in parent");
+        } else if (target && target.__PDF_SET_READY__) {
+          target.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
           console.log('[LLM CITATION FORECAST] ✅ Marked ready via legacy system');
         } else {
-          console.error('[LLM CITATION FORECAST] ❌ PDF system not found in parent');
+          console.error("[LLM CITATION FORECAST] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
           console.log('[LLM CITATION FORECAST] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
@@ -357,9 +319,7 @@ export function LLMCitationForecastPage() {
       
       markReady();
       console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready after DOM render');
-    };
-    
-    waitForRenderComplete();
+    });
     console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
     console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
   }, []);

@@ -84,48 +84,22 @@ export function CoreWebVitalsPage({ projectId }) {
     if (data) {
       console.log('[CORE WEB VITALS] Data available - waiting for DOM render to complete...');
       
-      // Wait for DOM to fully render with data
-      const waitForRenderComplete = async () => {
-        // Double requestAnimationFrame for proper render timing
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // Wait for images to load (if any)
-        const images = document.querySelectorAll("img");
-        if (images.length > 0) {
-          console.log('[CORE WEB VITALS] Waiting for images to load...');
-          await Promise.all(
-            Array.from(images).map(img =>
-              img.complete ? Promise.resolve() : new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; // Handle broken images
-              })
-            )
-          );
-        }
-        
-        // Now mark as ready
+      // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
+      requestAnimationFrame(() => {
         console.log('[CORE WEB VITALS] DOM render complete - marking component as ready');
         
-        // Helper to get correct PDF window (parent for iframe context)
-        const getPDFWindow = () => {
-          return window.parent && window.parent !== window ? window.parent : window;
-        };
-        
+        // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
-          const pdfWindow = getPDFWindow();
-          
-          // Debug: Check system availability
-          console.log('[CORE WEB VITALS] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-          
-          if (pdfWindow.__PDF_READY__) {
-            pdfWindow.__PDF_READY__.markReady('Core Web Vitals');
-            console.log('[CORE WEB VITALS] ✅ Marked ready in parent system');
-          } else if (pdfWindow.__PDF_SET_READY__) {
-            pdfWindow.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
+          const target = window.parent || window;
+
+          if (target && target.__PDF_READY__) {
+            target.__PDF_READY__.markReady("Core Web Vitals");
+            console.log("[CORE WEB VITALS] ✅ Marked ready in parent");
+          } else if (target && target.__PDF_SET_READY__) {
+            target.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
             console.log('[CORE WEB VITALS] ✅ Marked ready via legacy system');
           } else {
-            console.error('[CORE WEB VITALS] ❌ PDF system not found in parent');
+            console.error("[CORE WEB VITALS] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
             console.log('[CORE WEB VITALS] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
@@ -134,9 +108,7 @@ export function CoreWebVitalsPage({ projectId }) {
         
         markReady();
         console.log('[CORE WEB VITALS] PDF READY - Component marked as ready after DOM render');
-      };
-      
-      waitForRenderComplete();
+      });
     }
   }, [data]);
 
@@ -424,30 +396,21 @@ export function PerformanceOpportunitiesPage() {
     console.log('[PERFORMANCE OPPORTUNITIES] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
-    const waitForRenderComplete = async () => {
-      // Double requestAnimationFrame for proper render timing
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
+    requestAnimationFrame(() => {
+      console.log('[PERFORMANCE OPPORTUNITIES] DOM render complete - marking component as ready');
       
-      // Helper to get correct PDF window (parent for iframe context)
-      const getPDFWindow = () => {
-        return window.parent && window.parent !== window ? window.parent : window;
-      };
-      
+      // PINPOINT FIX: Use correct window targeting
       const markReady = () => {
-        const pdfWindow = getPDFWindow();
-        
-        // Debug: Check system availability
-        console.log('[PERFORMANCE OPPORTUNITIES] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
-        
-        if (pdfWindow.__PDF_READY__) {
-          pdfWindow.__PDF_READY__.markReady('Performance Opportunities');
-          console.log('[PERFORMANCE OPPORTUNITIES] ✅ Marked ready in parent system');
-        } else if (pdfWindow.__PDF_SET_READY__) {
-          pdfWindow.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
+        const target = window.parent || window;
+
+        if (target && target.__PDF_READY__) {
+          target.__PDF_READY__.markReady("Performance Opportunities");
+          console.log("[PERFORMANCE OPPORTUNITIES] ✅ Marked ready in parent");
+        } else if (target && target.__PDF_SET_READY__) {
+          target.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
           console.log('[PERFORMANCE OPPORTUNITIES] ✅ Marked ready via legacy system');
         } else {
-          console.error('[PERFORMANCE OPPORTUNITIES] ❌ PDF system not found in parent');
+          console.error("[PERFORMANCE OPPORTUNITIES] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
           console.log('[PERFORMANCE OPPORTUNITIES] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
@@ -456,9 +419,7 @@ export function PerformanceOpportunitiesPage() {
       
       markReady();
       console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready after DOM render');
-    };
-    
-    waitForRenderComplete();
+    });
     console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const opps = [
