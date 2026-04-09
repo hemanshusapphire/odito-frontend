@@ -3,12 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Page 9: Structured Data Analysis ----
 export function StructuredDataPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('structured-data', 'Structured Data');
 
   useEffect(() => {
     console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
@@ -59,6 +63,10 @@ export function StructuredDataPage({ projectId }) {
 
         console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[STRUCTURED DATA] Error fetching page data:', err);
         setError(err.message);
@@ -68,7 +76,7 @@ export function StructuredDataPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (
@@ -246,6 +254,9 @@ export function TechnicalSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('technical-seo', 'Technical SEO');
 
   useEffect(() => {
     console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
@@ -296,6 +307,10 @@ export function TechnicalSEOPage({ projectId }) {
 
         console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[TECHNICAL SEO] Error fetching page data:', err);
         setError(err.message);
@@ -305,7 +320,7 @@ export function TechnicalSEOPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (
@@ -400,6 +415,9 @@ export function CrawlabilityPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('crawlability', 'Crawlability');
 
   useEffect(() => {
     console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
@@ -450,6 +468,10 @@ export function CrawlabilityPage({ projectId }) {
 
         console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[CRAWLABILITY] Error fetching page data:', err);
         setError(err.message);
@@ -459,7 +481,7 @@ export function CrawlabilityPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (

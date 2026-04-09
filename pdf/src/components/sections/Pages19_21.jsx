@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
@@ -42,6 +43,9 @@ export function AIVisibilityOverviewPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('ai-visibility-overview', 'AI Visibility Overview');
 
   const concepts = [
     {
@@ -85,7 +89,12 @@ export function AIVisibilityOverviewPage({ projectId }) {
           console.log('Page19 - AI Topical Authority:', response.data.aiTopicalAuthority);
           console.log('Page19 - Top Score (ai_visibility.score):', response.data.topScore);
           console.log('Page19 - Overall Score for header:', response.data.topScore);
+          console.log('[AI VISIBILITY OVERVIEW] DATA FETCH COMPLETE - Setting AI visibility data');
           setPageData(response.data);
+          
+          // Mark component as ready using centralized manager
+          setReady(true);
+          console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
         } else {
           console.error('Page19 - Invalid response structure:', response);
           setError('Invalid data structure received');
@@ -99,7 +108,7 @@ export function AIVisibilityOverviewPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   // Get score for color coding
   const getScoreColor = (score) => {

@@ -3,12 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import apiService from '../../../../lib/apiService.js';
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Page 16: Keyword Ranking Analysis ----
 export function KeywordRankingPage({ projectId }) {
   const [loading, setLoading] = useState(true);
   const [keywordData, setKeywordData] = useState(null);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('keyword-ranking', 'Keyword Ranking');
 
   useEffect(() => {
     if (!projectId) return;
@@ -19,7 +23,12 @@ export function KeywordRankingPage({ projectId }) {
         const result = await apiService.getKeywordRankingAnalysis(projectId);
         
         if (result.success) {
+          console.log('[KEYWORD RANKING] DATA FETCH COMPLETE - Setting keyword data');
           setKeywordData(result.data);
+          
+          // Mark component as ready using centralized manager
+          setReady(true);
+          console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
         } else {
           setError(result.error?.message || 'Failed to load keyword data');
         }
@@ -32,7 +41,7 @@ export function KeywordRankingPage({ projectId }) {
     };
 
     fetchKeywordData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   // Helper functions for formatting
   const rankColor = (rank) => {

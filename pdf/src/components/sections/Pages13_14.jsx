@@ -5,6 +5,7 @@ import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } fr
 
 // API configuration
 import API_BASE_URL from "@/lib/apiConfig";
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // ---- Helper Functions for Rating and Priority ----
 function getRating(metric, value) {
@@ -77,6 +78,9 @@ export function CoreWebVitalsPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('core-web-vitals', 'Core Web Vitals');
 
   useEffect(() => {
     if (!projectId) {
@@ -105,7 +109,12 @@ export function CoreWebVitalsPage({ projectId }) {
         console.log("Mobile LCP structure:", result.data?.mobile?.metrics?.lcp);
         console.log("Mobile TBT structure:", result.data?.mobile?.metrics?.tbt);
         console.log("Mobile diagnostics TTFB:", getTTFBFromDiagnostics(result.data?.mobile?.diagnostics));
+        console.log('[CORE WEB VITALS] DATA FETCH COMPLETE - Setting performance data');
         setData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('Failed to fetch performance data:', err);
         setError(err.message);
@@ -115,7 +124,7 @@ export function CoreWebVitalsPage({ projectId }) {
     };
 
     fetchPerformanceData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   // Handle loading state
   if (loading) {

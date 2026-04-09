@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from '@/lib/apiConfig';
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 function DonutChart({ value, max = 100, color, size = 100 }) {
   const r = 38;
@@ -25,8 +26,13 @@ export default function ExecutiveSummaryPage({ projectId }) {
   const [executiveData, setExecutiveData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('executive-summary', 'Executive Summary');
 
   useEffect(() => {
+    console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
+    
     if (!projectId) {
       setError('Project ID is required');
       setLoading(false);
@@ -35,6 +41,8 @@ export default function ExecutiveSummaryPage({ projectId }) {
 
     const fetchExecutiveData = async () => {
       try {
+        console.log('[EXECUTIVE SUMMARY] DATA FETCH START');
+        
         const response = await fetch(`${API_BASE_URL}/pdf/${projectId}/executive`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -52,9 +60,15 @@ export default function ExecutiveSummaryPage({ projectId }) {
           throw new Error(result.error?.message || 'Failed to fetch executive summary data');
         }
 
+        console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready');
+        
       } catch (err) {
-        console.error('Error fetching executive summary data:', err);
+        console.error('[EXECUTIVE SUMMARY] Error fetching executive summary data:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -62,7 +76,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
     };
 
     fetchExecutiveData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
 import API_BASE_URL from '@/lib/apiConfig';
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 const sevMap = { CRITICAL: 'critical', HIGH: 'high', MEDIUM: 'medium', LOW: 'low', INFO: 'low' };
 const impMap = { High: 'critical', Medium: 'medium', Low: 'low' };
@@ -20,6 +21,9 @@ export default function OnPageSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('onpage-seo', 'On-Page SEO');
 
   useEffect(() => {
     console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
@@ -70,6 +74,10 @@ export default function OnPageSEOPage({ projectId }) {
 
         console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[ON-PAGE SEO] Error fetching page data:', err);
         setError(err.message);
@@ -79,7 +87,7 @@ export default function OnPageSEOPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (

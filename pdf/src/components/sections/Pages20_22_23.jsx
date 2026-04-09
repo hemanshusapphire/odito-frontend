@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
@@ -132,6 +133,9 @@ export function AIContentReadinessPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('ai-content-readiness', 'AI Content Readiness');
 
   useEffect(() => {
     const fetchPage22Data = async () => {
@@ -149,7 +153,12 @@ export function AIContentReadinessPage({ projectId }) {
         
         if (response.success && response.data) {
           console.log('AIContentReadinessPage: Data received:', response.data);
+          console.log('[AI CONTENT READINESS] DATA FETCH COMPLETE - Setting AI content readiness data');
           setData(response.data);
+          
+          // Mark component as ready using centralized manager
+          setReady(true);
+          console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
         } else {
           console.error('AIContentReadinessPage: Invalid response structure:', response);
           throw new Error(response.error?.message || 'Invalid data format received');
@@ -164,7 +173,7 @@ export function AIContentReadinessPage({ projectId }) {
     };
 
     fetchPage22Data();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   // Show loading state
   if (loading) {

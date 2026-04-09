@@ -3,11 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 import API_BASE_URL from "@/lib/apiConfig";
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 export default function Page06SEOHealth({ projectId }) {
   const [coverData, setCoverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('seo-health', 'SEO Health');
 
   useEffect(() => {
     console.log('[SEO HEALTH PAGE] useEffect triggered with projectId:', projectId);
@@ -58,6 +62,10 @@ export default function Page06SEOHealth({ projectId }) {
 
         console.log('[SEO HEALTH PAGE] Cover data loaded successfully:', result.data);
         setCoverData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[SEO HEALTH PAGE] Error fetching cover page data:', err);
         setError(err.message);
@@ -67,7 +75,7 @@ export default function Page06SEOHealth({ projectId }) {
     };
 
     fetchCoverData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   // Extract scores from coverData, with fallbacks
   const seoHealth = coverData?.scores?.seoHealth || 0;

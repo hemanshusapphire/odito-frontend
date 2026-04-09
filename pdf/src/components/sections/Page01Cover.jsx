@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageFooter } from '../layout';
 import API_BASE_URL from '@/lib/apiConfig';
+import pdfReadinessManager, { usePDFReadiness } from '../../utils/pdfReadinessManager';
 
 function ScoreCard({ value, label }) {
   return (
@@ -24,6 +25,9 @@ export default function CoverPage({ projectId }) {
   const [coverData, setCoverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use centralized PDF readiness manager
+  const { setReady } = usePDFReadiness('cover-page', 'Cover Page');
 
   useEffect(() => {
     console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
@@ -37,7 +41,7 @@ export default function CoverPage({ projectId }) {
 
     const fetchCoverData = async () => {
       try {
-        console.log('[COVER PAGE] Fetching cover data for projectId:', projectId);
+        console.log('[COVER PAGE] DATA FETCH START');
         
         const token = localStorage.getItem('token');
         console.log('[COVER PAGE] Token from localStorage:', token ? 'Present' : 'Missing');
@@ -57,7 +61,6 @@ export default function CoverPage({ projectId }) {
         });
 
         console.log('[COVER PAGE] Response status:', response.status);
-        console.log('[COVER PAGE] Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -73,10 +76,13 @@ export default function CoverPage({ projectId }) {
           throw new Error(result.error?.message || 'Failed to fetch cover data');
         }
 
-        console.log('[COVER PAGE] Cover data loaded successfully:', result.data);
-        console.log('[COVER PAGE] Technical Health from backend:', result.data.scores?.technicalHealth);
-        console.log('[COVER PAGE] All scores:', result.data.scores);
+        console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
+        
+        // Mark component as ready using centralized manager
+        setReady(true);
+        console.log('[COVER PAGE] PDF READY - Component marked as ready');
+        
       } catch (err) {
         console.error('[COVER PAGE] Error fetching cover page data:', err);
         setError(err.message);
@@ -86,7 +92,7 @@ export default function CoverPage({ projectId }) {
     };
 
     fetchCoverData();
-  }, [projectId]);
+  }, [projectId, setReady]);
 
   if (loading) {
     return (
