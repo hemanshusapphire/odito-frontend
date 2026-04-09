@@ -10,12 +10,14 @@ export function StructuredDataPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('structured-data', 'Structured Data');
 
   useEffect(() => {
     console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('structured-data', 'Structured Data');
+    }
     
     if (!projectId) {
       console.error('[STRUCTURED DATA] Project ID is missing or undefined');
@@ -64,8 +66,10 @@ export function StructuredDataPage({ projectId }) {
         console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('structured-data', true, 'Structured Data');
+        }
         console.log('[STRUCTURED DATA] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[STRUCTURED DATA] Error fetching page data:', err);
@@ -76,7 +80,7 @@ export function StructuredDataPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (
@@ -254,12 +258,14 @@ export function TechnicalSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('technical-seo', 'Technical SEO');
 
   useEffect(() => {
     console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('technical-seo', 'Technical SEO');
+    }
     
     if (!projectId) {
       console.error('[TECHNICAL SEO] Project ID is missing or undefined');
@@ -308,8 +314,10 @@ export function TechnicalSEOPage({ projectId }) {
         console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
+        }
         console.log('[TECHNICAL SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[TECHNICAL SEO] Error fetching page data:', err);
@@ -320,7 +328,7 @@ export function TechnicalSEOPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (
@@ -415,12 +423,14 @@ export function CrawlabilityPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('crawlability', 'Crawlability');
 
   useEffect(() => {
     console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('crawlability', 'Crawlability');
+    }
     
     if (!projectId) {
       console.error('[CRAWLABILITY] Project ID is missing or undefined');
@@ -469,8 +479,10 @@ export function CrawlabilityPage({ projectId }) {
         console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('crawlability', true, 'Crawlability');
+        }
         console.log('[CRAWLABILITY] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[CRAWLABILITY] Error fetching page data:', err);
@@ -481,7 +493,7 @@ export function CrawlabilityPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (

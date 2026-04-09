@@ -43,9 +43,6 @@ export function AIVisibilityOverviewPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('ai-visibility-overview', 'AI Visibility Overview');
 
   const concepts = [
     {
@@ -66,6 +63,11 @@ export function AIVisibilityOverviewPage({ projectId }) {
   ];
 
   useEffect(() => {
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('ai-visibility-overview', 'AI Visibility Overview');
+    }
+    
     const fetchPageData = async () => {
       if (!projectId) {
         setError('Project ID is required');
@@ -92,8 +94,10 @@ export function AIVisibilityOverviewPage({ projectId }) {
           console.log('[AI VISIBILITY OVERVIEW] DATA FETCH COMPLETE - Setting AI visibility data');
           setPageData(response.data);
           
-          // Mark component as ready using centralized manager
-          setReady(true);
+          // Mark component as ready using global system
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
+          }
           console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready');
         } else {
           console.error('Page19 - Invalid response structure:', response);
@@ -108,7 +112,7 @@ export function AIVisibilityOverviewPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   // Get score for color coding
   const getScoreColor = (score) => {

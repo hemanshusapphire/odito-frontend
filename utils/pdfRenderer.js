@@ -13,6 +13,109 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Odito AI Report - Page ${pageIndex + 1}</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  
+  <!-- Global PDF Ready System -->
+  <script>
+    (function() {
+      'use strict';
+      
+      const PDF_READY_STATE = {
+        components: new Map(),
+        isReady: false,
+        debugMode: true,
+        startTime: Date.now()
+      };
+      
+      window.__PDF_READY_STATE__ = PDF_READY_STATE;
+      
+      window.__PDF_SET_READY__ = function(componentId, ready, componentName = componentId) {
+        const timestamp = Date.now() - PDF_READY_STATE.startTime;
+        
+        if (ready) {
+          PDF_READY_STATE.components.set(componentId, {
+            name: componentName,
+            ready: true,
+            timestamp: timestamp
+          });
+          
+          console.log('[PDF READY] ✅ ' + componentName + ' ready (' + timestamp + 'ms)');
+        } else {
+          PDF_READY_STATE.components.delete(componentId);
+          console.log('[PDF READY] ❌ ' + componentName + ' removed');
+        }
+        
+        checkAllReady();
+      };
+      
+      window.__PDF_REGISTER_COMPONENT__ = function(componentId, componentName = componentId) {
+        PDF_READY_STATE.components.set(componentId, {
+          name: componentName,
+          ready: false,
+          timestamp: 0
+        });
+        
+        console.log('[PDF READY] 📝 ' + componentName + ' registered');
+      };
+      
+      window.__PDF_GET_STATUS__ = function() {
+        const components = Array.from(PDF_READY_STATE.components.entries()).map(function(entry) {
+          return { id: entry[0], name: entry[1].name, ready: entry[1].ready, timestamp: entry[1].timestamp };
+        });
+        
+        const readyCount = components.filter(function(c) { return c.ready; }).length;
+        const totalCount = components.length;
+        
+        return {
+          allReady: PDF_READY_STATE.isReady,
+          readyCount: readyCount,
+          totalCount: totalCount,
+          components: components,
+          timestamp: Date.now() - PDF_READY_STATE.startTime
+        };
+      };
+      
+      window.__PDF_RESET_READY__ = function() {
+        PDF_READY_STATE.components.clear();
+        PDF_READY_STATE.isReady = false;
+        PDF_READY_STATE.startTime = Date.now();
+        console.log('[PDF READY] 🔄 Reset - Ready for new PDF generation');
+      };
+      
+      function checkAllReady() {
+        const components = Array.from(PDF_READY_STATE.components.values());
+        
+        if (components.length === 0) {
+          PDF_READY_STATE.isReady = true;
+          window.__PDF_ALL_READY__ = true;
+          console.log('[PDF READY] 🎉 No components to wait for - READY');
+          return;
+        }
+        
+        const allReady = components.every(function(comp) { return comp.ready === true; });
+        
+        if (allReady && !PDF_READY_STATE.isReady) {
+          PDF_READY_STATE.isReady = true;
+          window.__PDF_ALL_READY__ = true;
+          
+          const timestamp = Date.now() - PDF_READY_STATE.startTime;
+          console.log('[PDF READY] 🎉 ALL COMPONENTS READY - PDF can be generated (' + timestamp + 'ms)');
+          
+          components.forEach(function(comp) {
+            console.log('[PDF READY] ⏱️  ' + comp.name + ': ' + comp.timestamp + 'ms');
+          });
+        } else if (!allReady && PDF_READY_STATE.isReady) {
+          PDF_READY_STATE.isReady = false;
+          window.__PDF_ALL_READY__ = false;
+          console.log('[PDF READY] ⚠️ Ready state changed to false');
+        }
+        
+        window.__PDF_ALL_READY__ = PDF_READY_STATE.isReady;
+      }
+      
+      window.__PDF_ALL_READY__ = false;
+      console.log('[PDF READY] 🚀 Global PDF Ready System initialized');
+    })();
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
 
@@ -178,6 +281,11 @@ export class PDFRenderer {
         iframeDoc.write(PDF_HTML_TEMPLATE(pageContent, pageIndex));
         iframeDoc.close();
 
+        // Reset ready state for new page
+        if (iframe.contentWindow && iframe.contentWindow.__PDF_RESET_READY__) {
+          iframe.contentWindow.__PDF_RESET_READY__();
+        }
+
         // Wait for fonts to load in iframe
         console.log('[PDF RENDERER] Waiting for fonts to load in iframe');
         await Promise.all([
@@ -186,7 +294,43 @@ export class PDFRenderer {
           iframe.contentWindow.document.fonts.ready
         ]);
 
-        console.log('[PDF RENDERER] Fonts loaded, capturing iframe');
+        console.log('[PDF RENDERER] Fonts loaded, now waiting for page readiness...');
+
+        // CRITICAL: Wait for page to be ready (data loaded)
+        await new Promise((resolve) => {
+          const maxTime = 15000; // 15 second timeout
+          const interval = 100; // Check every 100ms
+          let waited = 0;
+
+          const checkReady = () => {
+            const ready = iframe.contentWindow?.__PDF_ALL_READY__;
+            
+            if (ready === true) {
+              console.log('[PDF RENDERER] ✅ Page ready detected - capturing screenshot');
+              resolve();
+            } else {
+              waited += interval;
+
+              if (waited >= maxTime) {
+                console.warn('[PDF RENDERER] ⚠️ Ready timeout - capturing anyway (fallback)');
+                resolve();
+              } else {
+                // Log status every 2 seconds
+                if (waited % 2000 === 0) {
+                  const status = iframe.contentWindow?.__PDF_GET_STATUS__?.();
+                  if (status) {
+                    console.log(`[PDF RENDERER] ⏳ Waiting... ${status.readyCount}/${status.totalCount} components ready (${waited}ms)`);
+                  } else {
+                    console.log(`[PDF RENDERER] ⏳ Waiting for page readiness... (${waited}ms)`);
+                  }
+                }
+                setTimeout(checkReady, interval);
+              }
+            }
+          };
+
+          checkReady();
+        });
 
         // Capture iframe body
         const canvas = await html2canvas(iframeDoc.body, {

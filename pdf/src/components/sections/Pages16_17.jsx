@@ -10,11 +10,13 @@ export function KeywordRankingPage({ projectId }) {
   const [loading, setLoading] = useState(true);
   const [keywordData, setKeywordData] = useState(null);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('keyword-ranking', 'Keyword Ranking');
 
   useEffect(() => {
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('keyword-ranking', 'Keyword Ranking');
+    }
+    
     if (!projectId) return;
     
     const fetchKeywordData = async () => {
@@ -26,8 +28,10 @@ export function KeywordRankingPage({ projectId }) {
           console.log('[KEYWORD RANKING] DATA FETCH COMPLETE - Setting keyword data');
           setKeywordData(result.data);
           
-          // Mark component as ready using centralized manager
-          setReady(true);
+          // Mark component as ready using global system
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
+          }
           console.log('[KEYWORD RANKING] PDF READY - Component marked as ready');
         } else {
           setError(result.error?.message || 'Failed to load keyword data');
@@ -41,7 +45,7 @@ export function KeywordRankingPage({ projectId }) {
     };
 
     fetchKeywordData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   // Helper functions for formatting
   const rankColor = (rank) => {

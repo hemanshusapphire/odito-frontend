@@ -133,11 +133,13 @@ export function AIContentReadinessPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('ai-content-readiness', 'AI Content Readiness');
 
   useEffect(() => {
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('ai-content-readiness', 'AI Content Readiness');
+    }
+    
     const fetchPage22Data = async () => {
       if (!projectId) {
         console.error('AIContentReadinessPage: No projectId provided');
@@ -156,8 +158,10 @@ export function AIContentReadinessPage({ projectId }) {
           console.log('[AI CONTENT READINESS] DATA FETCH COMPLETE - Setting AI content readiness data');
           setData(response.data);
           
-          // Mark component as ready using centralized manager
-          setReady(true);
+          // Mark component as ready using global system
+          if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+            window.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
+          }
           console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready');
         } else {
           console.error('AIContentReadinessPage: Invalid response structure:', response);
@@ -173,7 +177,7 @@ export function AIContentReadinessPage({ projectId }) {
     };
 
     fetchPage22Data();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   // Show loading state
   if (loading) {

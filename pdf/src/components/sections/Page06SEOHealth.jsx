@@ -9,12 +9,14 @@ export default function Page06SEOHealth({ projectId }) {
   const [coverData, setCoverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('seo-health', 'SEO Health');
 
   useEffect(() => {
     console.log('[SEO HEALTH PAGE] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('seo-health', 'SEO Health');
+    }
     
     if (!projectId) {
       console.error('[SEO HEALTH PAGE] Project ID is missing or undefined');
@@ -63,8 +65,10 @@ export default function Page06SEOHealth({ projectId }) {
         console.log('[SEO HEALTH PAGE] Cover data loaded successfully:', result.data);
         setCoverData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('seo-health', true, 'SEO Health');
+        }
         console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[SEO HEALTH PAGE] Error fetching cover page data:', err);
@@ -75,7 +79,7 @@ export default function Page06SEOHealth({ projectId }) {
     };
 
     fetchCoverData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   // Extract scores from coverData, with fallbacks
   const seoHealth = coverData?.scores?.seoHealth || 0;

@@ -21,12 +21,14 @@ export default function OnPageSEOPage({ projectId }) {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('onpage-seo', 'On-Page SEO');
 
   useEffect(() => {
     console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('onpage-seo', 'On-Page SEO');
+    }
     
     if (!projectId) {
       console.error('[ON-PAGE SEO] Project ID is missing or undefined');
@@ -75,8 +77,10 @@ export default function OnPageSEOPage({ projectId }) {
         console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
+        }
         console.log('[ON-PAGE SEO] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('[ON-PAGE SEO] Error fetching page data:', err);
@@ -87,7 +91,7 @@ export default function OnPageSEOPage({ projectId }) {
     };
 
     fetchPageData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (

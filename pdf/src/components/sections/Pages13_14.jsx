@@ -78,11 +78,13 @@ export function CoreWebVitalsPage({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('core-web-vitals', 'Core Web Vitals');
 
   useEffect(() => {
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('core-web-vitals', 'Core Web Vitals');
+    }
+    
     if (!projectId) {
       setLoading(false);
       return;
@@ -112,8 +114,10 @@ export function CoreWebVitalsPage({ projectId }) {
         console.log('[CORE WEB VITALS] DATA FETCH COMPLETE - Setting performance data');
         setData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
+        }
         console.log('[CORE WEB VITALS] PDF READY - Component marked as ready');
       } catch (err) {
         console.error('Failed to fetch performance data:', err);
@@ -124,7 +128,7 @@ export function CoreWebVitalsPage({ projectId }) {
     };
 
     fetchPerformanceData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   // Handle loading state
   if (loading) {

@@ -25,12 +25,14 @@ export default function CoverPage({ projectId }) {
   const [coverData, setCoverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('cover-page', 'Cover Page');
 
   useEffect(() => {
     console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('cover-page', 'Cover Page');
+    }
     
     if (!projectId) {
       console.error('[COVER PAGE] Project ID is missing or undefined');
@@ -79,8 +81,10 @@ export default function CoverPage({ projectId }) {
         console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('cover-page', true, 'Cover Page');
+        }
         console.log('[COVER PAGE] PDF READY - Component marked as ready');
         
       } catch (err) {
@@ -92,7 +96,7 @@ export default function CoverPage({ projectId }) {
     };
 
     fetchCoverData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (

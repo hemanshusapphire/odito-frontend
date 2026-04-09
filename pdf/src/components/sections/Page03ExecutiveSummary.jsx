@@ -26,12 +26,14 @@ export default function ExecutiveSummaryPage({ projectId }) {
   const [executiveData, setExecutiveData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Use centralized PDF readiness manager
-  const { setReady } = usePDFReadiness('executive-summary', 'Executive Summary');
 
   useEffect(() => {
     console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
+    
+    // Register component with global ready system
+    if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
+      window.__PDF_REGISTER_COMPONENT__('executive-summary', 'Executive Summary');
+    }
     
     if (!projectId) {
       setError('Project ID is required');
@@ -63,8 +65,10 @@ export default function ExecutiveSummaryPage({ projectId }) {
         console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
         
-        // Mark component as ready using centralized manager
-        setReady(true);
+        // Mark component as ready using global system
+        if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
+          window.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
+        }
         console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready');
         
       } catch (err) {
@@ -76,7 +80,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
     };
 
     fetchExecutiveData();
-  }, [projectId, setReady]);
+  }, [projectId]);
 
   if (loading) {
     return (
