@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, Badge } from '../layout';
 
