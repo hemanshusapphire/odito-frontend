@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import ParticleField from '@/components/landing/ParticleField';
 import Hero from '@/components/landing/Hero';
-import ARIAChat from '@/components/landing/ARIAChat';
+import ARIAChat from '@/components/onboarding/ARIAChat';
 import TrustBar from '@/components/landing/TrustBar';
 
 export default function OnboardingPage() {

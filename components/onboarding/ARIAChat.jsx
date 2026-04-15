@@ -85,9 +85,8 @@ const ARIAChat = ({ onComplete }) => {
   // Debug: Log when custom keyword input UI is rendered
   useEffect(() => {
     if (flowState === FLOW_STATES.ASK_CUSTOM_KEYWORDS) {
-      console.log("🚨 RENDERING CUSTOM INPUT UI - ASK_CUSTOM_KEYWORDS state active");
+      // Custom keywords state active
     }
-    console.log("🚨 FLOW STATE CHANGED TO:", flowState);
   }, [flowState]);
 
   // ── Sub-type prompt per business type ────────────────────────────────
@@ -785,12 +784,6 @@ const ARIAChat = ({ onComplete }) => {
 
       {/* Text input — hidden during button/loading states */}
       {(() => {
-        console.log("🚨 INPUT VISIBILITY CHECK:", {
-          currentFlowState: flowState,
-          hideInputStates,
-          shouldShow: !hideInputStates.includes(flowState),
-          isAskCustomKeywords: flowState === FLOW_STATES.ASK_CUSTOM_KEYWORDS
-        });
         return !hideInputStates.includes(flowState);
       })() && (
         <>
@@ -807,12 +800,10 @@ const ARIAChat = ({ onComplete }) => {
               }
               value={input}
               onChange={(e) => {
-                console.log("🚨 USER TYPING IN CUSTOM INPUT:", e.target.value);
                 setInput(e.target.value);
               }}
               onKeyPress={(e) => {
                 if (e.key === "Enter") {
-                  console.log("🚨 USER PRESSED ENTER IN CUSTOM INPUT:", input);
                   send();
                 }
               }}

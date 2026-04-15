@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react'
 export default function ScoreHero({ score = 41, aiData = null }) {
 
   const [animatedScore, setAnimatedScore] = useState(0)
+  
+  // Round the score to whole number
+  const roundedScore = Math.round(score)
 
   const ringR = 52
 
@@ -20,7 +23,7 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
     const timer = setTimeout(() => {
 
-      setAnimatedScore(score)
+      setAnimatedScore(roundedScore)
 
     }, 200)
 
@@ -42,7 +45,7 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
 
 
-  const scoreColor = getColorByScore(score)
+  const scoreColor = getColorByScore(roundedScore)
 
   
 
@@ -128,7 +131,7 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
         >
 
-          {score}
+          {roundedScore}
 
         </text>
 
@@ -190,7 +193,7 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
         }}>
 
-          {score < 50 ? 'Poor AI Readiness' : score < 70 ? 'Moderate AI Readiness' : 'Good AI Readiness'}
+          {roundedScore < 50 ? 'Poor AI Readiness' : roundedScore < 70 ? 'Moderate AI Readiness' : 'Good AI Readiness'}
 
         </div>
 
@@ -208,11 +211,11 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
         }}>
 
-          {score < 50 
+          {roundedScore < 50 
 
             ? "ChatGPT, Perplexity, and Gemini have limited ability to understand and cite your content. Fix the "
 
-            : score < 70
+            : roundedScore < 70
 
             ? "AI models can partially understand your content. Key gaps remain in topical authority and schema. Fix the "
 

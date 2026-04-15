@@ -223,7 +223,7 @@ const fetchTechnicalHealth = async (projectId) => {
 
   // Map backend data to dashboard metrics
   const seoHealth = project ? Math.round(project.website_score || 0) : 0
-  const aiVisibility = project ? (project.ai_visibility?.score || 0) : 0
+  const aiVisibility = project ? Math.round(project.ai_visibility?.score || 0) : 0
   const performance = dashboardData?.performance?.performanceScore || 0
   const technicalHealthScore = technicalHealth // From backend API
 

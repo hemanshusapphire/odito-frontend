@@ -6,7 +6,7 @@ import styles from "../ai-search-audit.module.css";
 
 export default function ScoreHero({ aiData }) {
 
-  const score = aiData?.score || 0;
+  const score = Math.round(aiData?.score || 0);
 
   const ringR = 52, ringC = 2 * Math.PI * ringR;
 
