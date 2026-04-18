@@ -8,16 +8,12 @@ export default function AISummaryCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleVideoBrief = () => {
-    // Show toast message for now - TODO: Replace with actual video generation
-    alert("🎬 AI Video generation coming soon 🚀");
-    
-    // Alternative: Navigate to demo video
-    // window.open('/demo-video.mp4', '_blank');
+    router.push('/ai-video');
   };
 
   return (
     <div className="ai-card" style={{ marginBottom: 24 }}>
-      <div className="ai-card-label">✦ ARIA AI Explainer — Auto Summary</div>
+      <div className="ai-card-label">✦Odito AI Explainer — Visual Summary</div>
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
         <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--grad1)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🎥</div>
         <div>
