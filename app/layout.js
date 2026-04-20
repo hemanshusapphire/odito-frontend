@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono, Syne, DM_Sans } from "next/font/google";
+import { Geist, Geist_Mono, Syne, DM_Sans, Inter } from "next/font/google";
 
 import "./globals.css";
 
@@ -56,6 +56,16 @@ const dmSans = DM_Sans({
 
 });
 
+const inter = Inter({
+
+  variable: "--font-inter",
+
+  subsets: ["latin"],
+
+  weight: ["100", "300", "400", "500", "600", "700", "800", "900"],
+
+});
+
 
 
 export const metadata = {
@@ -88,7 +98,7 @@ export default function RootLayout({ children }) {
 
       <body
 
-        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} ${dmSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} ${dmSans.variable} ${inter.variable} antialiased`}
 
       >
 

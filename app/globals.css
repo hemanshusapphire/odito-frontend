@@ -2017,3 +2017,43 @@
 .m-bar{height:3px;background:var(--s2);border-radius:2px;overflow:hidden}
 .m-fill{height:100%;border-radius:2px}
 .m-bottom-stripe{position:absolute;bottom:0;left:0;right:0;height:2px;opacity:.5}
+
+/* New Landing Page Custom Styles */
+body {
+  background-color: #0A0A0F;
+  background-image: radial-gradient(circle at 0% 0%, rgba(160, 120, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(76, 215, 246, 0.05) 0%, transparent 50%);
+  overflow-x: hidden;
+}
+
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.02;
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuA-w0ECrdPUClZb6gh1smo2d9WBZZJ8DVqKiwXf4YNG688arpPx9_dh3g55TsOLos73OSgyZPn65qOgmiAL_qUUo5IG--t215sZbRYaw1HQYlGMemrRA3dsjxWIK7FBAJkerQ7ssnV_d3wA1rqDsTlY0d_Yj3LY1kBFcXdedV_bP1s6kWG6Ir-LJjUc-1MeU_lttnDqKsssl8N7YPe2JuhOXmi6UmFYwYxXEdL4zlQKgG1zL5e2vbwYWWrouCyYgr7WVQihq5GlE8s);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.glass-panel {
+  background: rgba(53, 52, 58, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(144, 143, 160, 0.15);
+}
+
+.neon-border {
+  box-shadow: 0 0 15px rgba(208, 188, 255, 0.3), inset 0 0 5px rgba(208, 188, 255, 0.2);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #d0bcff 0%, #4cd7f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
