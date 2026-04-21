@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   IconBolt,
   IconCamera,
@@ -37,6 +38,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { navigation, iconMap } from "@/config/navigation"
 
@@ -178,20 +180,22 @@ export function AppSidebar({
   ...props
 }) {
   const data = getNavigationData()
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
   
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Odito AI</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-center h-12 px-3">
+          <Image
+            src="/oditologo.png"
+            alt="Odito AI"
+            width={isCollapsed ? 32 : 110}
+            height={32}
+            className="object-contain"
+            priority
+          />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

@@ -12,6 +12,11 @@ export const navigation = {
       icon: "folder"
     },
     {
+      title: "Accessibility Issues",
+      url: "/accessibility",
+      icon: "eye"
+    },
+    {
       title: "Technical Checks",
       url: "/technicalchecks",
       icon: "settings"

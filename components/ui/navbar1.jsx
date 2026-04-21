@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Book, Menu, Sunset, Trees, Zap } from "lucide-react"
 
 import {
@@ -122,7 +123,14 @@ const Navbar1 = ({
         <nav className="hidden justify-between lg:flex">
           <div className="flex items-center gap-6">
             <Link href={logo.url} className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-white font-sans">{logo.title}</span>
+              <Image 
+                src="/oditologo.png" 
+                alt="Odito Logo" 
+                width={150} 
+                height={50}
+                priority={true}
+                className="h-12 w-auto hover:scale-105 transition-transform duration-200"
+              />
             </Link>
             <div className="flex items-center">
               <NavigationMenu>
@@ -144,7 +152,14 @@ const Navbar1 = ({
         <div className="block lg:hidden">
           <div className="flex items-center justify-between">
             <Link href={logo.url} className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-white font-sans">{logo.title}</span>
+              <Image 
+                src="/oditologo.png" 
+                alt="Odito Logo" 
+                width={130} 
+                height={40}
+                priority={true}
+                className="h-10 w-auto hover:scale-105 transition-transform duration-200"
+              />
             </Link>
             <Sheet>
               <SheetTrigger asChild>
@@ -156,9 +171,14 @@ const Navbar1 = ({
                 <SheetHeader>
                   <SheetTitle>
                     <Link href={logo.url} className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-white font-sans">
-                        {logo.title}
-                      </span>
+                      <Image 
+                        src="/oditologo.png" 
+                        alt="Odito Logo" 
+                        width={130} 
+                        height={40}
+                        priority={true}
+                        className="h-10 w-auto hover:scale-105 transition-transform duration-200"
+                      />
                     </Link>
                   </SheetTitle>
                 </SheetHeader>

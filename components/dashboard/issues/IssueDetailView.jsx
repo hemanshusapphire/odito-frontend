@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useProject } from "@/contexts/ProjectContext"
 import apiService from "@/lib/apiService"
 
-export default function IssueDetailView({ issue, onBack, onOpenUrl }) {
+export default function IssueDetailView({ issue, onBack, onOpenUrl, issueTypeName = "On-Page Issues" }) {
   const { activeProject } = useProject()
   const [mode, setMode] = useState("ai")
   const [selUrl, setSelUrl] = useState(null)
@@ -166,7 +166,7 @@ export default function IssueDetailView({ issue, onBack, onOpenUrl }) {
           style={{ fontSize: "11.5px" }}
           onClick={onBack}
         >
-          ← On-Page Issues
+          ← {issueTypeName}
         </button>
         <span style={{ color: "var(--text3)", fontSize: "12px" }}>›</span>
         <span style={{ fontSize: "12px", color: "var(--text2)", fontWeight: "500" }}>
@@ -207,7 +207,7 @@ export default function IssueDetailView({ issue, onBack, onOpenUrl }) {
           padding: "4px 13px",
           fontSize: 11,
           fontWeight: 600
-        }}>🗂 On-Page Issues</span>
+        }}>🗂 {issueTypeName}</span>
       </div>
 
       {/* 4 Stat Tiles */}
