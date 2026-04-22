@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function AuthGuard({ children }) {
   const { isAuthenticated, isLoading, isInitialized, user } = useAuth();
@@ -64,18 +64,42 @@ export function AuthGuard({ children }) {
   return children;
 }
 
-// For public routes that should redirect to dashboard if user is already logged in
+// For public routes that should redirect to dashboard/onboarding if user is already logged in
 export function PublicGuard({ children }) {
-  const { isAuthenticated, isLoading, isInitialized, user } = useAuth();
+  const { isAuthenticated, isLoading, isInitialized, user, checkProjectExistence } = useAuth();
   const router = useRouter();
+  const [isCheckingProjects, setIsCheckingProjects] = useState(false);
 
   useEffect(() => {
-    // Only redirect if user is authenticated, email is verified, and auth check is complete
-    if (isInitialized && !isLoading && isAuthenticated && user?.isEmailVerified) {
-      console.log('🔐 PublicGuard: User authenticated and verified, redirecting to dashboard');
-      router.push('/dashboard');
-    }
-  }, [isLoading, isAuthenticated, isInitialized, user, router]);
+    const handleRedirect = async () => {
+      // Only redirect if user is authenticated, email is verified, and auth check is complete
+      if (isInitialized && !isLoading && isAuthenticated && user?.isEmailVerified) {
+        // Prevent multiple redirects
+        if (isCheckingProjects) return;
+        setIsCheckingProjects(true);
+
+        console.log('🔐 PublicGuard: User authenticated and verified, checking project existence...');
+        
+        try {
+          const hasProjects = await checkProjectExistence();
+          
+          if (hasProjects) {
+            console.log('🔐 PublicGuard: User has projects, redirecting to dashboard');
+            router.push('/dashboard');
+          } else {
+            console.log('🔐 PublicGuard: User has no projects, redirecting to onboarding');
+            router.push('/onboarding');
+          }
+        } catch (error) {
+          console.error('❌ PublicGuard: Error checking projects:', error);
+          // On error, default to onboarding for safety
+          router.push('/onboarding');
+        }
+      }
+    };
+
+    handleRedirect();
+  }, [isLoading, isAuthenticated, isInitialized, user, router, checkProjectExistence, isCheckingProjects]);
 
   // For public routes, render content immediately - don't wait for auth check
   // This prevents blocking on login/signup pages
