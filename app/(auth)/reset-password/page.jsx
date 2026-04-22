@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PublicGuard } from "@/components/guards/AuthGuard";
@@ -277,7 +277,9 @@ function ResetPasswordContent() {
   return (
     <main className="flex min-h-screen w-full bg-black text-on-surface antialiased">
       <ResetPasswordHero />
-      <ResetPasswordForm />
+      <Suspense fallback={<div>Loading...</div>}>
+        <ResetPasswordForm />
+      </Suspense>
     </main>
   );
 }
