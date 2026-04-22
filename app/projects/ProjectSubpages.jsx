@@ -436,7 +436,7 @@ export default function ProjectSubpages({ projectId, projectName, onBack }) {
                     {page.is_premium ? (
                       <div className="w-8 h-4 bg-muted rounded blur-sm"></div>
                     ) : (
-                      page.external_links
+                      <span className="text-gray-400">N/A</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm">

@@ -1012,7 +1012,7 @@ export default function ProjectOverview({ projectId, onBack }) {
               <span className="text-xs">−</span>
             </Button>
           </div>
-          <div className="text-2xl font-bold mb-1">{project.last_crawl_summary?.discovered_links?.external_links || 0}</div>
+          <div className="text-2xl font-bold mb-1">External Link Analysis Disabled</div>
           <div className="h-12">
             {/* Simple line graph placeholder */}
             <div className="flex items-end justify-between h-full">
