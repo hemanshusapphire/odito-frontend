@@ -2,9 +2,6 @@ import MetricCard from "./MetricCard";
 import styles from "../ai-search-audit.module.css";
 
 export default function MetricGrid({ metricsData, aiData }) {
-  console.log("AI DATA:", aiData);
-  console.log("METRICS DATA:", metricsData);
-  
   const metrics = [
     { id:"ai_score",     label:"AI Readiness",          icon:"🧠", val:Math.round(metricsData?.ai_readiness || 0), color:"#ffb703" },
     { id:"schema",       label:"Schema Coverage",        icon:"🧩", val:Math.round(metricsData?.schema_coverage || 0), color:"#ffb703" },

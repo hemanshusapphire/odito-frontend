@@ -2,38 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useProject } from '@/contexts/ProjectContext'
-import apiService from '@/lib/apiService'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default function StatusBreakdown() {
+export default function StatusBreakdown({ technicalData, loading, error }) {
   const { activeProject } = useProject()
   const [summary, setSummary] = useState({ passing: 0, warnings: 0, critical: 0 })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
+  // Process technical data when received from parent
   useEffect(() => {
-    if (!activeProject) return
+    if (!technicalData) return
 
-    const fetchTechnicalChecks = async () => {
-      try {
-        setLoading(true)
-        const response = await apiService.getTechnicalChecks(activeProject._id)
-        
-        if (response.success) {
-          setSummary(response.data.summary || { passing: 0, warnings: 0, critical: 0 })
-        } else {
-          setError(response?.message || 'Failed to load technical checks')
-        }
-      } catch (err) {
-        console.error('Error fetching technical checks:', err)
-        setError('Failed to load technical checks')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchTechnicalChecks()
-  }, [activeProject])
+    setSummary(technicalData.summary || { passing: 0, warnings: 0, critical: 0 })
+  }, [technicalData])
 
   if (loading) {
     return (

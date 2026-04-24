@@ -62,15 +62,11 @@ export default function KeywordDashboard() {
     setUserKeywordsError(null);
     
     try {
-      console.log('Fetching user keywords for project:', activeProject._id);
       const response = await apiService.getProjectRankings(activeProject._id);
-      console.log('API response:', response);
       
       // Handle the response structure: { success: true, data: rankings }
       const rankings = response.data?.data || response.data || [];
       const rankingData = rankings[0]; // Get the most recent ranking
-      
-      console.log('Ranking data:', rankingData);
       
       if (rankingData) {
         setUserKeywords(rankingData);

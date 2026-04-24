@@ -38,15 +38,13 @@ export default function Dashboard() {
 
 function DashboardContent() {
   const { user, logout, isLoading, isInitialized } = useAuth()
-  const { activeProject } = useProject()
+  const { activeProject, projects } = useProject()
   const router = useRouter()
-  const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [project, setProject] = useState(null)
   const [dashboardData, setDashboardData] = useState(null)
   const [technicalHealth, setTechnicalHealth] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [issueCounts, setIssueCounts] = useState({
     critical: 0,
     warnings: 0,
@@ -55,25 +53,16 @@ function DashboardContent() {
   })
 
   useEffect(() => {
-  // Only fetch projects when auth is complete and user is available
-  if (!isLoading && isInitialized && user) {
-    fetchProjects();
-  }
-}, [user, isLoading, isInitialized]);
-
-  useEffect(() => {
-  if (!activeProject) return
+  if (!activeProject) return;
   
   setLoading(true);
   
-  // Fetch all data in parallel
+  // OPTIMIZED: Fetch data using new unified overview and lightweight issue-counts APIs
   const fetchData = async () => {
     try {
       await Promise.all([
-        fetchProjectData(activeProject._id),
-        fetchIssueCounts(activeProject._id),
-        fetchDashboardData(activeProject._id),
-        fetchTechnicalHealth(activeProject._id)
+        fetchProjectOverview(activeProject._id),
+        fetchIssueCounts(activeProject._id)
       ]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -85,81 +74,38 @@ function DashboardContent() {
   fetchData();
 }, [activeProject])
 
-  const fetchProjectData = async (projectId) => {
+  const fetchProjectOverview = async (projectId) => {
   try {
-    const res = await apiService.getProjectById(projectId);
+    const res = await apiService.getProjectOverview(projectId);
     if (res.success) {
-      setProject(res.data);
+      setProject(res.data.project);
+      // Extract performance and technical data from overview
+      if (res.data.performance) {
+        setDashboardData({ performance: res.data.performance });
+      }
+      if (res.data.technical?.summary?.healthScore !== undefined) {
+        setTechnicalHealth(res.data.technical.summary.healthScore);
+      }
     }
   } catch (err) {
-    console.error('Error fetching project data:', err);
+    console.error('Error fetching project overview:', err);
   }
 };
 
 const fetchIssueCounts = async (projectId) => {
   try {
-    const response = await apiService.request(`/pdf/${projectId}/executive`);
-
+    const response = await apiService.getIssueCounts(projectId);
     if (response && response.success && response.data) {
-      const executiveData = response.data;
-      
-      // Try multiple possible structures
-      let issues = null;
-      
-      if (executiveData.success && executiveData.data && executiveData.data.issues) {
-        issues = executiveData.data.issues;
-      } else if (executiveData.data && executiveData.data.issues) {
-        issues = executiveData.data.issues;
-      } else if (executiveData.issues) {
-        issues = executiveData.issues;
-      }
-      
-      if (issues && typeof issues === 'object' && issues.critical !== undefined) {
-        setIssueCounts(issues);
-      }
+      const { critical, warnings, informational, passed } = response.data;
+      setIssueCounts({
+        critical: critical || 0,
+        warnings: warnings || 0,
+        informational: informational || 0,
+        passed: passed || 0
+      });
     }
   } catch (error) {
     console.error('Error fetching issue counts:', error);
-  }
-};
-
-const fetchDashboardData = async (projectId) => {
-  try {
-    const response = await apiService.request(`/app_user/projects/${projectId}/dashboard`);
-    if (response.success) {
-      setDashboardData(response.data);
-    }
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-  }
-};
-
-const fetchTechnicalHealth = async (projectId) => {
-  try {
-    const response = await apiService.getTechnicalChecks(projectId);
-    if (response.success && response.data?.summary?.healthScore !== undefined) {
-      setTechnicalHealth(response.data.summary.healthScore);
-    }
-  } catch (error) {
-    console.error('Error fetching technical health:', error);
-    setTechnicalHealth(0);
-  }
-};
-
-  const fetchProjects = async () => {
-  try {
-    const response = await apiService.getProjects(1, 10);
-    
-    if (response.success) {
-      setProjects(response.data.projects || []);
-    } else {
-      setError(response?.message || 'Failed to load projects');
-    }
-  } catch (err) {
-    console.error('Error fetching projects:', err);
-    setError('Failed to load projects');
-  } finally {
-    setLoading(false);
   }
 };
 
@@ -224,7 +170,7 @@ const fetchTechnicalHealth = async (projectId) => {
   // Map backend data to dashboard metrics
   const seoHealth = project ? Math.round(project.website_score || 0) : 0
   const aiVisibility = project ? Math.round(project.ai_visibility?.score || 0) : 0
-  const performance = dashboardData?.performance?.performanceScore || 0
+  const performance = dashboardData?.performance?.summary?.performanceScore || 0
   const technicalHealthScore = technicalHealth // From backend API
 
   
@@ -369,22 +315,6 @@ const fetchTechnicalHealth = async (projectId) => {
             <span className="text-muted-foreground">Loading projects...</span>
           </div>
         </div>
-      )
-    }
-
-    if (error) {
-      return (
-        <Card className="border-0 shadow-sm">
-          <div className="p-8 text-center">
-            <ErrorIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-3">Oops! Something went wrong</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchProjects}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
-        </Card>
       )
     }
 

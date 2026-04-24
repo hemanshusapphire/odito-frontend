@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useProject } from '@/contexts/ProjectContext'
-import apiService from '@/lib/apiService'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Static lookup table for enriching checks with additional data
@@ -164,71 +163,45 @@ function StatusDot({ status }) {
   )
 }
 
-export default function CheckList({ onSelectCheck }) {
+export default function CheckList({ onSelectCheck, technicalData, loading, error }) {
   const { activeProject } = useProject()
   const [checks, setChecks] = useState([])
   const [summary, setSummary] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [filter, setFilter] = useState("all")
 
+  // Process technical data when received from parent
   useEffect(() => {
-    if (!activeProject) return
+    if (!technicalData) return
 
-    const fetchTechnicalChecks = async () => {
-      try {
-        setLoading(true)
-        const response = await apiService.getTechnicalChecks(activeProject._id)
-        
-        if (response.success) {
-          // Store summary from backend response
-          setSummary(response.data.summary || null)
-          
-          const enrichedChecks = (response.data.checks || []).map(check => {
-            const lookup = CHECKS_LOOKUP[check.name] || {}
-            const statusMap = {
-              "pass": "passed",
-              "fail": "critical", 
-              "warning": "warning",
-              "OK": "passed",
-              "Critical": "critical",
-              "Warning": "warning"
-            }
-            return {
-              ...check,
-              status: statusMap[check.status] || check.status,
-              impact: check.impact_percentage || 0,  // Use backend-calculated impact_percentage
-              difficulty: check.difficulty || "Medium", // Use backend-calculated difficulty
-              icon: lookup.icon || "⚙",
-              aiPrompt: lookup.aiPrompt || "",
-              what: lookup.what || check.message || check.description || "",
-              whatToDo: lookup.whatToDo || "",
-              diySteps: lookup.diySteps || [],
-              before: lookup.before || "",
-              after: lookup.after || ""
-            }
-          })
-          setChecks(enrichedChecks)
-          
-          // Debug logging for backend healthScore
-          console.log('🔧 Backend Technical Health Score Response:', {
-            summary: response.data.summary,
-            healthScore: response.data.summary?.healthScore,
-            backendCalculation: `Backend calculated: ${response.data.summary?.healthScore}%`
-          })
-        } else {
-          setError(response?.message || 'Failed to load technical checks')
-        }
-      } catch (err) {
-        console.error('Error fetching technical checks:', err)
-        setError('Failed to load technical checks')
-      } finally {
-        setLoading(false)
+    // Store summary from backend response
+    setSummary(technicalData.summary || null)
+    
+    const enrichedChecks = (technicalData.checks || []).map(check => {
+      const lookup = CHECKS_LOOKUP[check.name] || {}
+      const statusMap = {
+        "pass": "passed",
+        "fail": "critical", 
+        "warning": "warning",
+        "OK": "passed",
+        "Critical": "critical",
+        "Warning": "warning"
       }
-    }
-
-    fetchTechnicalChecks()
-  }, [activeProject])
+      return {
+        ...check,
+        status: statusMap[check.status] || check.status,
+        impact: check.impact_percentage || 0,
+        difficulty: check.difficulty || "Medium",
+        icon: lookup.icon || "⚙",
+        aiPrompt: lookup.aiPrompt || "",
+        what: lookup.what || check.message || check.description || "",
+        whatToDo: lookup.whatToDo || "",
+        diySteps: lookup.diySteps || [],
+        before: lookup.before || "",
+        after: lookup.after || ""
+      }
+    })
+    setChecks(enrichedChecks)
+  }, [technicalData])
 
   const filteredChecks = checks.filter(check => {
     if (filter === "all") return true
@@ -241,16 +214,6 @@ export default function CheckList({ onSelectCheck }) {
   const passed = summary?.passed ?? 0
   const total = summary?.total ?? checks.length
   const healthScore = summary?.healthScore ?? 0
-  
-  console.log('🔧 Using Backend Summary Values:', {
-    backendSummary: summary,
-    critical,
-    warnings,
-    passed,
-    total,
-    healthScore,
-    source: 'Backend API response summary'
-  })
   
   // Keep this calculation as it needs impact values from check objects
   const criticalChecks = checks.filter(c => c.status === "critical" || c.status === "Critical")

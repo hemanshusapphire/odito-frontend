@@ -158,20 +158,14 @@ export default function AISearchAuditIssuePage() {
 
     try {
       // Use AI Visibility API for AI Search Audit context
-      console.log('🔍 AI Issues API called', { projectId: activeProject._id, url })
       const response = await apiService.getAIVisibilityPageIssues(activeProject._id, url)
-      console.log('🔍 AI Page Issues API Response:', response)
       
       if (response.success) {
         const issuesData = response.data
         const aiIssues = issuesData.aiIssues || []
         
-        console.log('📊 AI Issues Data:', aiIssues)
-        console.log('📄 Issues Summary:', issuesData.summary)
-        
         // Safety check for empty issues
         if (!aiIssues || aiIssues.length === 0) {
-          console.log('📭 No AI issues found for this page')
           setPageData({
             url: url,
             name: url.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') || 'Page',
@@ -204,12 +198,7 @@ export default function AISearchAuditIssuePage() {
           created_at: issue.createdAt,
           score: issue.score
         }))
-        
-        // Debug severity values and field structure
-        console.log('🔍 Issues Sample (first 3):', mappedIssues.slice(0, 3))
-        console.log('🔍 All Severity Values Found:', mappedIssues.map(i => i.severity))
-        console.log('🔍 Issue Fields Sample:', Object.keys(mappedIssues[0] || {}))
-        
+
         // Handle multiple possible severity field names
         const getSeverity = (issue) => {
           const severity = (
@@ -228,9 +217,7 @@ export default function AISearchAuditIssuePage() {
           ...issue,
           normalizedSeverity: getSeverity(issue)
         }));
-        
-        console.log('🔍 Normalized Severity Values:', normalizedIssues.map(i => i.normalizedSeverity))
-        
+
         // Calculate counts with correct severity mapping
         const issuesCount = normalizedIssues.length
         const criticalCount = normalizedIssues.filter(i => i.normalizedSeverity === 'critical').length
@@ -239,16 +226,6 @@ export default function AISearchAuditIssuePage() {
         const infoCount = normalizedIssues.filter(i => i.normalizedSeverity === 'info').length
         const highCount = normalizedIssues.filter(i => i.normalizedSeverity === 'high').length
         const warningCount = normalizedIssues.filter(i => i.normalizedSeverity === 'warning').length
-        
-        console.log('📊 Detailed Counts:', {
-          total: issuesCount,
-          critical: criticalCount,
-          medium: mediumCount,
-          low: lowCount,
-          info: infoCount,
-          high: highCount,
-          warning: warningCount
-        })
         
         const finalPageData = {
           url: url,
@@ -266,8 +243,7 @@ export default function AISearchAuditIssuePage() {
           },
           issues_list: mappedIssues
         }
-        
-        console.log('🎯 Final AI Page Data:', finalPageData)
+
         setPageData(finalPageData)
       }
     } catch (err) {

@@ -49,9 +49,6 @@ export default function AIAuditPageContent({ projectId }) {
       
       if (response.success) {
         setMetricsData(response.data)
-        console.log('✅ AI Search Audit metrics loaded:', response.data)
-      } else {
-        console.warn('⚠️ AI Search Audit metrics not available:', response?.message)
       }
     } catch (err) {
       console.error('Error fetching AI Search Audit metrics:', err)
@@ -67,9 +64,7 @@ export default function AIAuditPageContent({ projectId }) {
       
       if (response.success) {
         setIssues(response.data || [])
-        console.log('✅ AI Search Audit issues loaded:', response.data?.length || 0, 'issues')
       } else {
-        console.warn('⚠️ AI Search Audit issues not available:', response?.message)
         // Fallback to static data if API fails
         setIssues(ISSUES)
       }

@@ -17,6 +17,34 @@ export default function TechnicalPage() {
   const [pageData, setPageData] = useState(null)
   const [pageDetailsLoading, setPageDetailsLoading] = useState(false)
   const [pageDetailsError, setPageDetailsError] = useState(null)
+  const [technicalData, setTechnicalData] = useState(null)
+  const [technicalLoading, setTechnicalLoading] = useState(true)
+  const [technicalError, setTechnicalError] = useState(null)
+
+  // Single API call for technical checks - fetch once for both child components
+  useEffect(() => {
+    if (!activeProject) return
+
+    const fetchTechnicalChecks = async () => {
+      try {
+        setTechnicalLoading(true)
+        const response = await apiService.getTechnicalChecks(activeProject._id)
+        
+        if (response.success) {
+          setTechnicalData(response.data)
+        } else {
+          setTechnicalError(response?.message || 'Failed to load technical checks')
+        }
+      } catch (err) {
+        console.error('Error fetching technical checks:', err)
+        setTechnicalError('Failed to load technical checks')
+      } finally {
+        setTechnicalLoading(false)
+      }
+    }
+
+    fetchTechnicalChecks()
+  }, [activeProject])
 
   const handleUrlSelect = async (url) => {
     setSelectedUrl(url)
@@ -145,8 +173,15 @@ export default function TechnicalPage() {
         }}>
           <CheckList 
             onSelectCheck={setSelectedCheck}
+            technicalData={technicalData}
+            loading={technicalLoading}
+            error={technicalError}
           />
-          <StatusBreakdown />
+          <StatusBreakdown 
+            technicalData={technicalData}
+            loading={technicalLoading}
+            error={technicalError}
+          />
         </div>
       )}
     </div>

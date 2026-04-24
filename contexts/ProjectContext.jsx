@@ -43,7 +43,7 @@ export function ProjectProvider({ children }) {
     };
 
     fetchProjects();
-  }, [isAuthenticated, activeProject]);
+  }, [isAuthenticated]);
 
   const value = {
     activeProject,
