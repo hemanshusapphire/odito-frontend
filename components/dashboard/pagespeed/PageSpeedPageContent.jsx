@@ -1,8 +1,8 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import apiService from "@/lib/apiService"
 import { useProject } from "@/contexts/ProjectContext"
+import { usePageSpeedData } from '@/hooks/useDashboardQueries'
 import DeviceTabs from "@/components/dashboard/pagespeed/DeviceTabs"
 import PerformanceRing from "@/components/dashboard/pagespeed/PerformanceRing"
 import CoreMetrics from "@/components/dashboard/pagespeed/CoreMetrics"
@@ -124,44 +124,14 @@ const FIX_DATA = {
 
 export default function PageSpeedPageContent() {
   const [device, setDevice] = useState("mobile")
-  const [pagespeedData, setPagespeedData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const router = useRouter()
   const { activeProject, activeProjectId, isLoading: projectLoading } = useProject()
 
-  useEffect(() => {
-    // Wait for project context to load
-    if (projectLoading) return
-    
-    // Check if we have an active project
-    if (!activeProjectId) {
-      setError('No active project selected. Please select a project to view PageSpeed data.')
-      setLoading(false)
-      return
-    }
+  // Use React Query for cached data fetching
+  const { data: pagespeedResponse, isLoading: loading, error } = usePageSpeedData(activeProjectId)
 
-    const fetchPageSpeedData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await apiService.getPageSpeedData(activeProjectId)
-        
-        if (response.success && response.data) {
-          setPagespeedData(response.data)
-        } else {
-          setError(response.message || 'Failed to load PageSpeed data')
-        }
-      } catch (err) {
-        console.error('Error fetching PageSpeed data:', err)
-        setError(err.message || 'Failed to fetch PageSpeed data')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPageSpeedData()
-  }, [activeProjectId, projectLoading])
+  // Extract data from API response
+  const pagespeedData = pagespeedResponse?.data || pagespeedResponse
 
   // Handle project loading state
   if (projectLoading) {
@@ -188,31 +158,16 @@ export default function PageSpeedPageContent() {
     return (
       <div className="error-container" style={{ textAlign: 'center', padding: '40px' }}>
         <div className="error-icon">❌</div>
-        <div style={{ color: 'var(--red)', marginBottom: '16px' }}>{error}</div>
+        <div style={{ color: 'var(--red)', marginBottom: '16px' }}>{error.message || 'Failed to fetch PageSpeed data'}</div>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: 'var(--primary)', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '6px', 
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Retry
-          </button>
-          <button 
-            onClick={() => router.push('/dashboard')} 
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: 'transparent', 
-              color: 'var(--text2)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '6px', 
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
               cursor: 'pointer',
               fontSize: '14px',
               fontWeight: '500'
@@ -227,47 +182,7 @@ export default function PageSpeedPageContent() {
 
   // Handle no project state with redirect to project selection
   if (!activeProjectId) {
-    return (
-      <div className="no-project-container" style={{ textAlign: 'center', padding: '40px' }}>
-        <div className="no-project-icon">📁</div>
-        <div style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>No Project Selected</div>
-        <div style={{ color: 'var(--text3)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
-          Please select a project to view PageSpeed data. You can manage your projects from the dashboard.
-        </div>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => router.push('/dashboard')} 
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: 'var(--primary)', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '6px', 
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Go to Dashboard
-          </button>
-          <button 
-            onClick={() => window.history.back()} 
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: 'transparent', 
-              color: 'var(--text2)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '6px', 
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    )
+    return null // Let parent component handle no project state
   }
 
   // Handle no data state

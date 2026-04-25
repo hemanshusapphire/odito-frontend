@@ -12,6 +12,8 @@ import { GlobalAuthLoader } from "@/components/loading/GlobalAuthLoader";
 
 import GlobalPaymentModal from "@/components/modals/GlobalPaymentModal";
 
+import { QueryProvider } from "@/lib/queryClient";
+
 
 
 const geistSans = Geist({
@@ -102,29 +104,31 @@ export default function RootLayout({ children }) {
 
       >
 
-        <ThemeProvider
+        <QueryProvider>
+          <ThemeProvider
 
-          attribute="class"
+            attribute="class"
 
-          defaultTheme="dark"
+            defaultTheme="dark"
 
-          enableSystem={false}
+            enableSystem={false}
 
-        >
+          >
 
-          <AuthProvider>
+            <AuthProvider>
 
-            <ProjectProvider>
+              <ProjectProvider>
 
-              {children}
+                {children}
 
-              <GlobalPaymentModal />
+                <GlobalPaymentModal />
 
-            </ProjectProvider>
+              </ProjectProvider>
 
-          </AuthProvider>
+            </AuthProvider>
 
-        </ThemeProvider>
+          </ThemeProvider>
+        </QueryProvider>
 
         <script
 

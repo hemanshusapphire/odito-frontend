@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, useState } from "react"
 
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -16,7 +16,7 @@ import IssueDetailView from "@/components/dashboard/issues/IssueDetailView"
 
 import PageDetailView from "@/app/onpage/components/PageDetailView"
 
-import apiService from "@/lib/apiService"
+import { useAccessibilityIssues, usePageIssues } from '@/hooks/useDashboardQueries'
 
 function AccessibilityPageContent() {
 
@@ -25,48 +25,45 @@ function AccessibilityPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [issues, setIssues] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [summary, setSummary] = useState(null)
   const [selectedUrl, setSelectedUrl] = useState(null)
-  const [pageData, setPageData] = useState(null)
-  const [pageLoading, setPageLoading] = useState(false)
-  const [pageError, setPageError] = useState(null)
+
+  // Use React Query for cached data fetching
+  const { data: accessibilityResponse, isLoading: loading } = useAccessibilityIssues(activeProject?._id)
+  const { data: pageIssuesData, isLoading: pageLoading, error: pageError } = usePageIssues(activeProject?._id, selectedUrl)
+
+  // Extract data from query results
+  const issues = accessibilityResponse?.issues || []
+  const summary = accessibilityResponse?.summary || null
+
+  // Process page data when URL is selected
+  const pageData = pageIssuesData?.data ? (() => {
+    const issuesData = pageIssuesData.data
+    const pageIssues = issuesData.issues || []
+    const pData = issuesData.page_data || {}
+    const pageMetadata = issuesData.page_metadata || {}
+    
+    return {
+      url: selectedUrl,
+      name: pData.title ? pData.title.split(' | ')[0] : derivePageNameFromUrl(selectedUrl),
+      title: pData.title || deriveTitleFromUrl(selectedUrl),
+      description: pData.meta_description || pageMetadata.meta_description || 'No meta description available',
+      statusCode: pData.status_code || pageMetadata.http_status_code || 200,
+      wordCount: pData.word_count || 0,
+      loadTime: pData.response_time ? `${Math.round(pData.response_time)}ms` : '0s',
+      issues: {
+        crit: pageIssues.filter(i => i.severity === 'critical' || i.severity === 'high').length,
+        warn: pageIssues.filter(i => i.severity === 'warning' || i.severity === 'medium').length,
+        low: pageIssues.filter(i => i.severity === 'low').length,
+        pass: pageIssues.filter(i => i.severity === 'pass' || i.severity === 'info').length,
+      },
+      issues_list: pageIssues
+    }
+  })() : null
 
   // Derive selected issue from URL (same as On-Page)
   const issueCode = searchParams.get('issue')
   const selectedIssue = issueCode ? issues.find(issue => issue.issue_code === issueCode) : null
   const selected = selectedIssue ? issues.findIndex(issue => issue.issue_code === issueCode) : null
-
-  // Fetch accessibility issues from API
-  useEffect(() => {
-    const fetchAccessibilityIssues = async () => {
-      try {
-        setLoading(true)
-        
-        if (!activeProject) {
-          setLoading(false)
-          return
-        }
-        
-        const response = await apiService.getAccessibilityIssues({ projectId: activeProject._id })
-
-        if (response.success && response.issues) {
-          // Backend now returns grouped data directly (same structure as On-Page)
-          setIssues(response.issues)
-          setSummary(response.summary)
-        }
-      } catch (error) {
-        console.error('[Accessibility] Failed to fetch accessibility issues:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (user && activeProject) {
-      fetchAccessibilityIssues()
-    }
-  }, [user, activeProject])
 
   const handleIssueSelect = (index) => {
     const issue = issues[index]
@@ -83,49 +80,12 @@ function AccessibilityPageContent() {
     router.push('/accessibility')
   }
 
-  const handleUrlSelect = async (url) => {
+  const handleUrlSelect = (url) => {
     setSelectedUrl(url)
-    setPageLoading(true)
-    setPageError(null)
-
-    try {
-      const response = await apiService.getPageIssues(activeProject._id, url)
-      if (response.success) {
-        const issuesData = response.data
-        const pageIssues = issuesData.issues || []
-        const pageData = issuesData.page_data || {}
-        const pageMetadata = issuesData.page_metadata || {}
-
-        const finalPageData = {
-          url: url,
-          name: pageData.title ? pageData.title.split(' | ')[0] : derivePageNameFromUrl(url),
-          title: pageData.title || deriveTitleFromUrl(url),
-          description: pageData.meta_description || pageMetadata.meta_description || 'No meta description available',
-          statusCode: pageData.status_code || pageMetadata.http_status_code || 200,
-          wordCount: pageData.word_count || 0,
-          loadTime: pageData.response_time ? `${Math.round(pageData.response_time)}ms` : '0s',
-          issues: {
-            crit: pageIssues.filter(i => i.severity === 'critical' || i.severity === 'high').length,
-            warn: pageIssues.filter(i => i.severity === 'warning' || i.severity === 'medium').length,
-            low: pageIssues.filter(i => i.severity === 'low').length,
-            pass: pageIssues.filter(i => i.severity === 'pass' || i.severity === 'info').length,
-          },
-          issues_list: pageIssues
-        }
-
-        setPageData(finalPageData)
-      }
-    } catch (err) {
-      console.error('Failed to load page details:', err)
-      setPageError(err.message)
-    } finally {
-      setPageLoading(false)
-    }
   }
 
   const handlePageDetailBack = () => {
     setSelectedUrl(null)
-    setPageData(null)
   }
 
   // Helper functions to derive values from URL when API doesn't provide them

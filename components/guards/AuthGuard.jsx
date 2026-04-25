@@ -11,14 +11,12 @@ export function AuthGuard({ children }) {
   useEffect(() => {
     // Only redirect after auth check is complete
     if (isInitialized && !isLoading && !isAuthenticated) {
-      console.log('🔓 AuthGuard: User not authenticated, redirecting to login');
       router.push('/login');
       return;
     }
 
     // Check email verification for authenticated users
     if (isInitialized && !isLoading && isAuthenticated && user && !user.isEmailVerified) {
-      console.log('🔓 AuthGuard: User not verified, redirecting to verify-email');
       router.push('/verify-email');
       return;
     }
@@ -78,20 +76,15 @@ export function PublicGuard({ children }) {
         if (isCheckingProjects) return;
         setIsCheckingProjects(true);
 
-        console.log('🔐 PublicGuard: User authenticated and verified, checking project existence...');
-        
         try {
           const hasProjects = await checkProjectExistence();
           
           if (hasProjects) {
-            console.log('🔐 PublicGuard: User has projects, redirecting to dashboard');
             router.push('/dashboard');
           } else {
-            console.log('🔐 PublicGuard: User has no projects, redirecting to onboarding');
             router.push('/onboarding');
           }
         } catch (error) {
-          console.error('❌ PublicGuard: Error checking projects:', error);
           // On error, default to onboarding for safety
           router.push('/onboarding');
         }

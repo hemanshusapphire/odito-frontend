@@ -17,31 +17,22 @@ export function AuthProvider({ children }) {
     // Check if user is authenticated on app load
     const checkAuth = async () => {
       try {
-        console.log('🔐 Auth check starting...');
-        
         if (apiService.isAuthenticated()) {
-          console.log('🔑 Token found, validating with backend...');
           const response = await apiService.getProfile();
           
           if (response.success && response.data) {
-            console.log('✅ User authenticated:', response.data.email);
             setUser(response.data);
           } else {
-            console.log('❌ Invalid profile response');
             throw new Error('Invalid profile response');
           }
-        } else {
-          console.log('🔓 No token found - user not logged in');
         }
       } catch (error) {
-        console.error('❌ Auth check failed:', error.message);
         // Token might be expired or invalid - clean up
         apiService.removeToken();
         setUser(null);
       } finally {
         setIsLoading(false);
         setIsInitialized(true);
-        console.log('🏁 Auth check completed');
       }
     };
 
@@ -80,7 +71,7 @@ export function AuthProvider({ children }) {
     try {
       await apiService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      // Silent error handling
     } finally {
       apiService.removeToken();
       setUser(null);
@@ -97,17 +88,14 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      console.log('🔍 AuthContext: Checking project existence...');
       const response = await apiService.getProjects(1, 1);
       const projects = response?.data?.projects || [];
       const projectExists = projects.length > 0;
       
       setHasProjects(projectExists);
-      console.log('📊 AuthContext: Projects check result', { projectExists, count: projects.length });
       
       return projectExists;
     } catch (error) {
-      console.error('❌ AuthContext: Failed to check projects', error);
       setHasProjects(false);
       return false;
     }
@@ -153,13 +141,7 @@ function AuthContextInner({ value, children }) {
 
   // Handle NextAuth session changes (Google login)
   useEffect(() => {
-    console.log("AuthContext - Session changed:", session);
-    
     if (session && session?.backendToken && session?.backendUser) {
-      console.log("AuthContext - Storing backend token and user");
-      console.log("AuthContext - Backend user:", session.backendUser);
-      console.log("AuthContext - Is new user:", session.isNewUser);
-      
       // Store backend JWT in localStorage
       apiService.setToken(session.backendToken);
       
@@ -169,8 +151,6 @@ function AuthContextInner({ value, children }) {
         updatedUser.isNewUser = session.isNewUser;
       }
       setUser(updatedUser);
-      
-      console.log("AuthContext - User state updated, clearing NextAuth session");
       
       // Clear NextAuth session after successful bootstrap
       signOut({ redirect: false });

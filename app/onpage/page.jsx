@@ -1,13 +1,11 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import { useAuth } from "@/contexts/AuthContext"
 
 import { useProject } from "@/contexts/ProjectContext"
-
-import apiService from "@/lib/apiService"
 
 import DashboardLayout from "@/components/layout/dashboard-layout"
 
@@ -16,6 +14,8 @@ import IssueTable from "@/components/dashboard/issues/IssueTable"
 import IssueDetailView from "@/components/dashboard/issues/IssueDetailView"
 
 import PageDetailView from "./components/PageDetailView"
+
+import { useOnPageIssues, usePageIssues } from '@/hooks/useDashboardQueries'
 
 function OnPagePageContent() {
 
@@ -26,19 +26,40 @@ function OnPagePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-
-
-  const [issues, setIssues] = useState([])
-
-  const [summary, setSummary] = useState(null)
-
   const [selectedUrl, setSelectedUrl] = useState(null)
 
-  const [pageData, setPageData] = useState(null)
+  // Use React Query for cached data fetching
+  const { data: onPageResponse, isLoading: loading, error } = useOnPageIssues(activeProject?._id)
+  const { data: pageIssuesData, isLoading: pageDetailsLoading, error: pageDetailsError } = usePageIssues(activeProject?._id, selectedUrl)
 
-  const [loading, setLoading] = useState(false)
+  // Extract data from query results
+  const issues = onPageResponse?.data?.issues || []
+  const summary = onPageResponse?.data?.summary || null
 
-  const [error, setError] = useState(null)
+  // Process page data when URL is selected
+  const pageData = pageIssuesData?.data ? (() => {
+    const issuesData = pageIssuesData.data
+    const pageIssues = issuesData.issues || []
+    const pData = issuesData.page_data || {}
+    const pageMetadata = issuesData.page_metadata || {}
+    
+    return {
+      url: selectedUrl,
+      name: pData.title ? pData.title.split(' | ')[0] : derivePageNameFromUrl(selectedUrl),
+      title: pData.title || deriveTitleFromUrl(selectedUrl),
+      description: pData.meta_description || pageMetadata.meta_description || 'No meta description available',
+      statusCode: pData.status_code || pageMetadata.http_status_code || 200,
+      wordCount: pData.word_count || 0,
+      loadTime: pData.response_time ? `${Math.round(pData.response_time)}ms` : '0s',
+      issues: {
+        crit: pageIssues.filter(i => i.severity === 'critical' || i.severity === 'high').length,
+        warn: pageIssues.filter(i => i.severity === 'warning' || i.severity === 'medium').length,
+        low: pageIssues.filter(i => i.severity === 'low').length,
+        pass: pageIssues.filter(i => i.severity === 'pass' || i.severity === 'info').length,
+      },
+      issues_list: pageIssues
+    }
+  })() : null
 
   // Derive selected issue from URL
   const issueCode = searchParams.get('issue')
@@ -66,92 +87,12 @@ function OnPagePageContent() {
 
 
 
-  const handleUrlSelect = async (url) => {
-
+  const handleUrlSelect = (url) => {
     setSelectedUrl(url)
-
-    setLoading(true)
-
-    setError(null)
-
-
-
-    try {
-
-      // Use the same API call as PageDetailsContent
-
-      const response = await apiService.getPageIssues(activeProject._id, url)
-
-      if (response.success) {
-
-        const issuesData = response.data
-
-        const pageIssues = issuesData.issues || []
-
-        const pageData = issuesData.page_data || {}
-
-        const pageMetadata = issuesData.page_metadata || {}
-
-        const finalPageData = {
-
-          url: url,
-
-          name: pageData.title ? pageData.title.split(' | ')[0] : derivePageNameFromUrl(url),
-
-          title: pageData.title || deriveTitleFromUrl(url),
-
-          description: pageData.meta_description || pageMetadata.meta_description || 'No meta description available',
-
-          statusCode: pageData.status_code || pageMetadata.http_status_code || 200,
-
-          wordCount: pageData.word_count || 0,
-
-          loadTime: pageData.response_time ? `${Math.round(pageData.response_time)}ms` : '0s',
-
-          issues: {
-
-            crit: pageIssues.filter(i => i.severity === 'critical' || i.severity === 'high').length,
-
-            warn: pageIssues.filter(i => i.severity === 'warning' || i.severity === 'medium').length,
-
-            low: pageIssues.filter(i => i.severity === 'low').length,
-
-            pass: pageIssues.filter(i => i.severity === 'pass' || i.severity === 'info').length,
-
-          },
-
-          issues_list: pageIssues
-
-        }
-
-        
-
-        setPageData(finalPageData)
-
-      }
-
-    } catch (err) {
-
-      console.error('Failed to load page details:', err)
-
-      setError(err.message)
-
-    } finally {
-
-      setLoading(false)
-
-    }
-
   }
 
-
-
   const handlePageDetailBack = () => {
-
     setSelectedUrl(null)
-
-    setPageData(null)
-
   }
 
 
@@ -183,46 +124,6 @@ function OnPagePageContent() {
     return name
 
   }
-
-
-
-  useEffect(() => {
-
-    if (!activeProject) return
-
-
-
-    setLoading(true)
-
-    setError(null)
-
-
-
-    apiService
-
-      .getOnPageIssues(activeProject._id)
-
-      .then((res) => {
-
-        setIssues(res.data.issues || [])
-
-        setSummary(res.data.summary || null)
-
-      })
-
-      .catch((err) => {
-
-        console.error("Failed to load on-page issues:", err)
-
-        setError(err.message)
-
-      })
-
-      .finally(() => setLoading(false))
-
-  }, [activeProject])
-
-
 
   if (authLoading || projectLoading) {
 

@@ -14,8 +14,7 @@ export function GlobalAuthLoader() {
     '/', 
     '/forgot-password', 
     '/reset-password',
-    '/verify-email',
-    '/auth/callback'
+    '/verify-email'
   ];
   
   // Check if current route is public

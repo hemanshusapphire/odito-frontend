@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import apiService from '@/lib/apiService'
 import { 
   Globe, 
   TrendingUp, 
@@ -27,6 +26,7 @@ import ScoreGrid from "@/components/dashboard/overview/ScoreGrid"
 import AISummaryCard from "@/components/dashboard/overview/AISummaryCard"
 import SEOSummaryPanel from "@/components/dashboard/overview/SEOSummaryPanel"
 import AIVisibilityPanel from "@/components/dashboard/overview/AIVisibilityPanel"
+import { useProjectOverview, useIssueCounts } from '@/hooks/useDashboardQueries'
 
 export default function Dashboard() {
   return (
@@ -41,73 +41,23 @@ function DashboardContent() {
   const { activeProject, projects } = useProject()
   const router = useRouter()
   const [selectedProject, setSelectedProject] = useState(null)
-  const [project, setProject] = useState(null)
-  const [dashboardData, setDashboardData] = useState(null)
-  const [technicalHealth, setTechnicalHealth] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [issueCounts, setIssueCounts] = useState({
+
+  // Use React Query for cached data fetching
+  const { data: overviewResponse, isLoading: overviewLoading } = useProjectOverview(activeProject?._id)
+  const { data: issueCountsResponse, isLoading: issueCountsLoading } = useIssueCounts(activeProject?._id)
+
+  // Extract data from query results
+  const project = overviewResponse?.data?.project || null
+  const dashboardData = overviewResponse?.data?.performance ? { performance: overviewResponse.data.performance } : null
+  const technicalHealth = overviewResponse?.data?.technical?.summary?.healthScore || 0
+  const issueCounts = issueCountsResponse?.data || issueCountsResponse || {
     critical: 0,
     warnings: 0,
     informational: 0,
     passed: 0
-  })
-
-  useEffect(() => {
-  if (!activeProject) return;
-  
-  setLoading(true);
-  
-  // OPTIMIZED: Fetch data using new unified overview and lightweight issue-counts APIs
-  const fetchData = async () => {
-    try {
-      await Promise.all([
-        fetchProjectOverview(activeProject._id),
-        fetchIssueCounts(activeProject._id)
-      ]);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchData();
-}, [activeProject])
-
-  const fetchProjectOverview = async (projectId) => {
-  try {
-    const res = await apiService.getProjectOverview(projectId);
-    if (res.success) {
-      setProject(res.data.project);
-      // Extract performance and technical data from overview
-      if (res.data.performance) {
-        setDashboardData({ performance: res.data.performance });
-      }
-      if (res.data.technical?.summary?.healthScore !== undefined) {
-        setTechnicalHealth(res.data.technical.summary.healthScore);
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching project overview:', err);
   }
-};
 
-const fetchIssueCounts = async (projectId) => {
-  try {
-    const response = await apiService.getIssueCounts(projectId);
-    if (response && response.success && response.data) {
-      const { critical, warnings, informational, passed } = response.data;
-      setIssueCounts({
-        critical: critical || 0,
-        warnings: warnings || 0,
-        informational: informational || 0,
-        passed: passed || 0
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching issue counts:', error);
-  }
-};
+  const loading = overviewLoading || issueCountsLoading
 
   const handleProjectAction = (action, projectId) => {
     switch (action) {

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useProject } from '@/contexts/ProjectContext'
-import apiService from '@/lib/apiService'
+import { useAISearchAuditProject, useAISearchAudit, useAISearchAuditIssues } from '@/hooks/useDashboardQueries'
 import ScoreHero from "@/app/ai-search-audit/components/ScoreHero"
 import CategoryGrid from "@/app/ai-search-audit/components/CategoryGrid"
 import MetricGrid from "@/app/ai-search-audit/components/MetricGrid"
@@ -12,75 +12,17 @@ import { CAT_COLORS, getCategoryColor } from "@/app/ai-search-audit/data/issuesD
 import styles from "@/app/ai-search-audit/ai-search-audit.module.css"
 
 export default function AIAuditPageContent({ projectId }) {
-  const [projectData, setProjectData] = useState(null)
-  const [metricsData, setMetricsData] = useState(null)
-  const [issues, setIssues] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [catFilter, setCatFilter] = useState("all")
 
-  // Fetch project data (existing functionality)
-  const loadData = async () => {
-    if (!projectId) return
+  // Use React Query for cached data fetching
+  const { data: projectResponse, isLoading: loading, error } = useAISearchAuditProject(projectId)
+  const { data: metricsResponse } = useAISearchAudit(projectId)
+  const { data: issuesResponse } = useAISearchAuditIssues(projectId)
 
-    try {
-      setLoading(true)
-      const response = await apiService.getProjectById(projectId)
-      
-      if (response.success) {
-        setProjectData(response.data)
-      } else {
-        setError(response?.message || 'Failed to load project data')
-      }
-    } catch (err) {
-      console.error('Error fetching project data:', err)
-      setError('Failed to load project data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Fetch AI Search Audit metrics (existing functionality)
-  const loadMetrics = async () => {
-    if (!projectId) return
-
-    try {
-      const response = await apiService.getAISearchAudit(projectId)
-      
-      if (response.success) {
-        setMetricsData(response.data)
-      }
-    } catch (err) {
-      console.error('Error fetching AI Search Audit metrics:', err)
-    }
-  }
-
-  // Fetch AI Search Audit issues (new dynamic functionality)
-  const loadIssues = async () => {
-    if (!projectId) return
-
-    try {
-      const response = await apiService.getAISearchAuditIssues(projectId)
-      
-      if (response.success) {
-        setIssues(response.data || [])
-      } else {
-        // Fallback to static data if API fails
-        setIssues(ISSUES)
-      }
-    } catch (err) {
-      console.error('Error fetching AI Search Audit issues:', err)
-      // Fallback to static data if API fails
-      setIssues(ISSUES)
-    }
-  }
-
-  // Load data on mount
-  useEffect(() => {
-    loadData()
-    loadMetrics()
-    loadIssues()
-  }, [projectId])
+  // Extract data from query results
+  const projectData = projectResponse?.data
+  const metricsData = metricsResponse?.data || metricsResponse
+  const issues = issuesResponse?.data || issuesResponse || []
 
   // Transform dynamic issues to match static data structure
   const transformedIssues = issues.map(issue => ({
@@ -124,7 +66,7 @@ export default function AIAuditPageContent({ projectId }) {
         <div className="p-8 text-center">
           <div className="text-red-500 mb-4">⚠️</div>
           <h3 className="text-lg font-semibold mb-3">Error Loading Data</h3>
-          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-muted-foreground mb-4">{error.message || 'Failed to load AI audit data'}</p>
         </div>
       </div>
     )
