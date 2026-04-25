@@ -27,6 +27,7 @@ import AISummaryCard from "@/components/dashboard/overview/AISummaryCard"
 import SEOSummaryPanel from "@/components/dashboard/overview/SEOSummaryPanel"
 import AIVisibilityPanel from "@/components/dashboard/overview/AIVisibilityPanel"
 import { useProjectOverview, useIssueCounts } from '@/hooks/useDashboardQueries'
+import { ScoreGridSkeleton, CardSkeleton, PanelSkeleton } from '@/components/skeletons'
 
 export default function Dashboard() {
   return (
@@ -271,6 +272,30 @@ function DashboardContent() {
     return renderProjectCards()
   }
 
+  const renderDashboardSkeleton = () => {
+    return (
+      <div className="flex-1 space-y-6 p-6 pt-0">
+        <div className="border-b pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="w-48 h-8 skeleton-base rounded mb-2"></div>
+              <div className="w-64 h-4 skeleton-base rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <ScoreGridSkeleton />
+          <CardSkeleton />
+          <div className="two-col">
+            <PanelSkeleton showStats={true} showProgressBars={true} />
+            <PanelSkeleton showStats={true} showProgressBars={true} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -298,49 +323,53 @@ function DashboardContent() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 space-y-6 p-6">
-        {/* Breadcrumb equivalent */}
-        <div className="border-b pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Overview Dashboard
-              </h1>
-              <p className="text-muted-foreground">SEO & AI Visibility Audit</p>
+      {loading ? (
+        renderDashboardSkeleton()
+      ) : (
+        <div className="flex-1 space-y-6 p-6 skeleton-fade-in">
+          {/* Breadcrumb equivalent */}
+          <div className="border-b pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Overview Dashboard
+                </h1>
+                <p className="text-muted-foreground">SEO & AI Visibility Audit</p>
+              </div>
+            </div>
+          </div>
+
+          {/* AuditIQ Overview Dashboard Content */}
+          <div>
+            {/* SECTION 1 - Score Grid */}
+            <ScoreGrid
+              seoHealth={seoHealth}
+              aiVisibility={aiVisibility}
+              performance={performance}
+              technicalHealth={technicalHealthScore}
+            />
+
+            {/* SECTION 2 - ARIA AI Explainer Card */}
+            <AISummaryCard />
+
+            {/* SECTION 3 - Two Column Grid */}
+            <div className="two-col">
+              <SEOSummaryPanel
+                pagesCrawled={pagesCrawled}
+                totalIssues={totalIssues}
+                criticalIssues={criticalIssues}
+                mediumIssues={issueCounts?.warnings || 0}
+                infoIssues={issueCounts?.informational || 0}
+              />
+              <AIVisibilityPanel
+                aiReadiness={aiReadiness}
+                aiCitation={aiCitation}
+                topicalAuthority={topicalAuthority}
+              />
             </div>
           </div>
         </div>
-        
-        {/* AuditIQ Overview Dashboard Content */}
-        <div>
-          {/* SECTION 1 - Score Grid */}
-          <ScoreGrid 
-            seoHealth={seoHealth}
-            aiVisibility={aiVisibility}
-            performance={performance}
-            technicalHealth={technicalHealthScore}
-          />
-
-          {/* SECTION 2 - ARIA AI Explainer Card */}
-          <AISummaryCard />
-
-          {/* SECTION 3 - Two Column Grid */}
-          <div className="two-col">
-            <SEOSummaryPanel 
-              pagesCrawled={pagesCrawled}
-              totalIssues={totalIssues}
-              criticalIssues={criticalIssues}
-              mediumIssues={issueCounts?.warnings || 0}
-              infoIssues={issueCounts?.informational || 0}
-            />
-            <AIVisibilityPanel 
-              aiReadiness={aiReadiness}
-              aiCitation={aiCitation}
-              topicalAuthority={topicalAuthority}
-            />
-          </div>
-        </div>
-      </div>
+      )}
     </DashboardLayout>
   )
 }
