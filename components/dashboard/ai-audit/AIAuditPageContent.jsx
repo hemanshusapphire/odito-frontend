@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useProject } from '@/contexts/ProjectContext'
 import { useAISearchAuditProject, useAISearchAudit, useAISearchAuditIssues } from '@/hooks/useDashboardQueries'
+import { AISearchSkeleton } from "@/components/skeletons/aisearch"
 import ScoreHero from "@/app/ai-search-audit/components/ScoreHero"
 import CategoryGrid from "@/app/ai-search-audit/components/CategoryGrid"
 import MetricGrid from "@/app/ai-search-audit/components/MetricGrid"
@@ -50,14 +51,7 @@ export default function AIAuditPageContent({ projectId }) {
   const shown = catFilter === "all" ? transformedIssues : transformedIssues.filter(i => i.cat === catFilter)
 
   if (loading) {
-    return (
-      <div className="glass-card">
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading AI audit data...</p>
-        </div>
-      </div>
-    )
+    return <AISearchSkeleton />
   }
 
   if (error) {

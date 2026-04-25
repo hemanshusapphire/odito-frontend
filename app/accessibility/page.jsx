@@ -16,6 +16,7 @@ import IssueDetailView from "@/components/dashboard/issues/IssueDetailView"
 
 import PageDetailView from "@/app/onpage/components/PageDetailView"
 
+import { AccessibilitySummarySkeleton, AccessibilityTableSkeleton } from "@/components/skeletons/accessibility"
 import { useAccessibilityIssues, usePageIssues } from '@/hooks/useDashboardQueries'
 
 function AccessibilityPageContent() {
@@ -34,6 +35,25 @@ function AccessibilityPageContent() {
   // Extract data from query results
   const issues = accessibilityResponse?.issues || []
   const summary = accessibilityResponse?.summary || null
+
+  if (loading) {
+    return (
+      <DashboardLayout user={user}>
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <div className="px-4 lg:px-6">
+                <AccessibilitySummarySkeleton />
+                <div className="mt-6">
+                  <AccessibilityTableSkeleton />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   // Process page data when URL is selected
   const pageData = pageIssuesData?.data ? (() => {
@@ -172,12 +192,7 @@ function AccessibilityPageContent() {
 
                     {/* Content */}
                     <div className="bg-card rounded-lg border p-6">
-                      {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-3"></div>
-                          <span className="text-muted-foreground">Loading issues...</span>
-                        </div>
-                      ) : issues.length === 0 ? (
+                      {issues.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                           No accessibility issues found. Your site looks great!
                         </div>

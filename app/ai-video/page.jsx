@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { AIVideoSkeleton } from "@/components/skeletons/aivideo";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { useAuth } from '@/contexts/AuthContext';
 import { useProject } from '@/contexts/ProjectContext';
@@ -445,12 +445,9 @@ export default function AIVideoReport() {
   // Show loading state while checking authentication, projects, and existing video
   if (isLoading || projectsLoading || existingVideoLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading AI Video Report...</p>
-        </div>
-      </div>
+      <DashboardLayout user={user}>
+        <AIVideoSkeleton />
+      </DashboardLayout>
     )
   }
 

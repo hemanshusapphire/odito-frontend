@@ -3,6 +3,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useProject } from "@/contexts/ProjectContext"
 import { usePageSpeedData } from '@/hooks/useDashboardQueries'
+import { PageSpeedSkeleton } from "@/components/skeletons/pagespeed"
 import DeviceTabs from "@/components/dashboard/pagespeed/DeviceTabs"
 import PerformanceRing from "@/components/dashboard/pagespeed/PerformanceRing"
 import CoreMetrics from "@/components/dashboard/pagespeed/CoreMetrics"
@@ -133,24 +134,9 @@ export default function PageSpeedPageContent() {
   // Extract data from API response
   const pagespeedData = pagespeedResponse?.data || pagespeedResponse
 
-  // Handle project loading state
-  if (projectLoading) {
-    return (
-      <div className="loading-container" style={{ textAlign: 'center', padding: '40px' }}>
-        <div className="loading-spinner">🔄</div>
-        <div>Loading project information...</div>
-      </div>
-    )
-  }
-
   // Handle loading state
-  if (loading) {
-    return (
-      <div className="loading-container" style={{ textAlign: 'center', padding: '40px' }}>
-        <div className="loading-spinner">🔄</div>
-        <div>Loading PageSpeed data...</div>
-      </div>
-    )
+  if (loading || projectLoading) {
+    return <PageSpeedSkeleton />
   }
 
   // Handle error state

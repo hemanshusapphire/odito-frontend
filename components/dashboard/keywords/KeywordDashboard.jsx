@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useKeywordData } from '@/hooks/useKeywordData';
 import { useKeywordFilter } from './hooks/useKeywordFilter';
 import { useProject } from '@/contexts/ProjectContext';
+import { KeywordsSkeleton } from "@/components/skeletons/keywords";
 import apiService from '@/lib/apiService';
 import StatsGrid from './components/StatsGrid';
 import VolumeChart from './components/VolumeChart';
@@ -146,19 +147,7 @@ export default function KeywordDashboard() {
 
   // Show loading state
   if (loading.intelligence && !intelligence) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: '#04070f', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        color: '#8896b0',
-        fontSize: '14px'
-      }}>
-        Loading keyword intelligence...
-      </div>
-    );
+    return <KeywordsSkeleton />;
   }
 
   // Show error state
