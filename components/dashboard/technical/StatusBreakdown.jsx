@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useProject } from '@/contexts/ProjectContext'
-import { Skeleton } from '@/components/ui/skeleton'
 
-export default function StatusBreakdown({ technicalData, loading, error }) {
+export default function StatusBreakdown({ technicalData, error }) {
   const { activeProject } = useProject()
   const [summary, setSummary] = useState({ passing: 0, warnings: 0, critical: 0 })
 
@@ -14,32 +13,6 @@ export default function StatusBreakdown({ technicalData, loading, error }) {
 
     setSummary(technicalData.summary || { passing: 0, warnings: 0, critical: 0 })
   }, [technicalData])
-
-  if (loading) {
-    return (
-      <div>
-        <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
-          <div className="section-title" style={{ marginBottom: 16 }}>
-            Status Breakdown
-          </div>
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex justify-between items-center">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-8" />
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="ai-card">
-          <Skeleton className="h-4 w-32 mb-2" />
-          <Skeleton className="h-3 w-full mb-1" />
-          <Skeleton className="h-3 w-3/4" />
-        </div>
-      </div>
-    )
-  }
 
   if (error) {
     return (

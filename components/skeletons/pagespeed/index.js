@@ -1,0 +1,1 @@
+export { PageSpeedSkeleton } from "./PageSpeedSkeleton";

@@ -1,0 +1,1 @@
+export { AISearchSkeleton } from "./AISearchSkeleton";

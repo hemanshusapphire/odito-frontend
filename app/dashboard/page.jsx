@@ -27,7 +27,7 @@ import AISummaryCard from "@/components/dashboard/overview/AISummaryCard"
 import SEOSummaryPanel from "@/components/dashboard/overview/SEOSummaryPanel"
 import AIVisibilityPanel from "@/components/dashboard/overview/AIVisibilityPanel"
 import { useProjectOverview, useIssueCounts } from '@/hooks/useDashboardQueries'
-import { ScoreGridSkeleton, CardSkeleton, PanelSkeleton } from '@/components/skeletons'
+import { ScoreGridSkeleton, CardSkeleton, PanelSkeleton } from '@/components/skeletons/dashboard'
 
 export default function Dashboard() {
   return (

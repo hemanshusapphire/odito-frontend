@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useProject } from '@/contexts/ProjectContext'
-import { Skeleton } from '@/components/ui/skeleton'
 
 // Static lookup table for enriching checks with additional data
 const CHECKS_LOOKUP = {
@@ -163,7 +162,7 @@ function StatusDot({ status }) {
   )
 }
 
-export default function CheckList({ onSelectCheck, technicalData, loading, error }) {
+export default function CheckList({ onSelectCheck, technicalData, error }) {
   const { activeProject } = useProject()
   const [checks, setChecks] = useState([])
   const [summary, setSummary] = useState(null)
@@ -218,33 +217,6 @@ export default function CheckList({ onSelectCheck, technicalData, loading, error
   // Keep this calculation as it needs impact values from check objects
   const criticalChecks = checks.filter(c => c.status === "critical" || c.status === "Critical")
   const totalCriticalImpact = criticalChecks.reduce((sum, c) => sum + (c.impact || 0), 0)
-
-  if (loading) {
-    return (
-      <div className="glass-card">
-        <div className="p-6">
-          <div className="summary-bar">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="sum-tile">
-                <Skeleton className="h-8 w-16 mx-auto mb-2" />
-                <Skeleton className="h-4 w-20 mx-auto" />
-              </div>
-            ))}
-          </div>
-          <div className="health-row">
-            <div className="health-card">
-              <Skeleton className="w-20 h-20 rounded-full" />
-            </div>
-            <div className="aria-card">
-              <Skeleton className="h-4 w-32 mb-2" />
-              <Skeleton className="h-3 w-full mb-1" />
-              <Skeleton className="h-3 w-3/4" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   if (error) {
     return (

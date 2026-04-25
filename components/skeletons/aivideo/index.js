@@ -1,0 +1,1 @@
+export { AIVideoSkeleton } from "./AIVideoSkeleton";

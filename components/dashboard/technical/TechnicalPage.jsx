@@ -6,7 +6,7 @@ import CheckList from "@/components/dashboard/technical/CheckList"
 import StatusBreakdown from "@/components/dashboard/technical/StatusBreakdown"
 import TechCheckDetailView from "@/components/dashboard/technical/TechCheckDetailView"
 import PageDetailView from "@/app/onpage/components/PageDetailView"
-import { Skeleton } from '@/components/ui/skeleton'
+import { TechnicalChecksSummarySkeleton, TechnicalChecksTableSkeleton } from "@/components/skeletons/technicalchecks"
 import { AlertTriangle } from 'lucide-react'
 import { useTechnicalChecks, usePageIssues } from '@/hooks/useDashboardQueries'
 
@@ -70,6 +70,15 @@ export default function TechnicalPage() {
     return name
   }
 
+  if (technicalLoading) {
+    return (
+      <div>
+        <TechnicalChecksSummarySkeleton />
+        <TechnicalChecksTableSkeleton />
+      </div>
+    )
+  }
+
   if (!activeProject) {
     return (
       <div className="glass-card">
@@ -127,15 +136,13 @@ export default function TechnicalPage() {
           gridTemplateColumns: "1fr 320px",
           alignItems: "start"
         }}>
-          <CheckList 
+          <CheckList
             onSelectCheck={setSelectedCheck}
             technicalData={technicalData}
-            loading={technicalLoading}
             error={technicalError}
           />
-          <StatusBreakdown 
+          <StatusBreakdown
             technicalData={technicalData}
-            loading={technicalLoading}
             error={technicalError}
           />
         </div>
