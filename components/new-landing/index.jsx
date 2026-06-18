@@ -12,7 +12,7 @@ export default function NewLandingPage() {
   return (
     <>
       <div className="grain-overlay"></div>
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen landing-theme-wrapper">
         <Navbar />
         <main>
           <Hero />

@@ -1,0 +1,114 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Pill & Badge Utilities
+   
+   DEDUPLICATED:
+   - .glow-pill was defined 2x (lines 629, 696)
+   - .badge was defined 2x (lines 1489, 1871)
+   - .sev-badge, .pill, .ok-chip all had overlapping styles
+   
+   Now defined ONCE with consistent token usage.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Glow Pills ────────────────────────────────────────────────── */
+.glow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill, 20px);
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-semibold, 600);
+}
+
+.glow-pill.cyan    { background: var(--color-status-info-surface); color: var(--color-brand-cyan); border: 1px solid var(--color-status-info-border); }
+.glow-pill.violet  { background: var(--color-brand-purple-surface); color: var(--color-brand-purple); border: 1px solid var(--color-brand-purple-border); }
+.glow-pill.green   { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid var(--color-status-success-border); }
+.glow-pill.amber   { background: var(--color-status-warning-surface); color: var(--color-status-warning); border: 1px solid var(--color-status-warning-border); }
+.glow-pill.red     { background: var(--color-status-error-surface); color: var(--color-status-error); border: 1px solid var(--color-status-error-border); }
+
+/* ── Severity Badges ───────────────────────────────────────────── */
+.sev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--text-xs, 10px);
+  font-weight: var(--weight-bold, 700);
+  letter-spacing: var(--tracking-wide, 0.05em);
+}
+
+.sev-badge.high   { background: rgba(255, 69, 96, 0.15); color: var(--color-status-error); border: 1px solid rgba(255, 69, 96, 0.25); }
+.sev-badge.medium { background: rgba(255, 187, 51, 0.12); color: var(--color-status-warning); border: 1px solid rgba(255, 187, 51, 0.25); }
+.sev-badge.low    { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid var(--color-status-success-border); }
+.sev-badge.info   { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid var(--color-status-success-border); }
+
+/* ── Badges (generic) ──────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 8px;
+  border-radius: 5px;
+  font-size: 9.5px;
+  font-weight: var(--weight-bold, 700);
+  letter-spacing: var(--tracking-wide, 0.04em);
+  flex-shrink: 0;
+}
+
+.badge.critical, .badge.fail { background: var(--color-status-error-surface); color: var(--color-status-error); border: 1px solid var(--color-status-error-border); }
+.badge.warning, .badge.warn  { background: var(--color-status-warning-surface); color: var(--color-status-warning); border: 1px solid var(--color-status-warning-border); }
+.badge.passed, .badge.pass   { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid var(--color-status-success-border); }
+.badge.info                  { background: var(--color-status-info-surface); color: var(--color-brand-cyan); border: 1px solid var(--color-status-info-border); }
+
+/* ── Compact Pills ─────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill, 20px);
+  font-size: 9.5px;
+  font-weight: var(--weight-semibold, 600);
+}
+
+.pill.c { background: var(--color-status-info-surface); color: #00dfff; border: 1px solid rgba(0, 223, 255, 0.16); }
+.pill.v { background: rgba(157, 78, 221, 0.1); color: #c77dff; border: 1px solid rgba(157, 78, 221, 0.18); }
+.pill.g { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid rgba(0, 245, 160, 0.16); }
+.pill.r { background: var(--color-status-error-surface); color: var(--color-status-error); border: 1px solid rgba(255, 56, 96, 0.16); }
+.pill.a { background: var(--color-status-warning-surface); color: var(--color-status-warning); border: 1px solid rgba(255, 183, 3, 0.16); }
+
+/* ── Severity Pill Variants ────────────────────────────────────── */
+.pill-sev-r  { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 9px; font-weight: var(--weight-bold); background: rgba(255, 56, 96, 0.1); color: #ff3860; border: 1px solid rgba(255, 56, 96, 0.18); }
+.pill-sev-a  { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 9px; font-weight: var(--weight-bold); background: rgba(255, 183, 3, 0.1); color: #ffb703; border: 1px solid rgba(255, 183, 3, 0.18); }
+.pill-impact { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 9px; font-weight: var(--weight-bold); background: var(--color-status-info-surface); color: #00dfff; border: 1px solid var(--color-status-info-border); }
+.pill-diff   { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 9px; font-weight: var(--weight-bold); background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid rgba(0, 245, 160, 0.16); }
+
+/* ── OK Chip ───────────────────────────────────────────────────── */
+.ok-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  background: rgba(0, 245, 160, 0.1);
+  color: var(--color-status-success);
+  border: 1px solid rgba(0, 245, 160, 0.2);
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-bold, 700);
+}
+
+/* ── Status Dots ───────────────────────────────────────────────── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.critical { background: #ff3860; box-shadow: 0 0 6px rgba(255, 56, 96, 0.6); }
+.status-dot.warning  { background: #ffb703; box-shadow: 0 0 6px rgba(255, 183, 3, 0.6); }
+.status-dot.passed   { background: #00f5a0; box-shadow: 0 0 6px rgba(0, 245, 160, 0.6); }
+
+/* ── URL Chips ─────────────────────────────────────────────────── */
+.chip-open  { font-size: 9.5px; font-weight: var(--weight-bold); padding: 2px 7px; border-radius: 5px; background: var(--color-status-error-surface); color: #ff3860; flex-shrink: 0; }
+.chip-fixed { font-size: 9.5px; font-weight: var(--weight-bold); padding: 2px 7px; border-radius: 5px; background: var(--color-status-success-surface); color: var(--color-status-success); flex-shrink: 0; }

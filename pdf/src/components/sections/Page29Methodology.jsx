@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader } from '../layout';
@@ -14,7 +14,6 @@ const steps = [
 
 export default function AuditMethodologyPage() {
   useEffect(() => {
-    console.log('[AUDIT METHODOLOGY] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -25,7 +24,6 @@ export default function AuditMethodologyPage() {
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('audit-methodology', true, 'Audit Methodology');
     }
-    console.log('[AUDIT METHODOLOGY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{ width: 960, minHeight: 1280, background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 40px rgba(0,0,0,0.12)', margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>
@@ -41,10 +39,10 @@ export default function AuditMethodologyPage() {
           {steps.map(({ num, color, title, desc }) => (
             <div key={num} style={{ display: 'flex', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
               <div style={{ background: color, width: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ color: '#fff', fontWeight: 800, fontSize: 18, fontFamily: "'Syne', sans-serif" }}>{num}</span>
+                <span style={{ color: '#fff', fontWeight: 800, fontSize: 18, fontFamily: "'Inter', sans-serif" }}>{num}</span>
               </div>
               <div style={{ padding: '16px 20px' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 5, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 5, fontFamily: "'Inter', sans-serif" }}>{title}</div>
                 <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{desc}</div>
               </div>
             </div>

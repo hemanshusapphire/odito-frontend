@@ -1,0 +1,32 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Gradient Utilities
+   ═══════════════════════════════════════════════════════════════ */
+
+.text-gradient {
+  background: linear-gradient(135deg, #d0bcff 0%, #4cd7f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #2DD4BF 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-teal {
+  background: linear-gradient(135deg, #4cd6ff 0%, #0085a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #2DD4BF 0%, #06B6D4 100%);
+}
+
+.kinetic-gradient {
+  background: linear-gradient(135deg, #afc6ff 0%, #1d74f5 100%);
+}

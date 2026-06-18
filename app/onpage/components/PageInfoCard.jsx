@@ -37,7 +37,6 @@ export default function PageInfoCard({ pageData }) {
           {statusCode === 200 ? "✓ 200 OK" : `✗ ${statusCode}`}
         </span>
         <span className="info-chip">📝 {wordCount.toLocaleString()} words</span>
-        <span className="info-chip">⚡ {loadTime} load</span>
       </div>
 
           </div>

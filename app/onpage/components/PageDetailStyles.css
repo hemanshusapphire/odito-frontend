@@ -521,29 +521,29 @@
 .fix-chip {
   margin-left: auto;
   padding: 5px 14px;
-  background: linear-gradient(90deg, rgba(119,48,237,0.2), rgba(0,223,255,0.1));
-  border: 1px solid rgba(119,48,237,0.28);
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.4);
   border-radius: 7px;
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--pu);
+  color: #c77dff;
   cursor: pointer;
   transition: var(--tr);
   font-family: var(--fb);
   white-space: nowrap;
   flex-shrink: 0;
-  border: none;
 }
 
 .fix-chip:hover {
-  color: var(--cy);
-  border-color: rgba(0,223,255,0.35);
+  background: rgba(168, 85, 247, 0.22);
+  border-color: rgba(200, 125, 255, 0.6);
+  color: #e0aaff;
 }
 
 .fix-chip.fixed {
-  background: rgba(0,245,160,0.1);
-  border-color: rgba(0,245,160,0.2);
-  color: var(--gr);
+  background: rgba(0, 245, 160, 0.12);
+  border-color: rgba(0, 245, 160, 0.3);
+  color: #00f5a0;
   cursor: default;
 }
 
@@ -558,13 +558,21 @@
 }
 
 .fix-panel {
-  width: 480px;
+  width: 100%;
+  max-width: 480px;
   height: 100vh;
   background: var(--bg2);
   border-left: 1px solid var(--b2);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.25s cubic-bezier(0.4,0,0.2,1);
+  transition: max-width 0.2s ease-in-out;
+}
+
+@media (min-width: 1024px) {
+  .fix-panel {
+    max-width: 700px;
+  }
 }
 
 @keyframes slideIn {
@@ -1233,29 +1241,29 @@ pre {
 .fix-chip {
   margin-left: auto;
   padding: 5px 14px;
-  background: linear-gradient(90deg, rgba(119,48,237,0.2), rgba(0,223,255,0.1));
-  border: 1px solid rgba(119,48,237,0.28);
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.4);
   border-radius: 7px;
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--pu);
+  color: #c77dff;
   cursor: pointer;
   transition: var(--tr);
   font-family: var(--fb);
   white-space: nowrap;
   flex-shrink: 0;
-  border: none;
 }
 
 .fix-chip:hover {
-  color: var(--cy);
-  border-color: rgba(0,223,255,0.35);
+  background: rgba(168, 85, 247, 0.22);
+  border-color: rgba(200, 125, 255, 0.6);
+  color: #e0aaff;
 }
 
 .fix-chip.fixed {
-  background: rgba(0,245,160,0.1);
-  border-color: rgba(0,245,160,0.2);
-  color: var(--gr);
+  background: rgba(0, 245, 160, 0.12);
+  border-color: rgba(0, 245, 160, 0.3);
+  color: #00f5a0;
   cursor: default;
 }
 
@@ -1270,13 +1278,21 @@ pre {
 }
 
 .fix-panel {
-  width: 480px;
+  width: 100%;
+  max-width: 480px;
   height: 100vh;
   background: var(--bg2);
   border-left: 1px solid var(--b2);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.25s cubic-bezier(0.4,0,0.2,1);
+  transition: max-width 0.2s ease-in-out;
+}
+
+@media (min-width: 1024px) {
+  .fix-panel {
+    max-width: 700px;
+  }
 }
 
 @keyframes slideIn {
@@ -1676,3 +1692,10 @@ pre {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+
+
+
+
+

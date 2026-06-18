@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Layout Utilities
+   
+   DEDUPLICATED: .two-col was defined 2x (lines 621, 750)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Two Column Grid ───────────────────────────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5, 20px);
+  margin-bottom: var(--space-6, 24px);
+}
+
+/* ── Score Grid ────────────────────────────────────────────────── */
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4, 16px);
+  margin-bottom: var(--space-6, 24px);
+}
+
+/* ── Stat Grid ─────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3, 12px);
+}
+
+/* ── Stats Row ─────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 11px;
+  margin-bottom: var(--space-5, 20px);
+}
+
+/* ── Summary Bar ───────────────────────────────────────────────── */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-5_5, 22px);
+}
+
+/* ── Detail Layout ─────────────────────────────────────────────── */
+.detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 370px;
+  gap: var(--space-5, 20px);
+  align-items: start;
+}
+
+.detail-wrap {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-5, 20px);
+  align-items: start;
+}
+
+/* ── Health Row ────────────────────────────────────────────────── */
+.health-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-4, 16px);
+  margin-bottom: var(--space-6, 24px);
+}
+
+/* ── Check Grid ────────────────────────────────────────────────── */
+.check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2_5, 10px);
+}
+
+/* ── Pass Grid ─────────────────────────────────────────────────── */
+.pass-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+/* ── Section Divider ───────────────────────────────────────────── */
+.sec-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2_5, 10px);
+  margin: var(--space-5, 20px) 0 var(--space-3_5, 14px);
+}
+
+.sec-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-default, rgba(255, 255, 255, 0.08));
+}
+
+.sec-divider-lbl {
+  font-size: var(--text-2xs, 9px);
+  font-weight: var(--weight-bold, 700);
+  letter-spacing: var(--tracking-widest, 0.1em);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}

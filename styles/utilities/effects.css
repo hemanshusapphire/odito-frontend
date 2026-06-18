@@ -1,0 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Visual Effects
+   ═══════════════════════════════════════════════════════════════ */
+
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+}
+
+.neural-bg {
+  background-image: radial-gradient(circle at 2px 2px, rgba(45, 212, 191, 0.05) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
+.neural-net {
+  background-image: radial-gradient(circle at 2px 2px, rgba(45, 212, 191, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: var(--z-max, 9999);
+  opacity: 0.02;
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuA-w0ECrdPUClZb6gh1smo2d9WBZZJ8DVqKiwXf4YNG688arpPx9_dh3g55TsOLos73OSgyZPn65qOgmiAL_qUUo5IG--t215sZbRYaw1HQYlGMemrRA3dsjxWIK7FBAJkerQ7ssnV_d3wA1rqDsTlY0d_Yj3LY1kBFcXdedV_bP1s6kWG6Ir-LJjUc-1MeU_lttnDqKsssl8N7YPe2JuhOXmi6UmFYwYxXEdL4zlQKgG1zL5e2vbwYWWrouCyYgr7WVQihq5GlE8s);
+}
+
+/* ── Transition ────────────────────────────────────────────────── */
+.transition-standard {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}

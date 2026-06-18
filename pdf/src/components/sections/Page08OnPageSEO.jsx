@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
@@ -25,11 +25,9 @@ export default function OnPageSEOPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (pageData) {
-      console.log('[ON-PAGE SEO] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[ON-PAGE SEO] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -37,32 +35,24 @@ export default function OnPageSEOPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("On-Page SEO");
-            console.log("[ON-PAGE SEO] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('onpage-seo', true, 'On-Page SEO');
-            console.log('[ON-PAGE SEO] ✅ Marked ready via legacy system');
           } else {
-            console.error("[ON-PAGE SEO] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[ON-PAGE SEO] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[ON-PAGE SEO] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [pageData]);
 
   useEffect(() => {
-    console.log('[ON-PAGE SEO] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[ON-PAGE SEO] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[ON-PAGE SEO] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -70,11 +60,9 @@ export default function OnPageSEOPage({ projectId }) {
 
     const fetchPageData = async () => {
       try {
-        console.log('[ON-PAGE SEO] Fetching page data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[ON-PAGE SEO] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -86,10 +74,8 @@ export default function OnPageSEOPage({ projectId }) {
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[ON-PAGE SEO] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[ON-PAGE SEO] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -103,18 +89,15 @@ export default function OnPageSEOPage({ projectId }) {
           }
         });
 
-        console.log('[ON-PAGE SEO] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[ON-PAGE SEO] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
-        console.log('[ON-PAGE SEO] API response:', result);
         
         if (!result.success) {
           clearTimeout(timeoutId);
@@ -124,11 +107,9 @@ export default function OnPageSEOPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[ON-PAGE SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
-        console.error('[ON-PAGE SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -188,7 +169,7 @@ export default function OnPageSEOPage({ projectId }) {
           <StatCard value={severityBreakdown.lowInfo} label="Low+Info" sub="Opportunities" color={severityColors.low} borderColor={severityColors.low} />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>Issue Breakdown</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>Issue Breakdown</h3>
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

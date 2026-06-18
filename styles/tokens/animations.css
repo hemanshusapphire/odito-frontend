@@ -1,0 +1,110 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Animation Tokens
+   
+   SINGLE definitions of all @keyframes.
+   Previously duplicated across globals.css:
+   - fadeInUp: lines 980 AND 1848
+   - blink: lines 52 AND 986
+   - float: lines 268 AND 2112
+   
+   All now defined ONCE here.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Timing Tokens ───────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  --duration-instant: 0.1s;
+  --duration-fast: 0.15s;
+  --duration-normal: 0.25s;
+  --duration-slow: 0.35s;
+  --duration-slower: 0.5s;
+
+  /* ── Legacy aliases ── */
+  --tr: all 0.2s ease;
+  --transition: all 0.25s var(--ease-standard);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Keyframes — Single Definitions
+   ══════════════════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+  50%      { transform: translateY(-40px) scale(1.5); opacity: 0.8; }
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-20px); }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.3); }
+  50%      { box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+}
+
+@keyframes pulseSlow {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes blob {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(30px, -50px) scale(1.1); }
+  66%  { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Animation Utility Classes
+   ══════════════════════════════════════════════════════════════ */
+
+.fade                  { animation: fadeInUp 0.3s forwards; }
+.fade-in               { animation: fadeInUp 0.4s ease forwards; }
+.slide-up              { animation: slideUp 0.3s ease forwards; }
+.animate-blob          { animation: blob 7s infinite; }
+.animate-float         { animation: floatGentle 6s ease-in-out infinite; }
+.animate-pulse-slow    { animation: pulseSlow 8s var(--ease-standard) infinite; }
+.animation-delay-2000  { animation-delay: 2s; }
+.cursor {
+  display: inline-block;
+  width: 2px; height: 13px;
+  background: var(--color-brand-cyan, #00e5ff);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}

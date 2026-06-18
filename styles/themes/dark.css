@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Dark Theme
+   
+   ShadCN token overrides for dark mode.
+   Applied via .dark class on <html> (next-themes).
+   
+   Also includes the dark-intelligence variant theme.
+   ═══════════════════════════════════════════════════════════════ */
+
+.dark {
+  --background: #000000;
+  --foreground: #eef0f8;
+  --card: #0c0e18;
+  --card-foreground: #eef0f8;
+  --popover: #0c0e18;
+  --popover-foreground: #eef0f8;
+  --primary: #06b6d4;
+  --primary-foreground: #07080f;
+  --secondary: #8b5cf6;
+  --secondary-foreground: #07080f;
+  --muted: #111525;
+  --muted-foreground: #9ba3bf;
+  --accent: #252b42;
+  --accent-foreground: #eef0f8;
+  --destructive: #ef4444;
+  --border: #1c2138;
+  --input: #252b42;
+  --ring: #06b6d4;
+  --surface: #161b2e;
+  --subtle-foreground: #555f7e;
+  --disabled-foreground: #2e3450;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --chart-1: #06b6d4;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: rgba(10, 10, 15, 0.6);
+  --sidebar-blur: 16px;
+  --sidebar-foreground: #eef0f8;
+  --sidebar-primary: #06b6d4;
+  --sidebar-primary-foreground: #07080f;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: #eef0f8;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #06b6d4;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-hover-foreground: #eef2ff;
+  --sidebar-active: rgba(255, 255, 255, 0.09);
+  --sidebar-active-foreground: #00e5ff;
+  --sidebar-muted: #8494b0;
+  --sidebar-label: #4e5f7a;
+  --sidebar-icon: #8494b0;
+}
+
+/* ── Dark Intelligence Theme Variant ───────────────────────────
+   Applied via className="dark-intelligence" on specific sections.
+   Uses oklch for richer color interpolation.
+   ──────────────────────────────────────────────────────────── */
+.dark-intelligence {
+  --background: oklch(0.09 0.01 240);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.12 0.02 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --popover: oklch(0.12 0.02 240);
+  --popover-foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.65 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 240);
+  --secondary: oklch(0.18 0.02 240);
+  --secondary-foreground: oklch(0.95 0.01 240);
+  --muted: oklch(0.16 0.02 240);
+  --muted-foreground: oklch(0.70 0.01 240);
+  --accent: oklch(0.20 0.03 240);
+  --accent-foreground: oklch(0.95 0.01 240);
+  --destructive: oklch(0.65 0.20 20);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.22 0.02 240);
+  --ring: oklch(0.65 0.15 240);
+  --chart-1: oklch(0.55 0.20 260);
+  --chart-2: oklch(0.60 0.15 180);
+  --chart-3: oklch(0.65 0.10 140);
+  --chart-4: oklch(0.70 0.12 320);
+  --chart-5: oklch(0.75 0.08 40);
+  --sidebar: rgba(10, 10, 15, 0.75);
+  --sidebar-blur: 20px;
+  --sidebar-foreground: oklch(0.90 0.01 240);
+  --sidebar-primary: oklch(0.65 0.15 240);
+  --sidebar-primary-foreground: oklch(0.98 0.01 240);
+  --sidebar-accent: oklch(0.18 0.02 240);
+  --sidebar-accent-foreground: oklch(0.95 0.01 240);
+  --sidebar-border: oklch(0.25 0.02 240);
+  --sidebar-ring: oklch(0.65 0.15 240);
+  --sidebar-hover: oklch(0.18 0.02 240);
+  --sidebar-hover-foreground: oklch(0.95 0.01 240);
+  --sidebar-active: oklch(0.20 0.03 240);
+  --sidebar-active-foreground: oklch(0.65 0.15 240);
+  --sidebar-muted: oklch(0.70 0.01 240);
+  --sidebar-label: oklch(0.50 0.01 240);
+  --sidebar-icon: oklch(0.70 0.01 240);
+}

@@ -8,7 +8,7 @@ export default function CategoryCard({ icon, label, val, color, desc, index }) {
     return () => clearTimeout(t);
   }, [index]);
 
-  const valColor = val >= 70 ? "#00f5a0" : val >= 50 ? "#ffb703" : "#ff3860";
+  const valColor = val >= 70 ? "var(--gr)" : val >= 50 ? "var(--am)" : "var(--re)";
 
   return (
     <div className={styles.catCard}>

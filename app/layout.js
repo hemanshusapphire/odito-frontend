@@ -1,148 +1,93 @@
-import { Geist, Geist_Mono, Syne, DM_Sans, Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 
-import { ProjectProvider } from "@/contexts/ProjectContext";
-
-import { ThemeProvider } from "next-themes";
-
-import { GlobalAuthLoader } from "@/components/loading/GlobalAuthLoader";
-
 import GlobalPaymentModal from "@/components/modals/GlobalPaymentModal";
 
 import { QueryProvider } from "@/lib/queryClient";
 
+import { WebVitals } from "@/lib/monitoring/web-vitals";
 
-
-const geistSans = Geist({
-
-  variable: "--font-geist-sans",
-
-  subsets: ["latin"],
-
-});
-
-
-
-const geistMono = Geist_Mono({
-
-  variable: "--font-geist-mono",
-
-  subsets: ["latin"],
-
-});
-
-
-
-const syne = Syne({
-
-  variable: "--font-syne",
-
-  subsets: ["latin"],
-
-  weight: ["400", "500", "600", "700", "800"],
-
-});
-
-
-
-const dmSans = DM_Sans({
-
-  variable: "--font-dm-sans",
-
-  subsets: ["latin"],
-
-  weight: ["400", "500", "600", "700"],
-
-});
-
-const inter = Inter({
-
+const inter = localFont({
+  src: [
+    {
+      path: "../public/fonts/Inter/Inter-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Inter/Inter-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Inter/Inter-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Inter/Inter-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-inter",
-
-  subsets: ["latin"],
-
-  weight: ["100", "300", "400", "500", "600", "700", "800", "900"],
-
 });
 
-
+const dmSans = localFont({
+  src: [
+    {
+      path: "../public/fonts/DM_Sans/DMSans-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/DM_Sans/DMSans-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/DM_Sans/DMSans-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/DM_Sans/DMSans-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-dm-sans",
+});
 
 export const metadata = {
-
   title: "Odito AI - SEO Analytics Platform",
 
   description: "Advanced SEO analytics and auditing platform powered by AI",
-
 };
 
-
-
 export default function RootLayout({ children }) {
-
   return (
-
-    <html lang="en" suppressHydrationWarning>
-
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-
         <link
-
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-
           rel="stylesheet"
-
         />
-
       </head>
 
-      <body
-
-        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} ${dmSans.variable} ${inter.variable} antialiased`}
-
-      >
+      <body className={`${inter.variable} ${dmSans.variable} antialiased`}>
+        <WebVitals />
 
         <QueryProvider>
-          <ThemeProvider
-
-            attribute="class"
-
-            defaultTheme="dark"
-
-            enableSystem={false}
-
-          >
-
-            <AuthProvider>
-
-              <ProjectProvider>
-
-                {children}
-
-                <GlobalPaymentModal />
-
-              </ProjectProvider>
-
-            </AuthProvider>
-
-          </ThemeProvider>
+          <AuthProvider>
+            {children}
+            <GlobalPaymentModal />
+          </AuthProvider>
         </QueryProvider>
-
-        <script
-
-          src="https://ai-chat-five-self.vercel.app/chatBot.js"
-
-          data-owner-id="usr_115431673788629261"
-
-        ></script>
-
       </body>
-
     </html>
-
   );
-
 }
-

@@ -1,11 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter } from '../layout';
 
 export default function SectionDividerPage({ pageNum, sectionNum, title, subtitle }) {
   useEffect(() => {
-    console.log('[SECTION DIVIDER] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -16,7 +15,6 @@ export default function SectionDividerPage({ pageNum, sectionNum, title, subtitl
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('section-divider', true, 'Section Divider');
     }
-    console.log('[SECTION DIVIDER] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{
@@ -44,7 +42,7 @@ export default function SectionDividerPage({ pageNum, sectionNum, title, subtitl
           <div style={{
             position: 'absolute', bottom: 40, right: 60,
             fontSize: 280, fontWeight: 900, color: 'rgba(255,255,255,0.04)',
-            fontFamily: "'Syne', sans-serif", lineHeight: 1, userSelect: 'none'
+            fontFamily: "'Inter', sans-serif", lineHeight: 1, userSelect: 'none'
           }} className="letter-spacing-neg10">{sectionNum.toString().padStart(2, '0')}</div>
 
           {/* Section label */}
@@ -58,7 +56,7 @@ export default function SectionDividerPage({ pageNum, sectionNum, title, subtitl
           {/* Title */}
           <h1 style={{
             fontSize: 60, fontWeight: 800, color: '#fff',
-            fontFamily: "'Syne', sans-serif", lineHeight: 1.1,
+            fontFamily: "'Inter', sans-serif", lineHeight: 1.1,
             marginBottom: 20, position: 'relative'
           }}>{title}</h1>
 

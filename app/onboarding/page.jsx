@@ -8,9 +8,15 @@ import Hero from '@/components/landing/Hero';
 import ARIAChat from '@/components/onboarding/ARIAChat';
 import TrustBar from '@/components/landing/TrustBar';
 
+function getTotalCredits(user) {
+  if (!user?.credits) return 0;
+  if (typeof user.credits === 'number') return user.credits;
+  return (user.credits.permanent || 0) + (user.credits.monthly || 0);
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -18,6 +24,13 @@ export default function OnboardingPage() {
       router.push('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Redirect to pricing if user has no credits
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && getTotalCredits(user) <= 0) {
+      router.push('/pricing');
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   // Show loading state while checking authentication
   if (isLoading) {

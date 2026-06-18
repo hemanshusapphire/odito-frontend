@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
@@ -15,7 +15,7 @@ function DonutChart({ value, max = 100, color, size = 100 }) {
         strokeDasharray={`${circ * pct} ${circ}`}
         strokeLinecap="round"
         transform="rotate(-90 50 50)" />
-      <text x={50} y={47} textAnchor="middle" fontSize={18} fontWeight={800} fill="#111827" fontFamily="'Syne', sans-serif">{value}</text>
+      <text x={50} y={47} textAnchor="middle" fontSize={18} fontWeight={800} fill="#111827" fontFamily="'Inter', sans-serif">{value}</text>
       <text x={50} y={60} textAnchor="middle" fontSize={10} fill="#9CA3AF">/100</text>
     </svg>
   );
@@ -30,11 +30,9 @@ export default function ExecutiveSummaryPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (executiveData) {
-      console.log('[EXECUTIVE SUMMARY] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[EXECUTIVE SUMMARY] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -42,29 +40,22 @@ export default function ExecutiveSummaryPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Executive Summary");
-            console.log("[EXECUTIVE SUMMARY] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('executive-summary', true, 'Executive Summary');
-            console.log('[EXECUTIVE SUMMARY] ✅ Marked ready via legacy system');
           } else {
-            console.error("[EXECUTIVE SUMMARY] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[EXECUTIVE SUMMARY] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[EXECUTIVE SUMMARY] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [executiveData]);
 
   useEffect(() => {
-    console.log('[EXECUTIVE SUMMARY] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[EXECUTIVE SUMMARY] Component registration handled by inline system');
     
     if (!projectId) {
       setError('Project ID is required');
@@ -76,11 +67,9 @@ export default function ExecutiveSummaryPage({ projectId }) {
       let timeoutId;
       try {
         setLoading(true);
-        console.log('[EXECUTIVE SUMMARY] DATA FETCH START');
         
         // Set timeout to prevent infinite loading
         timeoutId = setTimeout(() => {
-          console.warn('[EXECUTIVE SUMMARY] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -90,20 +79,16 @@ export default function ExecutiveSummaryPage({ projectId }) {
             const target = window.parent || window;
             if (target && target.__PDF_READY__) {
               target.__PDF_READY__.markReady("Executive Summary (Timeout)");
-              console.log("[EXECUTIVE SUMMARY] ✅ Marked ready in parent (timeout)");
             } else if (target && target.__PDF_SET_READY__) {
               target.__PDF_SET_READY__('executive-summary', true, 'Executive Summary (Timeout)');
-              console.log('[EXECUTIVE SUMMARY] ✅ Marked ready via legacy system (timeout)');
             }
           };
           markReady();
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[EXECUTIVE SUMMARY] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[EXECUTIVE SUMMARY] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -117,12 +102,10 @@ export default function ExecutiveSummaryPage({ projectId }) {
           }
         });
 
-        console.log('[EXECUTIVE SUMMARY] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[EXECUTIVE SUMMARY] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
@@ -136,12 +119,10 @@ export default function ExecutiveSummaryPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[EXECUTIVE SUMMARY] DATA FETCH COMPLETE - Setting executive data');
         setExecutiveData(result.data);
         // NOTE: markReady is now called in the useEffect that watches executiveData
         
       } catch (err) {
-        console.error('[EXECUTIVE SUMMARY] Error fetching executive summary data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -191,7 +172,6 @@ export default function ExecutiveSummaryPage({ projectId }) {
   const { scores, issues, issueDistribution, aiAnalysis } = executiveData;
 
   // DEBUG: Log scores to verify technicalHealth is present
-  console.log("FRONTEND SCORES:", scores);
 
   // Dynamic score colors based on actual values
   const getScoreColor = (score) => {
@@ -241,13 +221,13 @@ export default function ExecutiveSummaryPage({ projectId }) {
         <div style={{ borderBottom: '1px solid #E5E7EB', marginBottom: 24 }} />
 
         {/* AI Analysis - DYNAMIC */}
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>AI Analysis Summary</h3>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>AI Analysis Summary</h3>
         <InsightBox title="Full-Site AI Analysis">
           {aiAnalysis || "AI analysis is being generated..."}
         </InsightBox>
 
         {/* Issue Distribution - FIXED DONUT CHART */}
-        <h3 style={{ fontSize: 18, fontWeight: 700, margin: '28px 0 16px', fontFamily: "'Syne', sans-serif" }}>Issue Distribution</h3>
+        <h3 style={{ fontSize: 18, fontWeight: 700, margin: '28px 0 16px', fontFamily: "'Inter', sans-serif" }}>Issue Distribution</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
           {/* Fixed donut chart with proper segments */}
           <svg width={180} height={180} viewBox="0 0 180 180">
@@ -259,7 +239,6 @@ export default function ExecutiveSummaryPage({ projectId }) {
                 { name: "Info", value: issueDistribution?.info || 0, color: '#4F6EF7' }
               ];
               
-              console.log("CHART DATA:", chartData);
               
               // Calculate total for proportions
               const total = chartData.reduce((sum, item) => sum + item.value, 0);

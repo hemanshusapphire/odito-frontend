@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
@@ -13,11 +13,9 @@ export default function Page06SEOHealth({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (coverData) {
-      console.log('[SEO HEALTH PAGE] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[SEO HEALTH PAGE] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -25,32 +23,24 @@ export default function Page06SEOHealth({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("SEO Health");
-            console.log("[SEO HEALTH PAGE] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('seo-health', true, 'SEO Health');
-            console.log('[SEO HEALTH PAGE] ✅ Marked ready via legacy system');
           } else {
-            console.error("[SEO HEALTH PAGE] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[SEO HEALTH PAGE] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[SEO HEALTH PAGE] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [coverData]);
 
   useEffect(() => {
-    console.log('[SEO HEALTH PAGE] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[SEO HEALTH PAGE] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[SEO HEALTH PAGE] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -59,11 +49,9 @@ export default function Page06SEOHealth({ projectId }) {
     const fetchCoverData = async () => {
       let timeoutId;
       try {
-        console.log('[SEO HEALTH PAGE] Fetching cover data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         timeoutId = setTimeout(() => {
-          console.warn('[SEO HEALTH PAGE] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -73,20 +61,16 @@ export default function Page06SEOHealth({ projectId }) {
             const target = window.parent || window;
             if (target && target.__PDF_READY__) {
               target.__PDF_READY__.markReady("SEO Health (Timeout)");
-              console.log("[SEO HEALTH PAGE] ✅ Marked ready in parent (timeout)");
             } else if (target && target.__PDF_SET_READY__) {
               target.__PDF_SET_READY__('seo-health', true, 'SEO Health (Timeout)');
-              console.log('[SEO HEALTH PAGE] ✅ Marked ready via legacy system (timeout)');
             }
           };
           markReady();
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[SEO HEALTH PAGE] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[SEO HEALTH PAGE] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -100,12 +84,10 @@ export default function Page06SEOHealth({ projectId }) {
           }
         });
 
-        console.log('[SEO HEALTH PAGE] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[SEO HEALTH PAGE] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
@@ -119,12 +101,10 @@ export default function Page06SEOHealth({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[SEO HEALTH PAGE] Cover data loaded successfully:', result.data);
         setCoverData(result.data);
         // NOTE: markReady is now called in the useEffect that watches coverData
         
       } catch (err) {
-        console.error('[SEO HEALTH PAGE] Error fetching cover page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -193,7 +173,7 @@ export default function Page06SEOHealth({ projectId }) {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="05" title="SEO Health Overview" subtitle="Score breakdown by category" score={overallScore} />
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>Score Breakdown by Category</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>Score Breakdown by Category</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 24 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 40, marginBottom: 32 }}>
@@ -218,7 +198,7 @@ export default function Page06SEOHealth({ projectId }) {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Score Grade Reference</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Score Grade Reference</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
@@ -234,7 +214,7 @@ export default function Page06SEOHealth({ projectId }) {
               {grades.map(({ range, grade, status, meaning, color }, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #F3F4F6', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
                   <td style={{ padding: '11px 14px', color: '#374151' }}>{range}</td>
-                  <td style={{ padding: '11px 14px', color, fontWeight: 800, fontFamily: "'Syne', sans-serif", fontSize: 15 }}>{grade}</td>
+                  <td style={{ padding: '11px 14px', color, fontWeight: 800, fontFamily: "'Inter', sans-serif", fontSize: 15 }}>{grade}</td>
                   <td style={{ padding: '11px 14px', color, fontWeight: 600 }}>{status}</td>
                   <td style={{ padding: '11px 14px', color: '#6B7280' }}>{meaning}</td>
                 </tr>

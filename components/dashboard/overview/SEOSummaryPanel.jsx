@@ -1,8 +1,11 @@
 "use client";
 
+import { memo } from "react";
 import ProgressBar from "@/components/ui/ProgressBar";
 
-export default function SEOSummaryPanel({ pagesCrawled = 0, totalIssues = 0, criticalIssues = 0 }) {
+// Memoized: sits beside other dashboard widgets and should not re-render when a
+// sibling widget updates; only its three count props matter.
+function SEOSummaryPanel({ pagesCrawled = 0, totalIssues = 0, criticalIssues = 0 }) {
   return (
     <div>
       <div className="section-head">
@@ -38,3 +41,5 @@ export default function SEOSummaryPanel({ pagesCrawled = 0, totalIssues = 0, cri
     </div>
   );
 }
+
+export default memo(SEOSummaryPanel);

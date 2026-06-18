@@ -104,11 +104,11 @@ export default function TechnicalPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
+                <h1 className="text-2xl font-bold tracking-tight" style={{ color:"var(--t)" }}>
                   Technical Checks
                 </h1>
-                <p className="text-gray-400">
-                  Homepage technical SEO analysis for {activeProject.project_name}
+                <p style={{ color:"var(--t2)", fontSize:13 }}>
+                   technical SEO analysis for {activeProject.project_name}
                 </p>
               </>
             )}

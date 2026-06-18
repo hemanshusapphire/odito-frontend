@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader } from '../layout';
@@ -14,7 +14,6 @@ const features = [
 
 export default function AboutOditoPage() {
   useEffect(() => {
-    console.log('[ABOUT ODITO] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -25,7 +24,6 @@ export default function AboutOditoPage() {
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('about-odito', true, 'About Odito');
     }
-    console.log('[ABOUT ODITO] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{
@@ -37,7 +35,7 @@ export default function AboutOditoPage() {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="22" title="About Odito AI" subtitle="AI-powered SEO & Visibility Platform for agencies" />
 
-        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>
+        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>
           Built for Agencies and In-House Teams
         </h2>
         <div style={{ borderBottom: '2px solid #E5E7EB', marginBottom: 20 }} />
@@ -54,7 +52,7 @@ export default function AboutOditoPage() {
             }}>
               <span style={{ fontSize: 18, color, marginTop: 2 }}>✦</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, fontFamily: "'Inter', sans-serif" }}>{title}</div>
                 <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>{desc}</div>
               </div>
             </div>
@@ -66,7 +64,7 @@ export default function AboutOditoPage() {
           background: '#111827', borderRadius: 8, padding: '28px 32px',
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center'
         }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: "'Syne', sans-serif" }}>odi.to/ai</span>
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: "'Inter', sans-serif" }}>odi.to/ai</span>
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #E5E7EB' }}>

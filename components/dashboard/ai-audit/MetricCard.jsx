@@ -2,9 +2,9 @@
 
 export default function MetricCard({ icon, label, val, color }) {
   const getColorByValue = (value) => {
-    if (value < 40) return '#ff3860'
-    if (value < 65) return '#ffb703'
-    return '#00f5a0'
+    if (value < 40) return 'var(--re)'
+    if (value < 65) return 'var(--am)'
+    return 'var(--gr)'
   }
 
   const valueColor = getColorByValue(val)

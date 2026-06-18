@@ -57,7 +57,7 @@ export function ContactSection({
   ]
 
   return (
-    <section className="relative min-h-screen w-screen overflow-hidden bg-black pt-32 pb-20">
+    <section className="relative min-h-screen w-screen overflow-hidden bg-transparent pt-32 pb-20">
       <div className="relative z-10 flex flex-col items-center justify-center w-full h-full px-4 md:px-8 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl items-center">
           <div className="p-4 lg:p-8">
@@ -66,7 +66,7 @@ export function ContactSection({
             </h1>
           </div>
 
-          <div className="bg-[#0e0e13] p-6 rounded-lg shadow-xl border border-white/10">
+          <div className="bg-white/5 backdrop-blur-md p-6 rounded-lg shadow-xl border border-white/10">
             <h2 className="text-xl font-bold text-white mb-4">{mainMessage}</h2>
 
             <div className="mb-4">

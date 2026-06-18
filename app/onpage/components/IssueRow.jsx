@@ -70,18 +70,6 @@ export default function IssueRow({ issue, isSelected, isFixed, onSelect }) {
       </div>
       
       <div className="ir-footer">
-        <span style={{
-          fontSize: "10px",
-          fontWeight: 600,
-          color: "var(--gr)",
-          background: "rgba(0,245,160,0.07)",
-          border: "1px solid rgba(0,245,160,0.15)",
-          padding: "2px 8px",
-          borderRadius: "6px"
-        }}>
-          ▲ +{issue.impact || issue.impact_percentage || 0}% Impact
-        </span>
-        
         {isFixed ? (
           <span className="fix-chip fixed" style={{ marginLeft: "auto" }}>✓ Fixed</span>
         ) : (

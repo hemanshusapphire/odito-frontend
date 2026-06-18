@@ -1,18 +1,15 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
 
 export default function KeyStrengthsPage() {
   useEffect(() => {
-    console.log('[KEY STRENGTHS] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[KEY STRENGTHS] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     requestAnimationFrame(() => {
-      console.log('[KEY STRENGTHS] DOM render complete - marking component as ready');
       
       // PINPOINT FIX: Use correct window targeting
       const markReady = () => {
@@ -20,22 +17,16 @@ export default function KeyStrengthsPage() {
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("Key Strengths");
-          console.log("[KEY STRENGTHS] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('key-strengths', true, 'Key Strengths');
-          console.log('[KEY STRENGTHS] ✅ Marked ready via legacy system');
         } else {
-          console.error("[KEY STRENGTHS] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[KEY STRENGTHS] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[KEY STRENGTHS] PDF READY - Component marked as ready after DOM render');
     });
-    console.log('[KEY STRENGTHS] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const strengths = [
     'Valid SSL — HTTPS enforced site-wide via 301',
@@ -69,7 +60,7 @@ export default function KeyStrengthsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
           {/* Strengths */}
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, fontFamily: "'Syne', sans-serif", display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, fontFamily: "'Inter', sans-serif", display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: '#10B981' }}>✓</span> Key Strengths
             </h3>
             <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
@@ -87,7 +78,7 @@ export default function KeyStrengthsPage() {
 
           {/* Issues */}
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, fontFamily: "'Syne', sans-serif", display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, fontFamily: "'Inter', sans-serif", display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: '#EF4444' }}>✗</span> Issues to Address
             </h3>
             <div style={{ border: '1px solid #FEE2E2', borderRadius: 8, overflow: 'hidden', background: '#FFF5F5' }}>

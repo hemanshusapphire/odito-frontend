@@ -117,6 +117,14 @@ class AIVisibilityService {
     const response = await this.request(`/ai-visibility/projects/${projectId}/website-optimization`);
     return response.data;  // ✅ FIXED: No double unwrapping
   }
+
+  /**
+   * Get domain-level AI Accessibility data
+   * GET /api/ai-visibility/projects/:projectId/ai-accessibility
+   */
+  async getAIAccessibility(projectId) {
+    return this.request(`/ai-visibility/projects/${projectId}/ai-accessibility`);
+  }
 }
 
 // Create singleton instance

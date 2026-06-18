@@ -13,14 +13,14 @@ const ProcessingScreen = ({ projectId, onDone }) => {
     { label: "Discover Links", icon: "�", key: 'LINK_DISCOVERY' },
     { label: "Technical Domain", icon: "⚙️", key: 'TECHNICAL_DOMAIN' },
     { label: "Crawl Pages", icon: "🕷", key: 'PAGE_SCRAPING' },
-    { label: "Page Analysis", icon: "📊", key: 'PAGE_ANALYSIS' },
-    { label: "SEO Scoring", icon: "🎯", key: 'SEO_SCORING' },
-    { label: "Mobile Performance", icon: "📱", key: 'PERFORMANCE_MOBILE' },
-    { label: "Desktop Performance", icon: "�", key: 'PERFORMANCE_DESKTOP' },
     { label: "Accessibility", icon: "♿", key: 'HEADLESS_ACCESSIBILITY' },
     { label: "Crawl Graph", icon: "�️", key: 'CRAWL_GRAPH' },
+    { label: "Mobile Performance", icon: "📱", key: 'PERFORMANCE_MOBILE' },
+    { label: "Desktop Performance", icon: "�", key: 'PERFORMANCE_DESKTOP' },
+    { label: "Page Analysis", icon: "📊", key: 'PAGE_ANALYSIS' },
+    { label: "SEO Scoring", icon: "🎯", key: 'SEO_SCORING' },
     { label: "AI Visibility", icon: "🧠", key: 'AI_VISIBILITY' },
-    { label: "AI Visibility Scoring", icon: "✨", key: 'AI_VISIBILITY_SCORING' }
+    { label: "AI Visibility Scoring", icon: "✨", key: 'AI_VISIBILITY_SCORING' } 
   ];
 
   const [jobStatus, setJobStatus] = useState(null);
@@ -209,7 +209,7 @@ const ProcessingScreen = ({ projectId, onDone }) => {
                   <stop offset="100%" stopColor="#00e5ff" />
                 </linearGradient>
               </defs>
-              <text x="40" y="44" textAnchor="middle" fill="white" fontSize="16" fontWeight="800" fontFamily="'Syne', sans-serif">{Math.round(progress)}%</text>
+              <text x="40" y="44" textAnchor="middle" fill="white" fontSize="16" fontWeight="700" fontFamily="var(--font-metric), sans-serif">{Math.round(progress)}%</text>
             </svg>
           </div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, Badge, InsightBox } from '../layout';
@@ -22,14 +22,11 @@ const gainColors = { '+8 pts': '#10B981', '+6 pts': '#10B981', '+4 pts': '#10B98
 
 export default function PriorityRoadmapPage() {
   useEffect(() => {
-    console.log('[PRIORITY ROADMAP] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[PRIORITY ROADMAP] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     requestAnimationFrame(() => {
-      console.log('[PRIORITY ROADMAP] DOM render complete - marking component as ready');
       
       // PINPOINT FIX: Use correct window targeting
       const markReady = () => {
@@ -37,22 +34,16 @@ export default function PriorityRoadmapPage() {
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("Priority Roadmap");
-          console.log("[PRIORITY ROADMAP] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('priority-roadmap', true, 'Priority Roadmap');
-          console.log('[PRIORITY ROADMAP] ✅ Marked ready via legacy system');
         } else {
-          console.error("[PRIORITY ROADMAP] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[PRIORITY ROADMAP] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[PRIORITY ROADMAP] PDF READY - Component marked as ready after DOM render');
     });
-    console.log('[PRIORITY ROADMAP] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{

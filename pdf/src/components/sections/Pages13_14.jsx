@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
@@ -82,11 +82,9 @@ export function CoreWebVitalsPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (data) {
-      console.log('[CORE WEB VITALS] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[CORE WEB VITALS] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -94,27 +92,21 @@ export function CoreWebVitalsPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Core Web Vitals");
-            console.log("[CORE WEB VITALS] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('core-web-vitals', true, 'Core Web Vitals');
-            console.log('[CORE WEB VITALS] ✅ Marked ready via legacy system');
           } else {
-            console.error("[CORE WEB VITALS] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[CORE WEB VITALS] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[CORE WEB VITALS] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [data]);
 
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
-    console.log('[CORE WEB VITALS] Component registration handled by inline system');
     
     if (!projectId) {
       setLoading(false);
@@ -125,7 +117,6 @@ export function CoreWebVitalsPage({ projectId }) {
       try {
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[CORE WEB VITALS] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -150,13 +141,6 @@ export function CoreWebVitalsPage({ projectId }) {
         }
 
         const result = await response.json();
-        console.log("API data:", result.data);
-        console.log("Mobile metrics:", result.data?.mobile);
-        console.log("Desktop metrics:", result.data?.desktop);
-        console.log("Mobile LCP structure:", result.data?.mobile?.metrics?.lcp);
-        console.log("Mobile TBT structure:", result.data?.mobile?.metrics?.tbt);
-        console.log("Mobile diagnostics TTFB:", getTTFBFromDiagnostics(result.data?.mobile?.diagnostics));
-        console.log('[CORE WEB VITALS] DATA FETCH COMPLETE - Setting performance data');
         
         // Clear timeout on successful response
         clearTimeout(timeoutId);
@@ -164,7 +148,6 @@ export function CoreWebVitalsPage({ projectId }) {
         setData(result.data);
         // NOTE: markReady is now called in the useEffect that watches data
       } catch (err) {
-        console.error('Failed to fetch performance data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -197,17 +180,6 @@ export function CoreWebVitalsPage({ projectId }) {
   const mobileScore = safeValue(mobile.performance_score || mobile.performance);
   const mobileLCP = safeValue(mobile.metrics?.lcp?.value || mobile.lcp?.value || mobile.lcp);
   const mobileTBT = safeValue(mobile.metrics?.tbt?.value || mobile.tbt?.value || mobile.tbt);
-
-  console.log("Extracted values:", {
-    desktopScore,
-    mobileScore,
-    mobileLCP,
-    mobileTBT,
-    mobileMetrics: mobile.metrics,
-    mobileTTFB: mobile.ttfb,
-    mobileLCPObj: mobile.metrics?.lcp,
-    mobileTBTObj: mobile.metrics?.tbt
-  });
 
   // Desktop vs Mobile comparison
   const comparison = [
@@ -312,7 +284,7 @@ export function CoreWebVitalsPage({ projectId }) {
           <StatCard value={formatMetricValue(mobileTBT, 'ms')} label="Mobile TBT" sub="Target < 200ms" color={getScoreColor(mobileTBT < 200 ? 90 : mobileTBT < 600 ? 75 : 50)} borderColor={getScoreColor(mobileTBT < 200 ? 90 : mobileTBT < 600 ? 75 : 50)} />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Desktop vs Mobile Comparison</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Desktop vs Mobile Comparison</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 28 }}>
@@ -351,7 +323,7 @@ export function CoreWebVitalsPage({ projectId }) {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Core Web Vitals — Detailed</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Core Web Vitals — Detailed</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
@@ -390,14 +362,11 @@ export function CoreWebVitalsPage({ projectId }) {
 // ---- Page 14: Performance Opportunities ----
 export function PerformanceOpportunitiesPage() {
   React.useEffect(() => {
-    console.log('[PERFORMANCE OPPORTUNITIES] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[PERFORMANCE OPPORTUNITIES] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     requestAnimationFrame(() => {
-      console.log('[PERFORMANCE OPPORTUNITIES] DOM render complete - marking component as ready');
       
       // PINPOINT FIX: Use correct window targeting
       const markReady = () => {
@@ -405,22 +374,16 @@ export function PerformanceOpportunitiesPage() {
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("Performance Opportunities");
-          console.log("[PERFORMANCE OPPORTUNITIES] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('performance-opportunities', true, 'Performance Opportunities');
-          console.log('[PERFORMANCE OPPORTUNITIES] ✅ Marked ready via legacy system');
         } else {
-          console.error("[PERFORMANCE OPPORTUNITIES] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[PERFORMANCE OPPORTUNITIES] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready after DOM render');
     });
-    console.log('[PERFORMANCE OPPORTUNITIES] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const opps = [
     ['Eliminate render-blocking resources', '840ms', 'Medium', '-840ms', 'HIGH'],
@@ -450,7 +413,7 @@ export function PerformanceOpportunitiesPage() {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="11" title="Performance Opportunities" subtitle="Speed improvements and estimated savings" />
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>Optimisation Opportunities</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>Optimisation Opportunities</h3>
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 28 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -475,7 +438,7 @@ export function PerformanceOpportunitiesPage() {
           </table>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>Performance Improvement Forecast</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>Performance Improvement Forecast</h3>
 
         <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 24, marginBottom: 24 }}>
           {forecasts.map(({ label, lcp, score, color, status, pct }, i) => (

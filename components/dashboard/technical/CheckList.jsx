@@ -305,9 +305,10 @@ export default function CheckList({ onSelectCheck, technicalData, error }) {
               justifyContent: "center" 
             }}>
               <div style={{ 
-                fontFamily: "'Syne', sans-serif", 
+                fontFamily: "var(--font-metric)", 
+                fontVariantNumeric: 'tabular-nums',
                 fontSize: 16, 
-                fontWeight: 800, 
+                fontWeight: 700, 
                 color: "var(--cyan)" 
               }}>
                 {healthScore}%
@@ -316,7 +317,7 @@ export default function CheckList({ onSelectCheck, technicalData, error }) {
           </div>
           <div>
             <div style={{ 
-              fontFamily: "'Syne', sans-serif", 
+              fontFamily: "var(--font-metric)", 
               fontWeight: 700, 
               fontSize: 15, 
               marginBottom: 3 

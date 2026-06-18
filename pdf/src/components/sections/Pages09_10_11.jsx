@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, Badge, InsightBox } from '../layout';
@@ -14,11 +14,9 @@ export function StructuredDataPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (pageData) {
-      console.log('[STRUCTURED DATA] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[STRUCTURED DATA] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -26,32 +24,24 @@ export function StructuredDataPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Structured Data");
-            console.log("[STRUCTURED DATA] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('structured-data', true, 'Structured Data');
-            console.log('[STRUCTURED DATA] ✅ Marked ready via legacy system');
           } else {
-            console.error("[STRUCTURED DATA] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[STRUCTURED DATA] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[STRUCTURED DATA] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [pageData]);
 
   useEffect(() => {
-    console.log('[STRUCTURED DATA] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[STRUCTURED DATA] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[STRUCTURED DATA] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -59,11 +49,9 @@ export function StructuredDataPage({ projectId }) {
 
     const fetchPageData = async () => {
       try {
-        console.log('[STRUCTURED DATA] Fetching page data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[STRUCTURED DATA] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -75,10 +63,8 @@ export function StructuredDataPage({ projectId }) {
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[STRUCTURED DATA] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[STRUCTURED DATA] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -92,18 +78,15 @@ export function StructuredDataPage({ projectId }) {
           }
         });
 
-        console.log('[STRUCTURED DATA] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[STRUCTURED DATA] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
-        console.log('[STRUCTURED DATA] API response:', result);
         
         if (!result.success) {
           clearTimeout(timeoutId);
@@ -113,11 +96,9 @@ export function StructuredDataPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[STRUCTURED DATA] Page data loaded successfully:', result.data);
         setPageData(result.data);
         // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
-        console.error('[STRUCTURED DATA] Error fetching page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -188,7 +169,7 @@ export function StructuredDataPage({ projectId }) {
         {mode === 'distribution' ? (
           // Schema Distribution View (100% coverage case)
           <>
-            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Schema Type Distribution</h3>
+            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Schema Type Distribution</h3>
             <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 40, marginBottom: 28 }}>
@@ -225,7 +206,7 @@ export function StructuredDataPage({ projectId }) {
         ) : (
           // Coverage Breakdown View (normal case)
           <>
-            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Schema Coverage Breakdown</h3>
+            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Schema Coverage Breakdown</h3>
             <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 40, marginBottom: 28 }}>
@@ -252,7 +233,7 @@ export function StructuredDataPage({ projectId }) {
           </>
         )}
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Why Structured Data Matters</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Why Structured Data Matters</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
@@ -309,11 +290,9 @@ export function TechnicalSEOPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (pageData) {
-      console.log('[TECHNICAL SEO] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[TECHNICAL SEO] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -321,32 +300,24 @@ export function TechnicalSEOPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Technical SEO");
-            console.log("[TECHNICAL SEO] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('technical-seo', true, 'Technical SEO');
-            console.log('[TECHNICAL SEO] ✅ Marked ready via legacy system');
           } else {
-            console.error("[TECHNICAL SEO] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[TECHNICAL SEO] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[TECHNICAL SEO] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [pageData]);
 
   useEffect(() => {
-    console.log('[TECHNICAL SEO] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[TECHNICAL SEO] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[TECHNICAL SEO] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -354,11 +325,9 @@ export function TechnicalSEOPage({ projectId }) {
 
     const fetchPageData = async () => {
       try {
-        console.log('[TECHNICAL SEO] Fetching page data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[TECHNICAL SEO] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -370,10 +339,8 @@ export function TechnicalSEOPage({ projectId }) {
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[TECHNICAL SEO] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[TECHNICAL SEO] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -387,18 +354,15 @@ export function TechnicalSEOPage({ projectId }) {
           }
         });
 
-        console.log('[TECHNICAL SEO] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[TECHNICAL SEO] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
-        console.log('[TECHNICAL SEO] API response:', result);
         
         if (!result.success) {
           clearTimeout(timeoutId);
@@ -408,11 +372,9 @@ export function TechnicalSEOPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[TECHNICAL SEO] Page data loaded successfully:', result.data);
         setPageData(result.data);
         // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
-        console.error('[TECHNICAL SEO] Error fetching page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -469,7 +431,7 @@ export function TechnicalSEOPage({ projectId }) {
           <StatCard value={`${summary.techHealth}%`} label="Tech Health" sub="Overall" color="#4F6EF7" borderColor="#4F6EF7" />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Syne', sans-serif" }}>Technical Check Results</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>Technical Check Results</h3>
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -521,11 +483,9 @@ export function CrawlabilityPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (pageData) {
-      console.log('[CRAWLABILITY] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[CRAWLABILITY] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -533,32 +493,24 @@ export function CrawlabilityPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Crawlability");
-            console.log("[CRAWLABILITY] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('crawlability', true, 'Crawlability');
-            console.log('[CRAWLABILITY] ✅ Marked ready via legacy system');
           } else {
-            console.error("[CRAWLABILITY] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[CRAWLABILITY] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[CRAWLABILITY] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [pageData]);
 
   useEffect(() => {
-    console.log('[CRAWLABILITY] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[CRAWLABILITY] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[CRAWLABILITY] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -566,11 +518,9 @@ export function CrawlabilityPage({ projectId }) {
 
     const fetchPageData = async () => {
       try {
-        console.log('[CRAWLABILITY] Fetching page data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[CRAWLABILITY] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -582,10 +532,8 @@ export function CrawlabilityPage({ projectId }) {
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[CRAWLABILITY] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[CRAWLABILITY] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -599,12 +547,10 @@ export function CrawlabilityPage({ projectId }) {
           }
         });
 
-        console.log('[CRAWLABILITY] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[CRAWLABILITY] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
@@ -618,11 +564,9 @@ export function CrawlabilityPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
 
-        console.log('[CRAWLABILITY] Page data loaded successfully:', result.data);
         setPageData(result.data);
         // NOTE: markReady is now called in the useEffect that watches pageData
       } catch (err) {
-        console.error('[CRAWLABILITY] Error fetching page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -680,7 +624,7 @@ export function CrawlabilityPage({ projectId }) {
           <StatCard value={`${metrics.indexRate}%`} label="Index Rate" sub="Indexed/Crawled" color={metrics.indexRate >= 90 ? '#10B981' : metrics.indexRate >= 70 ? '#F59E0B' : '#EF4444'} borderColor={metrics.indexRate >= 90 ? '#10B981' : metrics.indexRate >= 70 ? '#F59E0B' : '#EF4444'} />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Crawl Status Distribution</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Crawl Status Distribution</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 40, marginBottom: 28 }}>
@@ -716,7 +660,7 @@ export function CrawlabilityPage({ projectId }) {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Blocked Pages Breakdown</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Blocked Pages Breakdown</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>

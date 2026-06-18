@@ -7,6 +7,7 @@ import { PageSpeedSkeleton } from "@/components/skeletons/pagespeed"
 import DeviceTabs from "@/components/dashboard/pagespeed/DeviceTabs"
 import PerformanceRing from "@/components/dashboard/pagespeed/PerformanceRing"
 import CoreMetrics from "@/components/dashboard/pagespeed/CoreMetrics"
+import { sanitizeHTML } from "@/lib/security/sanitize"
 
 // Google's Core Web Vitals thresholds
 const CWV_THRESHOLDS = {
@@ -364,7 +365,7 @@ export default function PageSpeedPageContent() {
           </div>
           <div className="ai-card">
             <div className="ai-card-label">✦ Traffic Impact</div>
-            <div className="ai-card-text" dangerouslySetInnerHTML={{ __html: trafficImpactMessage }} />
+            <div className="ai-card-text" dangerouslySetInnerHTML={{ __html: sanitizeHTML(trafficImpactMessage) }} />
           </div>
         </div>
         <div className="glass-card" style={{ padding: 20 }}>
@@ -388,7 +389,7 @@ export default function PageSpeedPageContent() {
         </div>
       </div>
 
-      {/* Core Web Vitals Metric Cards */}
+      {/* Core Web Vitals Metric Cards — hidden
       <div className="section-head" style={{ marginTop: 32 }}>
         <div className="section-title">Core Web Vitals</div>
         <div className="section-tag">LIVE DATA</div>
@@ -397,17 +398,12 @@ export default function PageSpeedPageContent() {
         {availableMetrics.map((metric, i) => {
           const statusClass = metric.status === 'good' ? 'pass' : metric.status === 'needs_improvement' ? 'warn' : 'fail';
           const color = metric.status === 'good' ? 'var(--green)' : metric.status === 'needs_improvement' ? 'var(--amber)' : 'var(--red)';
-          
-          // Map metric labels to threshold keys
           const thresholdKey = metric.label.toLowerCase() === 'speed index' ? 'speed_index' : metric.label.toLowerCase();
           const threshold = CWV_THRESHOLDS[thresholdKey];
-          
-          // Calculate progress percent safely
           let progressPercent = 0;
           if (threshold && metric.rawValue) {
             progressPercent = Math.min((metric.rawValue / threshold.poor) * 100, 100);
           }
-          
           return (
             <div key={i} className={`metric-card ${statusClass}`}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -426,6 +422,7 @@ export default function PageSpeedPageContent() {
           );
         })}
       </div>
+      */}
 
       {/* Lighthouse Scores */}
       <div className="section-head" style={{ marginTop: 32 }}>

@@ -5,6 +5,10 @@ import { Navbar1 } from "@/components/ui/navbar1"
 export default function Navbar() {
   const menu = [
     {
+      title: "Quick Audit",
+      url: "/quickaudit",
+    },
+    {
       title: "Platform",
       url: "#",
       items: [

@@ -125,9 +125,9 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
           fontSize="26"
 
-          fontWeight="800"
+          fontWeight="700"
 
-          fontFamily="Syne, sans-serif"
+          fontFamily="var(--font-metric), sans-serif"
 
         >
 
@@ -181,11 +181,11 @@ export default function ScoreHero({ score = 41, aiData = null }) {
 
         <div style={{ 
 
-          fontFamily: 'Syne, sans-serif', 
+          fontFamily: "var(--font-metric)", 
 
           fontSize: '19px', 
 
-          fontWeight: '800', 
+          fontWeight: '700', 
 
           color: scoreColor, 
 

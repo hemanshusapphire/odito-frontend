@@ -108,7 +108,9 @@ export function useExportPDF() {
       // Trigger download
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      if (link && link.parentNode) {
+        document.body.removeChild(link);
+      }
       
       // Clean up URL
       URL.revokeObjectURL(url);

@@ -87,7 +87,7 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 0', marginRight: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4F6EF7' }} />
-          <span style={{ fontWeight: 700, fontSize: 15, fontFamily: "'Syne', sans-serif" }}>Odito AI Report</span>
+          <span style={{ fontWeight: 700, fontSize: 15, fontFamily: "'Inter', sans-serif" }}>Odito AI Report</span>
         </div>
         <select value={current} onChange={e => setCurrent(Number(e.target.value))}
           style={{ background: '#1F2937', color: '#fff', border: '1px solid #374151', borderRadius: 6, padding: '6px 12px', fontSize: 13, cursor: 'pointer', maxWidth: 340 }}>

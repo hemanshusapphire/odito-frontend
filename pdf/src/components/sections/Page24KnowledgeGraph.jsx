@@ -1,11 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
 
 export default function KnowledgeGraphPage() {
   useEffect(() => {
-    console.log('[KNOWLEDGE GRAPH] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -16,7 +15,6 @@ export default function KnowledgeGraphPage() {
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('knowledge-graph', true, 'Knowledge Graph');
     }
-    console.log('[KNOWLEDGE GRAPH] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const entities = [
     { name: 'SEO Audit', status: 'Linked', pages: 3, action: 'No action needed' },
@@ -43,7 +41,7 @@ export default function KnowledgeGraphPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 28 }}>
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderTop: '3px solid #EF4444', borderRadius: 8, padding: '20px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#EF4444', fontFamily: "'Syne', sans-serif" }}>Not Claimed</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#EF4444', fontFamily: "'Inter', sans-serif" }}>Not Claimed</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 6 }}>KG Status</div>
             <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Brand entity</div>
           </div>
@@ -52,7 +50,7 @@ export default function KnowledgeGraphPage() {
           <StatCard value={1} label="Partial Coverage" sub="Need improvement" color="#F59E0B" borderColor="#F59E0B" />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Entity Coverage Map</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Entity Coverage Map</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
@@ -89,7 +87,7 @@ export default function KnowledgeGraphPage() {
             { title: 'How to Claim Your Entity', text: 'Verify Google Business Profile → add Organization schema with sameAs to LinkedIn/Twitter/Crunchbase → ensure NAP consistency.' },
           ].map(({ title, text }) => (
             <div key={title}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, fontFamily: "'Inter', sans-serif" }}>{title}</div>
               <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{text}</div>
             </div>
           ))}

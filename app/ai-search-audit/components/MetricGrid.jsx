@@ -13,8 +13,8 @@ export default function MetricGrid({ metricsData, aiData }) {
     { id:"entity",       label:"Topical Authority",      icon:"🗺", val:Math.round(metricsData?.entity_coverage || 0), color:"#ff3860" },
     { id:"llm",          label:"LLM Indexability",       icon:"🤖", val:Math.round(metricsData?.llm_indexability || 0), color:"#00dfff" },
     { id:"struct_depth", label:"Structured Data Depth",  icon:"📐", val:Math.round(metricsData?.structured_data_depth || 0), color:"#ffb703" },
-    { id:"voice",        label:"Voice Intent",           icon:"🎙", val:Math.round(metricsData?.geo_score || 0), color:"#8b5cf6" },
-    { id:"aeo",          label:"AEO Score",              icon:"🎯", val:Math.round(metricsData?.entity_coverage_pct || 0), color:"#ffb703" },
+    { id:"voice",        label:"Voice Intent",           icon:"🎙", val:Math.round(metricsData?.conversational_score || 0), color:"#8b5cf6" },
+    { id:"aeo",          label:"AEO Score",              icon:"🎯", val:Math.round(aiData?.categories?.aeo_score || 0), color:"#ffb703" },
   ];
 
   return (

@@ -1,0 +1,66 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Component Styles — Chat (Onboarding)
+   ═══════════════════════════════════════════════════════════════ */
+
+.chat-input-row {
+  display: flex;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-3, 12px);
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--space-2_5, 10px) var(--space-3_5, 14px);
+  font-size: var(--text-md, 13.5px);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  outline: none;
+  transition: var(--transition);
+}
+
+.chat-input:focus {
+  border-color: var(--color-brand-violet);
+}
+
+.chat-send {
+  padding: var(--space-2_5, 10px) var(--space-5, 18px);
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  color: #fff;
+  font-size: var(--text-base, 13px);
+  font-weight: var(--weight-semibold, 600);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-body);
+}
+
+.chat-send:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover-cyan);
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-radius: var(--radius-lg, 14px);
+  font-size: var(--text-md, 13.5px);
+  line-height: var(--leading-normal, 1.55);
+  margin-bottom: var(--space-2_5, 10px);
+}
+
+.chat-bubble.ai {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border-default);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user {
+  background: var(--gradient-brand);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+}

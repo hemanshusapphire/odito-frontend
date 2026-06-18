@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
@@ -7,14 +7,7 @@ import API_BASE_URL from "@/lib/apiConfig";
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
   const token = localStorage.getItem('token');
-  
-  console.log('📄 PDF API Request:', { 
-    endpoint: `/pdf/${projectId}/page${page}`, 
-    projectId, 
-    page,
-    hasToken: !!token 
-  });
-  
+
   const response = await fetch(`${API_BASE_URL}/pdf/${projectId}/page${page}`, {
     method: 'GET',
     headers: {
@@ -28,22 +21,15 @@ const getPDFPageData = async (projectId, page) => {
   }
   
   const data = await response.json();
-  console.log('✅ PDF API Response:', { 
-    status: response.status, 
-    success: data.success,
-    hasData: !!data.data 
-  });
-  
+
   return data;
 };
 
 // ---- Page 20: LLM Visibility Analysis ----
 export function LLMVisibilityPage() {
   React.useEffect(() => {
-    console.log('[LLM VISIBILITY] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[LLM VISIBILITY] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     const waitForRenderComplete = async () => {
@@ -61,24 +47,18 @@ export function LLMVisibilityPage() {
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("LLM Visibility");
-          console.log("[LLM VISIBILITY] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('llm-visibility', true, 'LLM Visibility');
-          console.log('[LLM VISIBILITY] ✅ Marked ready via legacy system');
         } else {
-          console.error("[LLM VISIBILITY] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[LLM VISIBILITY] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[LLM VISIBILITY] PDF READY - Component marked as ready after DOM render');
     };
     
     waitForRenderComplete();
-    console.log('[LLM VISIBILITY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const platforms = [
     { name: 'ChatGPT', pct: 18, color: '#10B981', gap: '25% gap' },
@@ -114,7 +94,7 @@ export function LLMVisibilityPage() {
           <StatCard value={4} label="Platforms" sub="ChatGPT · Perplexity · Gemini · Claude" color="#60A5FA" borderColor="#60A5FA" />
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Citation Rate by Platform</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Citation Rate by Platform</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ marginBottom: 28 }}>
@@ -138,7 +118,7 @@ export function LLMVisibilityPage() {
           ))}
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Citation Signal Analysis</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Citation Signal Analysis</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
@@ -178,11 +158,9 @@ export function AIContentReadinessPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (data) {
-      console.log('[AI CONTENT READINESS] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[AI CONTENT READINESS] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -190,42 +168,33 @@ export function AIContentReadinessPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("AI Content Readiness");
-            console.log("[AI CONTENT READINESS] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('ai-content-readiness', true, 'AI Content Readiness');
-            console.log('[AI CONTENT READINESS] ✅ Marked ready via legacy system');
           } else {
-            console.error("[AI CONTENT READINESS] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[AI CONTENT READINESS] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[AI CONTENT READINESS] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [data]);
 
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
-    console.log('[AI CONTENT READINESS] Component registration handled by inline system');
     
     const fetchPage22Data = async () => {
       if (!projectId) {
-        console.error('AIContentReadinessPage: No projectId provided');
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        console.log('AIContentReadinessPage: Fetching data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[AI CONTENT READINESS] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -239,8 +208,6 @@ export function AIContentReadinessPage({ projectId }) {
         const response = await getPDFPageData(projectId, '22');
         
         if (response.success && response.data) {
-          console.log('AIContentReadinessPage: Data received:', response.data);
-          console.log('[AI CONTENT READINESS] DATA FETCH COMPLETE - Setting AI content readiness data');
           
           // Clear timeout on successful response
           clearTimeout(timeoutId);
@@ -249,12 +216,10 @@ export function AIContentReadinessPage({ projectId }) {
           // NOTE: markReady is now called in the useEffect that watches data
         } else {
           clearTimeout(timeoutId);
-          console.error('AIContentReadinessPage: Invalid response structure:', response);
           throw new Error(response.error?.message || 'Invalid data format received');
         }
         
       } catch (err) {
-        console.error('AIContentReadinessPage: Error fetching data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -335,7 +300,7 @@ export function AIContentReadinessPage({ projectId }) {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="16" title="AI Content Readiness" subtitle="Conversational content, FAQ and snippet optimization" />
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>AI Content Signal Scores</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>AI Content Signal Scores</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ marginBottom: 28 }}>
@@ -357,7 +322,7 @@ export function AIContentReadinessPage({ projectId }) {
           ))}
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Content Optimization Checklist</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Content Optimization Checklist</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
@@ -389,10 +354,8 @@ export function AIContentReadinessPage({ projectId }) {
 // ---- Page 23: AI Content Strategy (insight only page) ----
 export function AIContentStrategyPage() {
   React.useEffect(() => {
-    console.log('[AI CONTENT STRATEGY] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[AI CONTENT STRATEGY] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     const waitForRenderComplete = async () => {
@@ -410,25 +373,18 @@ export function AIContentStrategyPage() {
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("AI Content Strategy");
-          console.log("[AI CONTENT STRATEGY] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('ai-content-strategy', true, 'AI Content Strategy');
-          console.log('[AI CONTENT STRATEGY] ✅ Marked ready via legacy system');
         } else {
-          console.error("[AI CONTENT STRATEGY] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[AI CONTENT STRATEGY] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready after DOM render');
     };
     
     waitForRenderComplete();
-    console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready (no data to fetch)');
-    console.log('[AI CONTENT STRATEGY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{

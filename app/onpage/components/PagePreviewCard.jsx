@@ -1,47 +1,39 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import apiService from '@/lib/apiService';
+import { useState, useMemo } from 'react';
+import { usePageRawHtml } from '@/hooks/useDashboardQueries';
 
-export default function PagePreviewCard({ url, issues }) {
-  const [rawHtml, setRawHtml] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+export default function PagePreviewCard({ url, issues, projectId }) {
+  const [loadHtml, setLoadHtml] = useState(false);
 
-  const fetchRawHtml = async () => {
-    if (!url) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.getPageRawHtml(url);
-      if (response.success) {
-        setRawHtml(response.data.html);
-      } else {
-        setError(response.message || 'Failed to fetch HTML');
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to fetch HTML');
-    } finally {
-      setLoading(false);
+  // Only fires after user clicks the HTML button — not on mount
+  const { data: rawHtmlResponse, isLoading: loading, error: queryError } = usePageRawHtml(
+    loadHtml ? projectId : null,
+    loadHtml ? url : null
+  );
+
+  const rawHtml = useMemo(() => {
+    if (rawHtmlResponse?.success && rawHtmlResponse?.data?.html) {
+      return rawHtmlResponse.data.html;
     }
-  };
+    return '';
+  }, [rawHtmlResponse]);
 
-  useEffect(() => {
-    if (url && !rawHtml) {
-      fetchRawHtml();
-    }
-  }, [url]);
+  const error = queryError
+    ? (queryError.message || 'Failed to fetch HTML')
+    : (rawHtmlResponse && !rawHtmlResponse.success
+        ? (rawHtmlResponse.message || 'Failed to fetch HTML')
+        : '');
 
   return (
     <div className="preview-card">
       <div className="preview-hd">
         <div className="preview-hd-title">🖥 Page Preview</div>
         <div style={{ display: "flex", gap: "6px" }}>
-          <button className="btn sm pr">HTML</button>
+          <button className="btn sm pr" onClick={() => setLoadHtml(true)}>HTML</button>
         </div>
       </div>
-      
+
       <div className="browser">
         <div className="browser-bar">
           <div className="browser-dots">
@@ -51,22 +43,41 @@ export default function PagePreviewCard({ url, issues }) {
           </div>
           <div className="browser-addr">{url}</div>
         </div>
-        
+
         <div className="browser-viewport" style={{ overflow: "hidden" }}>
-          <div style={{ 
-            position: "relative", 
-            zIndex: 1, 
-            padding: "0", 
-            width: "100%", 
-            height: "100%", 
+          <div style={{
+            position: "relative",
+            zIndex: 1,
+            padding: "0",
+            width: "100%",
+            height: "100%",
             overflow: "hidden",
             background: "white"
           }}>
-            {loading ? (
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
+            {!loadHtml ? (
+              <div
+                onClick={() => setLoadHtml(true)}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  gap: "10px",
+                  cursor: "pointer",
+                  color: "#888",
+                  fontSize: "12px",
+                  userSelect: "none"
+                }}
+              >
+                <div style={{ fontSize: "28px", opacity: 0.4 }}>🖥</div>
+                <div>Click <strong>HTML</strong> to load preview</div>
+              </div>
+            ) : loading ? (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 height: "100%",
                 color: "#666",
                 fontSize: "12px"
@@ -74,10 +85,10 @@ export default function PagePreviewCard({ url, issues }) {
                 Loading HTML from stored data...
               </div>
             ) : error ? (
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 height: "100%",
                 color: "#ff4444",
                 fontSize: "11px",
@@ -90,14 +101,12 @@ export default function PagePreviewCard({ url, issues }) {
               <iframe
                 srcDoc={rawHtml}
                 style={{
-                  width: "100%",
-                  height: "100%",
                   border: "none",
                   background: "white",
                   transform: "scale(0.6)",
                   transformOrigin: "top left",
-                  width: "166.67%", // 100% / 0.6
-                  height: "166.67%", // 100% / 0.6
+                  width: "166.67%",
+                  height: "166.67%",
                 }}
                 title="Page Preview"
                 sandbox="allow-same-origin allow-scripts allow-forms"

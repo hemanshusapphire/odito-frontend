@@ -8,7 +8,7 @@ export default function MetricCard({ icon, label, val, color, index }) {
     return () => clearTimeout(t);
   }, [index]);
 
-  const col = val < 40 ? "#ff3860" : val < 65 ? "#ffb703" : "#00f5a0";
+  const col = val < 40 ? "var(--re)" : val < 65 ? "var(--am)" : "var(--gr)";
 
   return (
     <div className={styles.mCard}>

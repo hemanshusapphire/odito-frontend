@@ -7,17 +7,18 @@ export default function IssueCard({ issue }) {
   const router = useRouter();
   const [fixed, setFixed] = useState([]);
 
-  const sevCol = issue.sev === "crit" ? "#ff3860" : issue.sev === "warn" ? "#ffb703" : "#00dfff";
+  const sevCol = issue.sev === "crit" ? "var(--re)" : issue.sev === "warn" ? "var(--am)" : "var(--cy)";
   const catCol = getCategoryColor(issue.cat);
 
-  const handleFixClick = () => {
+  const handleFixClick = (e) => {
+    if (e) e.stopPropagation();
     router.push(`/ai-search-audit/issues/${issue.id}`);
   };
 
   return (
     <div className={`${styles.issueCard} ${styles["sev-" + issue.sev]}`}>
       {/* ── HEADER ── */}
-      <div className={styles.issueHeader}>
+      <div className={styles.issueHeader} onClick={handleFixClick}>
         <div className={styles.iIcon}>
           {/* Icon based on category */}
           {issue.cat === 'GEO' && '🌍'}
@@ -49,7 +50,6 @@ export default function IssueCard({ issue }) {
           {/* Meta row */}
           <div className={styles.iMeta}>
             <span className={styles.iPagesBadge}>{issue.pages} pages</span>
-            <span className={styles.iImpactBadge}>▲ +{issue.impact_percentage || 0}%</span>
             <span className={styles.iDiffBadge}>{issue.difficulty || issue.diff}</span>
             {fixed.length > 0 && (
               <span className={styles.iFixedBadge}>✓ {fixed.length} fixed</span>

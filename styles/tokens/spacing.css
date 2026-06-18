@@ -1,0 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Spacing Tokens
+   
+   4px base unit scale.
+   Use: padding, margin, gap, inset.
+   
+   USAGE:
+   padding: var(--space-4);     → 16px
+   gap: var(--space-3);         → 12px
+   margin-bottom: var(--space-6); → 24px
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0_5: 2px;
+  --space-1: 4px;
+  --space-1_5: 6px;
+  --space-2: 8px;
+  --space-2_5: 10px;
+  --space-3: 12px;
+  --space-3_5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-5_5: 22px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+}

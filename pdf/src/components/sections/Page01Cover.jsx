@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageFooter } from '../layout';
@@ -10,7 +10,7 @@ function ScoreCard({ value, label }) {
       background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(79,110,247,0.3)',
       borderRadius: 8, padding: '16px 20px', flex: 1
     }}>
-      <div style={{ fontSize: 28, fontWeight: 800, color: '#4F6EF7', fontFamily: "'Syne', sans-serif" }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: '#4F6EF7', fontFamily: "'Inter', sans-serif" }}>{value}</div>
       <div style={{ fontSize: 11, color: '#8892C4', marginTop: 2 }}>/100</div>
       <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 6 }}>{label}</div>
       <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginTop: 10 }}>
@@ -29,11 +29,9 @@ export default function CoverPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (coverData) {
-      console.log('[COVER PAGE] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[COVER PAGE] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -41,32 +39,24 @@ export default function CoverPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Cover Page");
-            console.log("[COVER PAGE] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('cover-page', true, 'Cover Page');
-            console.log('[COVER PAGE] ✅ Marked ready via legacy system');
           } else {
-            console.error("[COVER PAGE] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[COVER PAGE] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[COVER PAGE] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [coverData]);
 
   useEffect(() => {
-    console.log('[COVER PAGE] useEffect triggered with projectId:', projectId);
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[COVER PAGE] Component registration handled by inline system');
     
     if (!projectId) {
-      console.error('[COVER PAGE] Project ID is missing or undefined');
       setError('Project ID is required');
       setLoading(false);
       return;
@@ -74,11 +64,9 @@ export default function CoverPage({ projectId }) {
 
     const fetchCoverData = async () => {
       try {
-        console.log('[COVER PAGE] DATA FETCH START');
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[COVER PAGE] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -92,10 +80,8 @@ export default function CoverPage({ projectId }) {
         }, 25000); // 25 second timeout
         
         const token = localStorage.getItem('token');
-        console.log('[COVER PAGE] Token from localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) {
-          console.error('[COVER PAGE] No authentication token found');
           clearTimeout(timeoutId);
           setError('Authentication required - please login again');
           setLoading(false);
@@ -109,18 +95,15 @@ export default function CoverPage({ projectId }) {
           }
         });
 
-        console.log('[COVER PAGE] Response status:', response.status);
 
         if (!response.ok) {
           clearTimeout(timeoutId);
           const errorData = await response.json().catch(() => ({}));
-          console.error('[COVER PAGE] API Error:', errorData);
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
-        console.log('[COVER PAGE] API response:', result);
         
         if (!result.success) {
           clearTimeout(timeoutId);
@@ -130,12 +113,10 @@ export default function CoverPage({ projectId }) {
         // Clear timeout on successful response
         clearTimeout(timeoutId);
         
-        console.log('[COVER PAGE] DATA FETCH COMPLETE - Setting cover data');
         setCoverData(result.data);
         // NOTE: markReady is now called in the useEffect that watches coverData
         
       } catch (err) {
-        console.error('[COVER PAGE] Error fetching cover page data:', err);
         clearTimeout(timeoutId);
         setError(err.message);
       } finally {
@@ -211,7 +192,7 @@ export default function CoverPage({ projectId }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#4F6EF7' }} />
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Syne', sans-serif" }}>Odito AI</span>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Inter', sans-serif" }}>Odito AI</span>
           <span style={{ color: '#4A5280', fontSize: 13 }}>•</span>
           <span style={{ color: '#8892C4', fontSize: 13 }}>AI-Powered SEO & Visibility Platform</span>
         </div>
@@ -236,7 +217,7 @@ export default function CoverPage({ projectId }) {
         {/* Domain + meta */}
         <h1 style={{
           fontSize: 52, fontWeight: 800, color: '#fff',
-          fontFamily: "'Syne', sans-serif", lineHeight: 1.1
+          fontFamily: "'Inter', sans-serif", lineHeight: 1.1
         }} className="letter-spacing-neg1">{coverData.domain}</h1>
         <p style={{ color: '#8892C4', fontSize: 15, marginTop: 8, marginBottom: 24 }}>{coverData.companyName}</p>
 
@@ -282,7 +263,7 @@ export default function CoverPage({ projectId }) {
             {/* Site preview */}
             <div style={{ padding: '16px', background: '#fff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#4F6EF7', fontFamily: "'Syne', sans-serif" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4F6EF7', fontFamily: "'Inter', sans-serif" }}>
                   {coverData.domain.split('.')[0]}
                 </span>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -308,7 +289,7 @@ export default function CoverPage({ projectId }) {
                     [coverData.scores.technicalHealth || 0, 'Technical Health']
                   ].map(([v, l]) => (
                     <div key={l} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#4F6EF7', fontFamily: "'Syne', sans-serif" }}>{v}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#4F6EF7', fontFamily: "'Inter', sans-serif" }}>{v}</div>
                       <div style={{ fontSize: 9, color: '#6B7280' }}>{l}</div>
                     </div>
                   ))}
@@ -347,7 +328,7 @@ export default function CoverPage({ projectId }) {
                   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -55%)',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: '#fff', fontFamily: "'Syne', sans-serif", lineHeight: 1 }}>{coverData.overallScore}</div>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: '#fff', fontFamily: "'Inter', sans-serif", lineHeight: 1 }}>{coverData.overallScore}</div>
                   <div style={{ fontSize: 12, color: '#8892C4' }}>/100</div>
                 </div>
                 <div style={{
@@ -370,7 +351,7 @@ export default function CoverPage({ projectId }) {
                   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(79,110,247,0.3)',
                   borderRadius: 8, padding: '14px 16px'
                 }}>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: c, fontFamily: "'Syne', sans-serif" }}>{v}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: c, fontFamily: "'Inter', sans-serif" }}>{v}</div>
                   <div style={{ fontSize: 10, color: '#4A5280' }}>/100</div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginTop: 4 }}>{l}</div>
                   <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, marginTop: 8 }}>
@@ -400,7 +381,7 @@ export default function CoverPage({ projectId }) {
             padding: '16px', textAlign: 'center',
             borderRight: i < 4 ? '1px solid rgba(255,255,255,0.07)' : 'none'
           }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: c, fontFamily: "'Syne', sans-serif" }}>{v}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: c, fontFamily: "'Inter', sans-serif" }}>{v}</div>
             <div style={{ fontSize: 11, color: '#8892C4', marginTop: 4 }}>{l}</div>
           </div>
         ))}

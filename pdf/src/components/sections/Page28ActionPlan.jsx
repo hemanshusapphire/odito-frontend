@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
@@ -44,7 +44,6 @@ const weeks = [
 
 export default function ActionPlanPage() {
   useEffect(() => {
-    console.log('[ACTION PLAN] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -55,7 +54,6 @@ export default function ActionPlanPage() {
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('action-plan', true, 'Action Plan');
     }
-    console.log('[ACTION PLAN] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{
@@ -76,7 +74,7 @@ export default function ActionPlanPage() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, opacity: 0.8 }}>Week {num}</span>
-                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>{title}</span>
+                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>{title}</span>
                 </div>
                 <span style={{ color: '#fff', fontSize: 13, opacity: 0.85 }}>{days}</span>
               </div>

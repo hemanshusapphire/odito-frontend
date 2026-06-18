@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
@@ -7,14 +7,7 @@ import API_BASE_URL from "@/lib/apiConfig";
 // Simple API helper function for PDF app
 const getPDFPageData = async (projectId, page) => {
   const token = localStorage.getItem('token');
-  
-  console.log('📄 PDF API Request:', { 
-    endpoint: `/pdf/${projectId}/page${page}`, 
-    projectId, 
-    page,
-    hasToken: !!token 
-  });
-  
+
   const response = await fetch(`${API_BASE_URL}/pdf/${projectId}/page${page}`, {
     method: 'GET',
     headers: {
@@ -28,12 +21,7 @@ const getPDFPageData = async (projectId, page) => {
   }
   
   const data = await response.json();
-  console.log('✅ PDF API Response:', { 
-    status: response.status, 
-    success: data.success,
-    hasData: !!data.data 
-  });
-  
+
   return data;
 };
 
@@ -47,11 +35,9 @@ export function AIVisibilityOverviewPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (pageData) {
-      console.log('[AI VISIBILITY OVERVIEW] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[AI VISIBILITY OVERVIEW] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -59,20 +45,15 @@ export function AIVisibilityOverviewPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("AI Visibility Overview");
-            console.log("[AI VISIBILITY OVERVIEW] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('ai-visibility-overview', true, 'AI Visibility Overview');
-            console.log('[AI VISIBILITY OVERVIEW] ✅ Marked ready via legacy system');
           } else {
-            console.error("[AI VISIBILITY OVERVIEW] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[AI VISIBILITY OVERVIEW] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[AI VISIBILITY OVERVIEW] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [pageData]);
@@ -97,7 +78,6 @@ export function AIVisibilityOverviewPage({ projectId }) {
 
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
-    console.log('[AI VISIBILITY OVERVIEW] Component registration handled by inline system');
     
     const fetchPageData = async () => {
       if (!projectId) {
@@ -108,11 +88,9 @@ export function AIVisibilityOverviewPage({ projectId }) {
 
       try {
         setLoading(true);
-        console.log('Page19 - Fetching data for projectId:', projectId);
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[AI VISIBILITY OVERVIEW] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -126,16 +104,6 @@ export function AIVisibilityOverviewPage({ projectId }) {
         const response = await getPDFPageData(projectId, '19');
         
         if (response.success && response.data) {
-          console.log('Page19 - Full Data received:', response.data);
-          console.log('Page19 - AI Readiness:', response.data.aiReadiness);
-          console.log('Page19 - GEO Score:', response.data.geoScore);
-          console.log('Page19 - AEO Score:', response.data.aeoScore);
-          console.log('Page19 - Voice Intent:', response.data.voiceIntent);
-          console.log('Page19 - AI Citation:', response.data.aiCitation);
-          console.log('Page19 - AI Topical Authority:', response.data.aiTopicalAuthority);
-          console.log('Page19 - Top Score (ai_visibility.score):', response.data.topScore);
-          console.log('Page19 - Overall Score for header:', response.data.topScore);
-          console.log('[AI VISIBILITY OVERVIEW] DATA FETCH COMPLETE - Setting AI visibility data');
           
           // Clear timeout on successful response
           clearTimeout(timeoutId);
@@ -144,11 +112,9 @@ export function AIVisibilityOverviewPage({ projectId }) {
           // NOTE: markReady is now called in the useEffect that watches pageData
         } else {
           clearTimeout(timeoutId);
-          console.error('Page19 - Invalid response structure:', response);
           setError('Invalid data structure received');
         }
       } catch (err) {
-        console.error('Page19 - Error fetching data:', err);
         clearTimeout(timeoutId);
         setError(err.message || 'Failed to fetch AI visibility data');
       } finally {
@@ -262,17 +228,17 @@ export function AIVisibilityOverviewPage({ projectId }) {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Understanding AI Search Optimization</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Understanding AI Search Optimization</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
           {concepts.map(({ tag, color, bg, title, desc }) => (
             <div key={tag} style={{ display: 'flex', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
               <div style={{ background: color, width: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ color: '#fff', fontWeight: 800, fontSize: 13, fontFamily: "'Syne', sans-serif" }}>{tag}</span>
+                <span style={{ color: '#fff', fontWeight: 800, fontSize: 13, fontFamily: "'Inter', sans-serif" }}>{tag}</span>
               </div>
               <div style={{ padding: '16px 20px', background: bg }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 6, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{title}</div>
                 <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{desc}</div>
               </div>
             </div>
@@ -291,37 +257,27 @@ export function AIVisibilityOverviewPage({ projectId }) {
 // ---- Page 21: LLM Citation Growth Forecast (insight-only page) ----
 export function LLMCitationForecastPage() {
   React.useEffect(() => {
-    console.log('[LLM CITATION FORECAST] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[LLM CITATION FORECAST] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     requestAnimationFrame(() => {
-      console.log('[LLM CITATION FORECAST] DOM render complete - marking component as ready');
       
       const markReady = () => {
         const target = window.parent || window;
 
         if (target && target.__PDF_READY__) {
           target.__PDF_READY__.markReady("LLM Citation Forecast");
-          console.log("[LLM CITATION FORECAST] ✅ Marked ready in parent");
         } else if (target && target.__PDF_SET_READY__) {
           target.__PDF_SET_READY__('llm-citation-forecast', true, 'LLM Citation Forecast');
-          console.log('[LLM CITATION FORECAST] ✅ Marked ready via legacy system');
         } else {
-          console.error("[LLM CITATION FORECAST] ❌ PDF READY system not found");
           // Retry mechanism - system might still be initializing
-          console.log('[LLM CITATION FORECAST] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready after DOM render');
     });
-    console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
-    console.log('[LLM CITATION FORECAST] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   return (
     <div style={{ width: 960, minHeight: 1280, background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 40px rgba(0,0,0,0.12)', margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>

@@ -1,0 +1,98 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Component Styles — Buttons
+   
+   DEDUPLICATED: .fix-ai-btn defined 2x (lines 847, 1025),
+   .act-btn defined 2x (lines 950, 1767)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Fix AI Button ─────────────────────────────────────────────── */
+.fix-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-bold, 700);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.fix-ai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover-cyan);
+}
+
+/* ── Task Buttons ──────────────────────────────────────────────── */
+.task-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-semibold, 600);
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  font-family: var(--font-body);
+}
+
+.task-btn.primary   { background: var(--gradient-brand); color: #fff; }
+.task-btn.secondary { background: var(--color-surface-hover); color: var(--color-text-secondary); border: 1px solid var(--color-border-default); }
+
+/* ── Action Buttons ────────────────────────────────────────────── */
+.act-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 9px;
+  font-size: var(--text-base, 12.5px);
+  font-weight: var(--weight-semibold, 600);
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  transition: var(--transition);
+  font-family: var(--font-body);
+}
+
+.act-btn.pr, .act-btn.primary   { background: var(--gradient-brand); color: #fff; box-shadow: 0 0 18px rgba(0, 223, 255, 0.16); }
+.act-btn.pr:hover, .act-btn.primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover-cyan); }
+.act-btn.vi, .act-btn.purple    { background: linear-gradient(135deg, rgba(119, 48, 237, 0.28), rgba(157, 78, 221, 0.2)); color: var(--color-brand-purple-light); border: 1px solid rgba(119, 48, 237, 0.28); }
+.act-btn.se, .act-btn.ghost     { background: rgba(255, 255, 255, 0.04); color: var(--color-text-secondary); border: 1px solid var(--color-border-subtle); }
+.act-btn.ghost:hover            { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.act-btn.success                { background: var(--color-status-success-surface); color: var(--color-status-success); border: 1px solid var(--color-status-success-border); }
+
+/* ── Toolbar Buttons ───────────────────────────────────────────── */
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5.5px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: var(--weight-medium, 500);
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.tb-btn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); background: rgba(255, 255, 255, 0.05); }
+
+.tb-btn.primary {
+  background: var(--gradient-brand);
+  border: none;
+  color: #fff;
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 0 16px rgba(0, 223, 255, 0.18);
+}
+
+.tb-btn.primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover-cyan); }

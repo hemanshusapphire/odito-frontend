@@ -1,0 +1,22 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Z-Index Hierarchy
+   
+   Documented scale to prevent z-index wars.
+   
+   RULE: Never use a raw z-index number.
+   Always use a token: z-index: var(--z-modal);
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --z-base: 0;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-overlay: 400;
+  --z-fix-panel: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+  --z-tooltip: 800;
+  --z-max: 9999;
+}

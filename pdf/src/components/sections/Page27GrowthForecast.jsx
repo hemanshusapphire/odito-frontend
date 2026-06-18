@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, InsightBox } from '../layout';
@@ -19,7 +19,6 @@ const milestones = [
 
 export default function AIGrowthForecastPage() {
   useEffect(() => {
-    console.log('[AI GROWTH FORECAST] Component mounted - registering with ready system');
     
     // Register component with global ready system
     if (typeof window !== 'undefined' && window.__PDF_REGISTER_COMPONENT__) {
@@ -30,7 +29,6 @@ export default function AIGrowthForecastPage() {
     if (typeof window !== 'undefined' && window.__PDF_SET_READY__) {
       window.__PDF_SET_READY__('ai-growth-forecast', true, 'AI Growth Forecast');
     }
-    console.log('[AI GROWTH FORECAST] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const maxVal = 100;
   const chartH = 160;
@@ -41,7 +39,7 @@ export default function AIGrowthForecastPage() {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="19" title="AI Growth Forecast" subtitle="Projected score improvements over 90 days" />
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>90-Day Score Projection</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>90-Day Score Projection</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 40, marginBottom: 32 }}>
@@ -100,7 +98,7 @@ export default function AIGrowthForecastPage() {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Forecast Breakdown</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Forecast Breakdown</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>

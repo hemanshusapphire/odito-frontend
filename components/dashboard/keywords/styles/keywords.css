@@ -1,23 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
 /* Scoped to keyword dashboard only */
 .keyword-dashboard {
-  --bg: #04070f;
-  --bg2: #07101e;
-  --surface: rgba(255,255,255,0.03);
-  --border: rgba(255,255,255,0.07);
-  --border-hover: rgba(255,255,255,0.12);
-  --text: #f0f4ff;
-  --text2: #8896b0;
-  --text3: #5a6a82;
-  --cyan: #00e5ff;
-  --violet: #7c3aed;
-  --purple: #a855f7;
-  --green: #10ffa0;
-  --amber: #ffbb33;
-  --red: #ff4560;
-  --grad1: linear-gradient(135deg, #7c3aed, #00e5ff);
-  --font-display: 'Syne', sans-serif;
+  --bg: var(--color-bg-base);
+  --bg2: var(--color-bg-elevated);
+  --surface: var(--color-surface);
+  --border: var(--color-border-default);
+  --border-hover: var(--color-border-strong);
+  --text: var(--color-text-primary);
+  --text2: var(--color-text-secondary);
+  --text3: var(--color-text-tertiary);
+  --cyan: var(--color-brand-cyan);
+  --violet: var(--color-brand-violet);
+  --purple: var(--color-brand-purple);
+  --green: var(--color-status-success);
+  --amber: var(--color-status-warning);
+  --red: var(--color-status-error);
+  --grad1: linear-gradient(135deg, var(--color-brand-violet), var(--color-brand-cyan));
+  --font-display: var(--font-metric, 'Inter', sans-serif);
   --font-body: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--text);

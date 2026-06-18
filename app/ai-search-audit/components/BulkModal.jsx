@@ -6,12 +6,12 @@ export default function BulkModal({ checked, issue, onApply, onClose }) {
       <div className={styles.bulkModal} onClick={e => e.stopPropagation()}>
         <div className={styles.bulkModalTitle}>✦ Bulk AI Fix</div>
         <div className={styles.bulkModalSub}>
-          Fixing <strong style={{ color:"#00dfff" }}>{checked.length} pages</strong> for: {issue.title}
+          Fixing <strong style={{ color:"var(--cy)" }}>{checked.length} pages</strong> for: {issue.title}
         </div>
         <div className={styles.bulkModalList}>
           {checked.map((idx, i) => (
             <div key={i} className={styles.bulkModalRow}>
-              <span style={{ color:"#00f5a0" }}>✓</span>
+              <span style={{ color:"var(--gr)" }}>✓</span>
               <span className={styles.bulkModalUrl}>{issue.urls[idx]?.url}</span>
               <span className={styles.bulkModalReady}>Ready</span>
             </div>

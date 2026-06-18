@@ -16,10 +16,14 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@features/*": ["./features/*"],
+      "@shared/*": ["./shared/*"],
+      "@services/*": ["./services/*"],
+      "@styles/*": ["./styles/*"]
     },
     "plugins": [
       {

@@ -8,7 +8,7 @@ import IssueRow from "./IssueRow"
 import FixPanel from "./FixPanel"
 import "./PageDetailStyles.css"
 
-export default function PageDetailView({ url, pageData, loading, error, onBack }) {
+export default function PageDetailView({ url, pageData, loading, error, onBack, projectId }) {
   const [sevFilter, setSevFilter] = useState("all")
   const [selIssue, setSelIssue] = useState(null)
   const [fixedIds, setFixedIds] = useState([])
@@ -74,8 +74,6 @@ export default function PageDetailView({ url, pageData, loading, error, onBack }
           <span className={`sb-status ${pageData.statusCode === 200 ? 's200' : 's404'}`}>
             {pageData.statusCode === 200 ? "✓ 200 OK" : `✗ ${pageData.statusCode}`}
           </span>
-          <button className="btn sm">📤 Export</button>
-          <button className="btn sm pr">⟳ Re-scan</button>
         </div>
       </div>
 
@@ -84,7 +82,7 @@ export default function PageDetailView({ url, pageData, loading, error, onBack }
         {/* SECTION 1 — 2-column grid */}
         <div className="s1-grid">
           <PageInfoCard pageData={pageData} />
-          <PagePreviewCard url={pageData.url} issues={issues} />
+          <PagePreviewCard url={pageData.url} issues={issues} projectId={projectId} />
         </div>
 
         {/* SECTION 2 — Issue Palette */}
@@ -104,7 +102,6 @@ export default function PageDetailView({ url, pageData, loading, error, onBack }
             Page Issues
             <span className="sec-ttl-ct">{filtered.length} found</span>
           </div>
-          <button className="btn sm">📋 Export Issues</button>
         </div>
 
         {filtered.map((issue, index) => {
@@ -130,6 +127,7 @@ export default function PageDetailView({ url, pageData, loading, error, onBack }
         <FixPanel
           issue={selIssue}
           url={url}
+          projectId={projectId}
           onFixed={markFixed}
           onClose={() => setSelIssue(null)}
         />

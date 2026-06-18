@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { PageHeader, PageFooter, SectionHeader, StatCard, InsightBox } from '../layout';
@@ -14,11 +14,9 @@ export function KeywordRankingPage({ projectId }) {
   // Mark component as ready AFTER DOM render is complete
   useEffect(() => {
     if (keywordData) {
-      console.log('[KEYWORD RANKING] Data available - waiting for DOM render to complete...');
       
       // CRITICAL FIX: Use requestAnimationFrame to ensure DOM has rendered with new data
       requestAnimationFrame(() => {
-        console.log('[KEYWORD RANKING] DOM render complete - marking component as ready');
         
         // PINPOINT FIX: Use correct window targeting
         const markReady = () => {
@@ -26,27 +24,21 @@ export function KeywordRankingPage({ projectId }) {
 
           if (target && target.__PDF_READY__) {
             target.__PDF_READY__.markReady("Keyword Ranking");
-            console.log("[KEYWORD RANKING] ✅ Marked ready in parent");
           } else if (target && target.__PDF_SET_READY__) {
             target.__PDF_SET_READY__('keyword-ranking', true, 'Keyword Ranking');
-            console.log('[KEYWORD RANKING] ✅ Marked ready via legacy system');
           } else {
-            console.error("[KEYWORD RANKING] ❌ PDF READY system not found");
             // Retry mechanism - system might still be initializing
-            console.log('[KEYWORD RANKING] 🔄 Retrying in 50ms...');
             setTimeout(markReady, 50);
           }
         };
         
         markReady();
-        console.log('[KEYWORD RANKING] PDF READY - Component marked as ready after DOM render');
       });
     }
   }, [keywordData]);
 
   useEffect(() => {
     // Component registration is now handled inline by the PDF renderer
-    console.log('[KEYWORD RANKING] Component registration handled by inline system');
     
     if (!projectId) return;
     
@@ -56,7 +48,6 @@ export function KeywordRankingPage({ projectId }) {
         
         // Set timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-          console.warn('[KEYWORD RANKING] Timeout reached - marking as timeout error');
           setTimeoutReached(true);
           setError('Data loading timeout - please try again');
           setLoading(false);
@@ -70,7 +61,6 @@ export function KeywordRankingPage({ projectId }) {
         const result = await apiService.getKeywordRankingAnalysis(projectId);
         
         if (result.success) {
-          console.log('[KEYWORD RANKING] DATA FETCH COMPLETE - Setting keyword data');
           
           // Clear timeout on successful response
           clearTimeout(timeoutId);
@@ -84,7 +74,6 @@ export function KeywordRankingPage({ projectId }) {
       } catch (err) {
         clearTimeout(timeoutId);
         setError('Network error loading keyword data');
-        console.error('Keyword data fetch error:', err);
       } finally {
         setLoading(false);
       }
@@ -171,7 +160,7 @@ export function KeywordRankingPage({ projectId }) {
           </div>
         )}
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Keyword Position Table</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Keyword Position Table</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 12 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>
@@ -214,10 +203,8 @@ export function KeywordRankingPage({ projectId }) {
 // ---- Page 17: Keyword Opportunity Analysis ----
 export function KeywordOpportunityPage() {
   React.useEffect(() => {
-    console.log('[KEYWORD OPPORTUNITY] Component mounted - registering with ready system');
     
     // Component registration is now handled inline by the PDF renderer
-    console.log('[KEYWORD OPPORTUNITY] Component registration handled by inline system');
     
     // This component doesn't fetch data, so mark as ready after DOM render
     const waitForRenderComplete = async () => {
@@ -234,29 +221,21 @@ export function KeywordOpportunityPage() {
         const pdfWindow = getPDFWindow();
         
         // Debug: Check system availability
-        console.log('[KEYWORD OPPORTUNITY] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
         
         if (pdfWindow.__PDF_READY__) {
           pdfWindow.__PDF_READY__.markReady('Keyword Opportunity');
-          console.log('[KEYWORD OPPORTUNITY] ✅ Marked ready in parent system');
         } else if (pdfWindow.__PDF_SET_READY__) {
           pdfWindow.__PDF_SET_READY__('keyword-opportunity', true, 'Keyword Opportunity');
-          console.log('[KEYWORD OPPORTUNITY] ✅ Marked ready via legacy system');
         } else {
-          console.error('[KEYWORD OPPORTUNITY] ❌ PDF system not found in parent');
           // Retry mechanism - system might still be initializing
-          console.log('[KEYWORD OPPORTUNITY] 🔄 Retrying in 50ms...');
           setTimeout(markReady, 50);
         }
       };
       
       markReady();
-      console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready after DOM render');
     };
     
     waitForRenderComplete();
-    console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready (no data to fetch)');
-    console.log('[KEYWORD OPPORTUNITY] PDF READY - Component marked as ready (no data to fetch)');
   }, []);
   const opportunities = [
     { kw: 'seo audit software', vol: '4,400', pos: '#11', gap: '1 positions', clicks: '+120/mo' },
@@ -271,7 +250,7 @@ export function KeywordOpportunityPage() {
       <div style={{ padding: '32px 40px', flex: 1 }}>
         <SectionHeader num="13" title="Keyword Opportunity Analysis" subtitle="Near page-1 keywords and ranking distribution" />
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Ranking Distribution</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Ranking Distribution</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 20 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 40, marginBottom: 32 }}>
@@ -304,7 +283,7 @@ export function KeywordOpportunityPage() {
           </div>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>Near Top-10 Opportunities</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Near Top-10 Opportunities</h3>
         <div style={{ borderBottom: '2px solid #4F6EF7', marginBottom: 16 }} />
 
         <div style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 24 }}>

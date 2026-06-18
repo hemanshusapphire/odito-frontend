@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createRoot } from 'react-dom/client';
 import html2canvas from 'html2canvas';
@@ -12,7 +12,7 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Odito AI Report - Page ${pageIndex + 1}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
   
   <!-- PDF Ready System - Initialize in PARENT window -->
   <script>
@@ -30,7 +30,6 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
       
       // Only initialize once
       if (targetWindow.__PDF_READY__) {
-        console.log('[PDF READY] 🔄 System already exists in target window');
         return;
       }
 
@@ -42,7 +41,6 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
           if (!this.components[name]) {
             this.components[name] = { ready: false };
           }
-          console.log('[PDF READY] 📝 ' + name + ' registered');
         },
         
         markReady: function(name) {
@@ -50,11 +48,9 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
             this.components[name] = {};
           }
           this.components[name].ready = true;
-          console.log('[PDF READY] ✅ ' + name + ' marked ready');
           
           // Check if all components are ready
           if (this.isAllReady()) {
-            console.log('[PDF READY] 🎉 ALL COMPONENTS READY - PDF can be generated');
             targetWindow.__PDF_ALL_READY__ = true;
           }
         },
@@ -84,7 +80,6 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
         reset: function() {
           this.components = {};
           targetWindow.__PDF_ALL_READY__ = false;
-          console.log('[PDF READY] 🔄 Reset - Ready for new PDF generation');
         }
       };
 
@@ -92,9 +87,6 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
       targetWindow.__PDF_ALL_READY__ = false;
       
       // Debug logs
-      console.log('[PDF READY] 🚀 Initialized in CORRECT window');
-      console.log('[PDF READY] 📍 iframe:', !!window.__PDF_READY__);
-      console.log('[PDF READY] 📍 parent:', !!window.parent.__PDF_READY__);
       
       // Legacy compatibility - expose old API
       targetWindow.__PDF_REGISTER_COMPONENT__ = function(id, name) {
@@ -117,7 +109,7 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
     })();
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
 
     :root {
       --bg-dark: #070B1A;
@@ -147,7 +139,7 @@ const PDF_HTML_TEMPLATE = (pageContent, pageIndex) => `
       --page-header-bg: #111827;
       
       /* Font families */
-      --font-display: 'Syne', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
       --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
 
@@ -240,7 +232,6 @@ function addInlineComponentRegistration(pageContent, pageIndex) {
 
   const component = componentMap[pageIndex];
   if (!component) {
-    console.warn(`[PDF RENDERER] No component mapping for page ${pageIndex}`);
     return pageContent;
   }
 
@@ -254,17 +245,14 @@ function addInlineComponentRegistration(pageContent, pageIndex) {
         };
         
         var pdfWindow = getPDFWindow();
-        console.log('[PDF INLINE] Registering component: ${component.name} in parent window context');
         
         // Debug: Check if system exists
-        console.log('[PDF INLINE] 📍 System check - parent has __PDF_READY__:', !!pdfWindow.__PDF_READY__);
         
         if (pdfWindow.__PDF_READY__) {
           pdfWindow.__PDF_READY__.register('${component.name}');
         } else if (pdfWindow.__PDF_REGISTER_COMPONENT__) {
           pdfWindow.__PDF_REGISTER_COMPONENT__('${component.id}', '${component.name}');
         } else {
-          console.error('[PDF INLINE] ❌ Registration function not available in parent window');
         }
         
         // For pages that don't fetch data, mark as ready immediately
@@ -272,16 +260,13 @@ function addInlineComponentRegistration(pageContent, pageIndex) {
         var needsDataFetch = ${pageIndex === 0 || pageIndex === 2 || pageIndex === 5 || pageIndex === 7 || pageIndex === 8 || pageIndex === 9 || pageIndex === 10 || pageIndex === 12 || pageIndex === 15 || pageIndex === 16 || pageIndex === 18 || pageIndex === 21 || pageIndex === 22 || pageIndex === 25 || pageIndex === 26 || pageIndex === 27 ? 'true' : 'false'};
         
         if (!needsDataFetch) {
-          console.log('[PDF INLINE] Marking component as ready (no data fetch needed): ${component.name}');
           if (pdfWindow.__PDF_READY__) {
             pdfWindow.__PDF_READY__.markReady('${component.name}');
           } else if (pdfWindow.__PDF_SET_READY__) {
             pdfWindow.__PDF_SET_READY__('${component.id}', true, '${component.name}');
           } else {
-            console.error('[PDF INLINE] ❌ Ready function not available in parent window');
           }
         } else {
-          console.log('[PDF INLINE] Component will mark itself as ready after data fetch: ${component.name}');
         }
       })();
     </script>
@@ -321,7 +306,6 @@ export class PDFRenderer {
       let iframe = null;
 
       try {
-        console.log(`[PDF RENDERER] Rendering page ${pageIndex + 1} in iframe`);
 
         // Create hidden iframe
         iframe = document.createElement('iframe');
@@ -377,11 +361,8 @@ export class PDFRenderer {
         await new Promise(resolve => setTimeout(resolve, 50));
 
         // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
-        console.log('[PDF RENDERER] Waiting for page readiness BEFORE font loading...');
         
         // Debug: Check window contexts
-        console.log('[PDF RENDERER] 📍 iframe has __PDF_ALL_READY__:', !!iframe.contentWindow?.__PDF_ALL_READY__);
-        console.log('[PDF RENDERER] 📍 parent has __PDF_ALL_READY__:', !!window.__PDF_ALL_READY__);
         
         await new Promise((resolve, reject) => {
           const maxTime = 30000;
@@ -392,7 +373,6 @@ export class PDFRenderer {
             const isReady = window.__PDF_ALL_READY__;
 
             if (isReady === true) {
-              console.log('[PDF RENDERER] ✅ Page ready detected - now loading fonts');
               resolve();
             } else if (Date.now() - start > maxTime) {
               const status = window.__PDF_GET_STATUS__?.();
@@ -404,9 +384,7 @@ export class PDFRenderer {
               if (waited % 2000 === 0) {
                 const status = window.__PDF_GET_STATUS__?.();
                 if (status) {
-                  console.log(`[PDF RENDERER] ⏳ Waiting... ${status.readyCount}/${status.totalCount} components ready (${waited}ms)`);
                 } else {
-                  console.log(`[PDF RENDERER] ⏳ Waiting for page readiness... (${waited}ms)`);
                 }
               }
               setTimeout(checkReady, 100);
@@ -417,14 +395,12 @@ export class PDFRenderer {
         });
 
         // Now wait for fonts to load AFTER data is ready
-        console.log('[PDF RENDERER] Page ready - now waiting for fonts to load in iframe');
         await Promise.all([
-          iframe.contentWindow.document.fonts.load('1em Syne'),
+          iframe.contentWindow.document.fonts.load('1em Inter'),
           iframe.contentWindow.document.fonts.load('1em DM Sans'),
           iframe.contentWindow.document.fonts.ready
         ]);
 
-        console.log('[PDF RENDERER] ✅ Fonts loaded - proceeding with capture');
 
         // Capture iframe body
         const canvas = await html2canvas(iframeDoc.body, {
@@ -445,7 +421,6 @@ export class PDFRenderer {
         resolve(canvas);
 
       } catch (error) {
-        console.error('[PDF RENDERER] Error rendering page:', error);
         reject(error);
       } finally {
         // Clean up iframe

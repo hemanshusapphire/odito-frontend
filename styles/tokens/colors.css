@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Color Tokens
+   Single Source of Truth
+   
+   NAMING CONVENTION:
+   --color-{category}-{shade}
+   
+   Categories: bg, surface, border, text, brand, status
+   
+   MIGRATION NOTE:
+   Legacy variables (--bg, --s, --b, --t, --cy, etc.) are mapped
+   below for backward compatibility during incremental migration.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root:not(.dark) {
+   /* ── Core Grayscale Theme Tokens (ElevenLabs/Linear Style) ──── */
+   --bg-primary: #F7F7F7;
+   --bg-secondary: #F3F3F3;
+
+   --surface-primary: #FFFFFF;
+   --surface-secondary: #FAFAFA;
+
+   --border-primary: #E7E7E7;
+   --border-secondary: #EFEFEF;
+
+   --text-primary: #111111;
+   --text-secondary: #666666;
+   --text-muted: #888888;
+
+   --hover-bg: #EFEFEF;
+
+   /* ── Background Layers (Light Mode mapping) ────────────────── */
+   --color-bg-base: var(--bg-primary);
+   --color-bg-elevated: var(--surface-primary);
+   --color-bg-sunken: var(--bg-secondary);
+   --color-bg-page: var(--bg-primary);
+
+   /* ── Surfaces (card/panel backgrounds) ───────────────────────── */
+   --color-surface: var(--surface-primary);
+   --color-surface-hover: var(--hover-bg);
+   --color-surface-active: var(--border-primary);
+   --color-glass-card-bg: rgba(255, 255, 255, 0.85);
+   --color-score-ring-track: rgba(17, 17, 17, 0.06);
+
+   /* ── Borders ─────────────────────────────────────────────────── */
+   --color-border-subtle: var(--border-secondary);
+   --color-border-default: var(--border-primary);
+   --color-border-strong: #DCDCDC;
+
+   /* ── Text ────────────────────────────────────────────────────── */
+   --color-text-primary: var(--text-primary);
+   --color-text-secondary: var(--text-secondary);
+   --color-text-tertiary: var(--text-muted);
+   --color-text-inverted: #ffffff;
+
+   /* ── Brand Colors (Neutralized/Calmed slightly for Light Mode) ── */
+   --color-brand-cyan: #0d9488;
+   --color-brand-violet: #6d28d9;
+   --color-brand-purple: #7c3aed;
+   --color-brand-purple-light: #9333ea;
+   --color-brand-teal: #0f766e;
+   --color-brand-pink: #be185d;
+
+   /* ── Status Colors (Calm and premium, not overly harsh) ─────── */
+   --color-status-success: #16a34a;
+   --color-status-warning: #d97706;
+   --color-status-error: #dc2626;
+   --color-status-info: #2563eb;
+
+   /* ── Gradients ───────────────────────────────────────────────── */
+   --gradient-brand: linear-gradient(135deg, #6d28d9, #0d9488);
+   --gradient-accent: linear-gradient(135deg, #7c3aed, #be185d);
+   --gradient-success: linear-gradient(135deg, #16a34a, #0d9488);
+   --gradient-danger: linear-gradient(135deg, #dc2626, #d97706);
+   --gradient-teal: linear-gradient(135deg, #0d9488, #0f766e);
+
+   /* ── Status Surfaces (Light Mode solid tints) ───────────────── */
+   --color-status-success-surface: #f0fdf4;
+   --color-status-success-border: #dcfce7;
+   --color-status-warning-surface: #fffbeb;
+   --color-status-warning-border: #fef3c7;
+   --color-status-error-surface: #fef2f2;
+   --color-status-error-border: #fee2e2;
+   --color-status-info-surface: #eff6ff;
+   --color-status-info-border: #dbeafe;
+
+   /* ── Brand Surfaces (Light Mode solid tints) ────────────────── */
+   --color-brand-cyan-surface: #f0fdfa;
+   --color-brand-cyan-border: #ccfbf1;
+   --color-brand-violet-surface: #f5f3ff;
+   --color-brand-violet-border: #ede9fe;
+   --color-brand-purple-surface: #faf5ff;
+   --color-brand-purple-border: #f3e8ff;
+}
+
+:root {
+   /* ═══════════════════════════════════════════════════════════════
+     LEGACY ALIASES — For backward compatibility
+     These map old variable names to new semantic tokens.
+     ═══════════════════════════════════════════════════════════════ */
+   --bg: var(--color-bg-base);
+   --bg2: var(--color-bg-elevated);
+   --bg3: var(--color-bg-sunken);
+   --s: var(--color-surface);
+   --s2: var(--color-surface-hover);
+   --b: var(--color-border-default);
+   --b2: var(--color-border-strong);
+   --t: var(--color-text-primary);
+   --t2: var(--color-text-secondary);
+   --t3: var(--color-text-tertiary);
+   --cy: var(--color-brand-cyan);
+   --vi: var(--color-brand-violet);
+   --pu: var(--color-brand-purple-light);
+   --gr: var(--color-status-success);
+   --am: var(--color-status-warning);
+   --re: var(--color-status-error);
+   --g1: var(--gradient-brand);
+   --g2: var(--gradient-accent);
+   --cyan: var(--color-brand-cyan);
+   --violet: var(--color-brand-violet);
+   --purple: var(--color-brand-purple);
+   --green: var(--color-status-success);
+   --amber: var(--color-status-warning);
+   --red: var(--color-status-error);
+   --pink: #ff2d9b;
+   --grad1: var(--gradient-brand);
+   --grad2: var(--gradient-accent);
+   --grad3: var(--gradient-success);
+   --grad4: var(--gradient-danger);
+   --surface: var(--color-surface);
+   --surface2: var(--color-surface-hover);
+   --text: var(--color-text-primary);
+   --text2: var(--color-text-secondary);
+   --text3: var(--color-text-tertiary);
+   --border2: var(--color-border-strong);
+}
+
+.dark {
+   /* ── Core Grayscale Theme Tokens (Dark Mode) ───────────────── */
+   --bg-primary: #030912;
+   --bg-secondary: #0b1827;
+
+   --surface-primary: rgba(255, 255, 255, 0.04);
+   --surface-secondary: rgba(255, 255, 255, 0.02);
+
+   --border-primary: rgba(255, 255, 255, 0.08);
+   --border-secondary: rgba(255, 255, 255, 0.04);
+
+   --text-primary: #eef2ff;
+   --text-secondary: #8494b0;
+   --text-muted: #4e5f7a;
+
+   --hover-bg: rgba(255, 255, 255, 0.07);
+
+   /* ── Background Layers (Dark Mode) ─────────────────────────── */
+   --color-bg-base: #030912;
+   --color-bg-elevated: #06101d;
+   --color-bg-sunken: #0b1827;
+   --color-bg-page: #0A0A0F;
+
+   /* ── Surfaces (card/panel backgrounds) ───────────────────────── */
+   --color-surface: rgba(255, 255, 255, 0.04);
+   --color-surface-hover: rgba(255, 255, 255, 0.07);
+   --color-surface-active: rgba(255, 255, 255, 0.10);
+   --color-glass-card-bg: rgba(12, 14, 24, 0.6);
+   --color-score-ring-track: rgba(255, 255, 255, 0.06);
+
+   /* ── Borders ─────────────────────────────────────────────────── */
+   --color-border-subtle: rgba(255, 255, 255, 0.075);
+   --color-border-default: rgba(255, 255, 255, 0.08);
+   --color-border-strong: rgba(255, 255, 255, 0.14);
+
+   /* ── Text ────────────────────────────────────────────────────── */
+   --color-text-primary: #eef2ff;
+   --color-text-secondary: #8494b0;
+   --color-text-tertiary: #4e5f7a;
+   --color-text-inverted: #000000;
+
+   /* ── Brand Colors (Dark Mode neon look) ──────────────────────── */
+   --color-brand-cyan: #00e5ff;
+   --color-brand-violet: #7c3aed;
+   --color-brand-purple: #a855f7;
+   --color-brand-purple-light: #c77dff;
+   --color-brand-teal: #2DD4BF;
+   --color-brand-pink: #ec4899;
+
+   /* ── Status Colors (Dark Mode neon look) ─────────────────────── */
+   --color-status-success: #00f5a0;
+   --color-status-warning: #ffb703;
+   --color-status-error: #ff3860;
+   --color-status-info: #00dfff;
+
+   /* ── Status Surfaces (Dark Mode) ────────────────────────────── */
+   --color-status-success-surface: rgba(0, 245, 160, 0.09);
+   --color-status-success-border: rgba(0, 245, 160, 0.18);
+   --color-status-warning-surface: rgba(255, 183, 3, 0.11);
+   --color-status-warning-border: rgba(255, 183, 3, 0.20);
+   --color-status-error-surface: rgba(255, 56, 96, 0.13);
+   --color-status-error-border: rgba(255, 56, 96, 0.20);
+   --color-status-info-surface: rgba(0, 223, 255, 0.09);
+   --color-status-info-border: rgba(0, 223, 255, 0.18);
+
+   /* ── Brand Surfaces (Dark Mode) ─────────────────────────────── */
+   --color-brand-cyan-surface: rgba(0, 229, 255, 0.10);
+   --color-brand-cyan-border: rgba(0, 229, 255, 0.20);
+   --color-brand-violet-surface: rgba(124, 58, 237, 0.12);
+   --color-brand-violet-border: rgba(124, 58, 237, 0.25);
+   --color-brand-purple-surface: rgba(168, 85, 247, 0.10);
+   --color-brand-purple-border: rgba(168, 85, 247, 0.20);
+
+   /* ── Gradients (Dark Mode — neon / vibrant) ──────────────────── */
+   --gradient-brand:   linear-gradient(135deg, #7730ed, #00dfff);
+   --gradient-accent:  linear-gradient(135deg, #9333ea, #ec4899);
+   --gradient-success: linear-gradient(135deg, #00f5a0, #0d9488);
+   --gradient-danger:  linear-gradient(135deg, #ff3860, #ffb703);
+   --gradient-teal:    linear-gradient(135deg, #00dfff, #0d9488);
+}

@@ -94,7 +94,7 @@ export default function AIAuditPageContent({ projectId }) {
 
       {/* Our New AI Search Audit Implementation with Real Data */}
       <div className={styles.page}>
-        <TopSection aiData={projectData.ai_visibility} metricsData={metricsData} />
+        <TopSection aiData={projectData.ai_visibility} metricsData={metricsData} score={projectData.ai_visibility?.score} />
 
         {/* Issues Section */}
         <div className={styles.sec}>
@@ -102,7 +102,6 @@ export default function AIAuditPageContent({ projectId }) {
             <div className={styles.secTtl}>Issues to Fix</div>
             <div className={styles.secCt}>{shown.length} FOUND</div>
           </div>
-          <button className={`${styles.btn} ${styles.btnSm} ${styles.btnPr}`}>📤 Export Report</button>
         </div>
 
         {/* Category Filter */}

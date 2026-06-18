@@ -1,4 +1,4 @@
-import PDFRenderer from '../utils/pdfRenderer';
+﻿import PDFRenderer from '../utils/pdfRenderer';
 
 // Import all PDF page components
 import CoverPage from '../pdf/src/components/sections/Page01Cover';
@@ -42,7 +42,6 @@ class PDFGeneratorService {
       throw new Error('Invalid project ID');
     }
 
-    console.log('[PDF SERVICE] Starting PDF generation for project:', projectId);
 
     // Initialize renderer
     this.renderer = new PDFRenderer();
@@ -93,7 +92,6 @@ class PDFGeneratorService {
           onProgress(progress);
         }
 
-        console.log(`[PDF SERVICE] Rendering page ${i + 1}/${pagesWithProjectId.length}`);
 
         // Render component to canvas
         const canvas = await this.renderer.renderComponent(page.component, i, pagesWithProjectId.length);
@@ -101,13 +99,11 @@ class PDFGeneratorService {
         // Add to PDF
         this.renderer.addCanvasToPDF(canvas, i === 0);
 
-        console.log(`[PDF SERVICE] Page ${i + 1}/${pagesWithProjectId.length} completed`);
       }
 
       // Generate PDF blob instead of saving
       const pdfBlob = this.renderer.getBlob();
       
-      console.log('[PDF SERVICE] PDF generation completed successfully');
 
       return {
         success: true,
@@ -116,7 +112,6 @@ class PDFGeneratorService {
       };
 
     } catch (error) {
-      console.error('[PDF SERVICE] PDF generation failed:', error.message);
       throw error;
     } finally {
       // Clean up renderer
@@ -139,7 +134,6 @@ class PDFGeneratorService {
     // Retry logic for network safety
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        console.log(`[PDF SERVICE] Buffer generation attempt ${attempt}/2 for project: ${projectId}`);
         
         const result = await this.generatePDF(projectId, reportType);
         
@@ -156,22 +150,18 @@ class PDFGeneratorService {
           throw new Error('Generated PDF buffer is empty');
         }
         
-        console.log(`[PDF SERVICE] Buffer generation successful on attempt ${attempt}, size: ${buffer.length} bytes`);
         return buffer;
         
       } catch (error) {
         lastError = error;
-        console.error(`[PDF SERVICE] Buffer generation attempt ${attempt} failed:`, error.message);
         
         if (attempt < 2) {
-          console.log(`[PDF SERVICE] Retrying buffer generation after 2 seconds...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
     }
     
     // All attempts failed
-    console.error(`[PDF SERVICE] All buffer generation attempts failed for project: ${projectId}`);
     throw lastError;
   }
 }

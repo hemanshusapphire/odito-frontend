@@ -10,7 +10,7 @@ export default function UrlList({
 
 }) {
 
-  const sevCol = issue.sev === "crit" ? "#ff3860" : issue.sev === "warn" ? "#ffb703" : "#00dfff";
+  const sevCol = issue.sev === "crit" ? "var(--re)" : issue.sev === "warn" ? "var(--am)" : "var(--cy)";
 
 
 
@@ -166,9 +166,9 @@ export default function UrlList({
 
         <div className={styles.progressRow}>
 
-          <span style={{ color:"#8494b0" }}>Fix Progress</span>
+          <span style={{ color:"var(--t2)" }}>Fix Progress</span>
 
-          <span style={{ fontWeight:700, color: progress===100 ? "#00f5a0" : "#8494b0" }}>
+          <span style={{ fontWeight:700, color: progress===100 ? "var(--gr)" : "var(--t2)" }}>
 
             {fixed.length}/{issue.urls.length} Fixed
 
@@ -178,7 +178,7 @@ export default function UrlList({
 
         <div className={styles.pb}>
 
-          <div className={styles.pbf} style={{ width:progress+"%", background: progress===100 ? "#00f5a0" : "#00dfff" }}/>
+          <div className={styles.pbf} style={{ width:progress+"%", background: progress===100 ? "var(--gr)" : "var(--cy)" }}/>
 
         </div>
 

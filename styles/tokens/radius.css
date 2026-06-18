@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Border Radius Tokens
+   
+   USAGE:
+   border-radius: var(--radius-md);  → 10px
+   border-radius: var(--radius-pill); → 20px (for pills/badges)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --radius-pill: 20px;
+
+  /* ── Legacy alias ── */
+  --r: var(--radius-lg);
+}

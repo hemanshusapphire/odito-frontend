@@ -7,7 +7,7 @@ export function PageHeader({ page, total = 31 }) {
       padding: '14px 40px', background: '#111827', borderBottom: '2px solid #00D4FF',
       fontFamily: "'DM Sans', sans-serif"
     }}>
-      <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, fontFamily: "'Syne', sans-serif" }}>Odito AI</span>
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, fontFamily: "'Inter', sans-serif" }}>Odito AI</span>
       <span style={{ color: '#8892C4', fontSize: 13 }}>SEO & AI Visibility Audit Report</span>
       <span style={{ color: '#8892C4', fontSize: 13 }}>agencyplatform.com &nbsp;|&nbsp; p.{page}/{total}</span>
     </div>
@@ -39,17 +39,17 @@ export function SectionHeader({ num, title, subtitle, score }) {
       <span style={{
         background: '#EEF2FF', color: '#4F6EF7', fontWeight: 700,
         fontSize: 13, padding: '4px 10px', borderRadius: 6,
-        fontFamily: "'Syne', sans-serif", minWidth: 36, textAlign: 'center'
+        fontFamily: "'Inter', sans-serif", minWidth: 36, textAlign: 'center'
       }}>{num}</span>
       <div style={{ flex: 1 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontFamily: "'Syne', sans-serif" }}>{title}</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontFamily: "'Inter', sans-serif" }}>{title}</h2>
         {subtitle && <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{subtitle}</p>}
       </div>
       {score !== undefined && (
         <div style={{
           background: '#EF4444', color: '#fff', borderRadius: 8,
           padding: '8px 16px', fontWeight: 700, fontSize: 16,
-          fontFamily: "'Syne', sans-serif"
+          fontFamily: "'Inter', sans-serif"
         }}>{score}</div>
       )}
     </div>
@@ -63,7 +63,7 @@ export function StatCard({ value, label, sub, color = '#4F6EF7', borderColor }) 
       borderTop: `3px solid ${borderColor || color}`,
       borderRadius: 8, padding: '20px 16px', textAlign: 'center'
     }}>
-      <div style={{ fontSize: 36, fontWeight: 800, color, fontFamily: "'Syne', sans-serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 36, fontWeight: 800, color, fontFamily: "'Inter', sans-serif", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 6 }}>{label}</div>
       {sub && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{sub}</div>}
     </div>
@@ -77,7 +77,7 @@ export function InsightBox({ title, children }) {
       borderLeft: '4px solid #4F6EF7', borderRadius: 8, padding: '16px 20px', marginTop: 24
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontWeight: 700, color: '#4F6EF7', fontSize: 14, fontFamily: "'Syne', sans-serif" }}>{title}</span>
+        <span style={{ fontWeight: 700, color: '#4F6EF7', fontSize: 14, fontFamily: "'Inter', sans-serif" }}>{title}</span>
         <span style={{
           background: '#4F6EF7', color: '#fff', fontSize: 12,
           padding: '4px 12px', borderRadius: 20, fontWeight: 500
