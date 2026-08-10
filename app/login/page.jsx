@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { signIn } from "next-auth/react";
 import { PublicGuard } from "@/components/guards/AuthGuard";
-import { Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Sparkles, ShieldAlert } from "lucide-react";
 
 // Reusable Input Field Component
 function InputField({ icon: Icon, type, placeholder, value, onChange, name, showToggle, onToggle, showPassword }) {
@@ -106,6 +106,11 @@ function LoginHero() {
 // Right Panel Form Component
 function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoading }) {
   const { login } = useAuth();
+  // Local, not lifted to the parent like `error` — only this form's submit
+  // handler sets it and only this form's render reads it. Deliberately
+  // separate from the generic `error` string so the suspended panel and
+  // the plain error banner are mutually exclusive and never render both.
+  const [isSuspended, setIsSuspended] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -118,6 +123,7 @@ function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoa
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsSuspended(false);
     setIsLoading(true);
 
     // Basic validation
@@ -130,12 +136,16 @@ function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoa
     try {
       const result = await login(formData.email, formData.password, formData.rememberMe);
       console.log("✅ Login successful!", result.user);
-      
+
       // AuthContext handles token/session storage
       // Redirect will happen automatically via existing flow
     } catch (error) {
       console.error("❌ Login failed:", error.message);
-      setError(error.message || "Login failed. Please check your credentials and try again.");
+      if (error.code === "ACCOUNT_SUSPENDED") {
+        setIsSuspended(true);
+      } else {
+        setError(error.message || "Login failed. Please check your credentials and try again.");
+      }
     }
 
     setIsLoading(false);
@@ -144,7 +154,7 @@ function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoa
   const handleGoogleLogin = async () => {
     try {
       await signIn("google", {
-        callbackUrl: "/dashboard",
+        callbackUrl: "/app/dashboard",
         redirect: true,
       });
     } catch (error) {
@@ -156,7 +166,7 @@ function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoa
   const handleGitHubLogin = async () => {
     try {
       await signIn("github", {
-        callbackUrl: "/dashboard",
+        callbackUrl: "/app/dashboard",
         redirect: true,
       });
     } catch (error) {
@@ -243,8 +253,32 @@ function LoginForm({ formData, setFormData, error, setError, isLoading, setIsLoa
               </label>
             </div>
 
+            {/* Account Suspended — dedicated panel, distinct from the generic
+                error banner below. Deliberately shows only the fact that the
+                account is suspended plus how to get help — never who
+                suspended it, why, admin notes, or timestamps, none of which
+                the backend response even includes. */}
+            {isSuspended && (
+              <div className="p-4 text-sm bg-red-950/20 border border-red-900/30 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 text-red-400 font-semibold">
+                  <ShieldAlert className="w-4 h-4" />
+                  Account Suspended
+                </div>
+                <p className="text-slate-300">
+                  Your account has been suspended. If you believe this is a mistake or need
+                  assistance, please contact our support team.
+                </p>
+                <a
+                  href="mailto:support@oditoai.com"
+                  className="inline-block text-primary hover:underline font-medium"
+                >
+                  support@oditoai.com
+                </a>
+              </div>
+            )}
+
             {/* Error Display */}
-            {error && (
+            {!isSuspended && error && (
               <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
                 {error}
               </div>

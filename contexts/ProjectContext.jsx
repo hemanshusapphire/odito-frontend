@@ -35,6 +35,25 @@ export function ProjectProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated || projects.length === 0) return;
 
+    // Deep-link support: ?project=<id> in the URL (e.g. the "Open Audit
+    // Dashboard" button in the Audit Completed email) selects that project
+    // on load, taking priority over the last-active project in
+    // localStorage. Falls through to the existing restore logic below if
+    // there's no param, or it doesn't match a project this user has.
+    const urlProjectId = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('project')
+      : null;
+    if (urlProjectId) {
+      const linkedProject = projects.find(p => p._id === urlProjectId);
+      if (linkedProject) {
+        setActiveProjectState(linkedProject);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('odito-active-project', linkedProject._id);
+        }
+        return;
+      }
+    }
+
     // 🔒 PHASE 3: Restore activeProject from localStorage (if valid)
     const savedProjectId = typeof window !== 'undefined'
       ? localStorage.getItem('odito-active-project')

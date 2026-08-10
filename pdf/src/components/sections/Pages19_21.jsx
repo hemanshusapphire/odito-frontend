@@ -185,20 +185,6 @@ export function AIVisibilityOverviewPage({ projectId }) {
             color="#4F6EF7" 
             borderColor="#4F6EF7" 
           />
-          <StatCard 
-            value={pageData.aeoScore} 
-            label="AEO Score" 
-            sub="Answer Engine Opt" 
-            color="#00D4FF" 
-            borderColor="#00D4FF" 
-          />
-          <StatCard 
-            value={pageData.voiceIntent} 
-            label="Voice Intent" 
-            sub="Voice Search Ready" 
-            color="#8B5CF6" 
-            borderColor="#8B5CF6" 
-          />
         </div>
 
         {/* Second row - Additional AI Metrics - FIXED LAYOUT */}

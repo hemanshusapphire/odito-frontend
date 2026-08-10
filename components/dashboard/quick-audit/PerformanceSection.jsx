@@ -1,5 +1,13 @@
 import React from "react";
 import s from "../QuickAuditResult.module.css";
+import {
+  getGrade as getSharedGrade,
+  GRADE_TEXT_COLOR,
+  rateCwvMetric,
+  cwvRatingToDashboardStatus,
+  cwvRatingToTailwindClass,
+  parseCwvValueToMs,
+} from "../../../lib/homepageAudit/constants";
 
 function Field({ name, check, desc, children }) {
   const checkCls = check === "pass" ? s.checkGreen : check === "fail" ? s.checkRed : check === "warning" ? s.checkWarning : s.checkInfo;
@@ -51,21 +59,23 @@ function PsiBlock({ score, color, ringStroke, ringBg, dash, labData, opportuniti
   );
 }
 
-/* Helper: derive grade from score (PageSpeed standards) */
+/* Helper: derive grade from score — sourced from the shared scoreBands
+ * (canonical: A>=85, B>=70, C>=50, else F), matching the backend's formula. */
 function getGrade(score) {
-  if (score >= 90) return "A";
-  if (score >= 75) return "B";
-  if (score >= 60) return "C";
-  return "D";
+  return getSharedGrade(score);
 }
 
 /* Helper: derive grade info from performance score */
 function getPerformanceGrade(score) {
   const grade = getGrade(score);
-  if (grade === "A") return { grade: "A", color: "#059669", titleColor: "#059669", title: "Excellent performance" };
-  if (grade === "B") return { grade: "B", color: "#2563eb", titleColor: "#2563eb", title: "Good performance" };
-  if (grade === "C") return { grade: "C", color: "#d97706", titleColor: "#d97706", title: "Performance needs improvement" };
-  return { grade: "D", color: "#dc2626", titleColor: "#dc2626", title: "Poor performance" };
+  const color = GRADE_TEXT_COLOR[grade];
+  const titles = {
+    A: "Excellent performance",
+    B: "Good performance",
+    C: "Performance needs improvement",
+    F: "Poor performance",
+  };
+  return { grade, color, titleColor: color, title: titles[grade] };
 }
 
 function scoreToDash(score, size) {
@@ -97,22 +107,21 @@ function parseSec(val) {
 }
 
 function getCwvStatus(metric, val) {
-  const n = parseSec(val);
-  if (n === null) return "info";
-  if (metric === "lcp") return n < 2.5 ? "pass" : n <= 4 ? "warning" : "fail";
-  if (metric === "fcp") return n < 1.8 ? "pass" : "warning";
-  if (metric === "cls") return n < 0.1 ? "pass" : n <= 0.25 ? "warning" : "fail";
-  if (metric === "tbt") return n < 0.2 ? "pass" : n <= 0.6 ? "warning" : "fail";
-  return "info";
+  const ms = parseCwvValueToMs(metric, val);
+  if (ms === null) return "info";
+  const rating = rateCwvMetric(metric, ms);
+  if (rating === null) return "info";
+  return cwvRatingToDashboardStatus(rating);
 }
 
 function buildLabData(m) {
   if (!m) return [];
+  const isGood = (metric, val) => rateCwvMetric(metric, parseCwvValueToMs(metric, val)) === "good";
   return [
-    { label: "First Contentful Paint", value: isNA(m.fcp) ? "N/A" : m.fcp, good: parseSec(m.fcp) !== null && parseSec(m.fcp) < 1.8 },
-    { label: "Largest Contentful Paint", value: isNA(m.lcp) ? "N/A" : m.lcp, good: parseSec(m.lcp) !== null && parseSec(m.lcp) < 2.5 },
-    { label: "Total Blocking Time", value: isNA(m.tbt) ? "N/A" : m.tbt, good: parseSec(m.tbt) !== null && parseSec(m.tbt) < 0.2 },
-    { label: "Cumulative Layout Shift", value: isNA(m.cls) ? "N/A" : m.cls, good: parseSec(m.cls) !== null && parseSec(m.cls) < 0.1 },
+    { label: "First Contentful Paint", value: isNA(m.fcp) ? "N/A" : m.fcp, good: isGood("fcp", m.fcp) },
+    { label: "Largest Contentful Paint", value: isNA(m.lcp) ? "N/A" : m.lcp, good: isGood("lcp", m.lcp) },
+    { label: "Total Blocking Time", value: isNA(m.tbt) ? "N/A" : m.tbt, good: isGood("tbt", m.tbt) },
+    { label: "Cumulative Layout Shift", value: isNA(m.cls) ? "N/A" : m.cls, good: isGood("cls", m.cls) },
   ];
 }
 
@@ -233,41 +242,13 @@ export default function PerformanceSection({ data }) {
     }
   };
 
-  // Helper to get color for Core Web Vitals metrics
+  // Helper to get color for Core Web Vitals metrics — sourced from the
+  // shared cwvThresholds (canonical, matches the video adapter's bands).
   const getCwvColor = (metric, value) => {
     if (!value || value === "--") return 'text-slate-400';
-    
-    const num = parseFloat(String(value).replace('s', '').replace('ms', ''));
-    
-    if (metric === 'lcp') {
-      // LCP: <2.5s (green), 2.5-4s (yellow), >4s (red)
-      if (num < 2.5) return 'text-green-400';
-      if (num <= 4) return 'text-yellow-400';
-      return 'text-red-400';
-    }
-    
-    if (metric === 'tbt') {
-      // TBT: <200ms (green), 200-600ms (yellow), >600ms (red)
-      if (num < 200) return 'text-green-400';
-      if (num <= 600) return 'text-yellow-400';
-      return 'text-red-400';
-    }
-    
-    if (metric === 'fcp') {
-      // FCP: <1.8s (green), 1.8-3s (yellow), >3s (red)
-      if (num < 1.8) return 'text-green-400';
-      if (num <= 3) return 'text-yellow-400';
-      return 'text-red-400';
-    }
-    
-    if (metric === 'cls') {
-      // CLS: <0.1 (green), 0.1-0.25 (yellow), >0.25 (red)
-      if (num < 0.1) return 'text-green-400';
-      if (num <= 0.25) return 'text-yellow-400';
-      return 'text-red-400';
-    }
-    
-    return 'text-slate-400';
+    const ms = parseCwvValueToMs(metric, value);
+    const rating = rateCwvMetric(metric, ms);
+    return cwvRatingToTailwindClass(rating);
   };
 
   // Performance checks data using real data from old code

@@ -6,15 +6,7 @@ import ThinProgressLoader from "@/components/ui/ThinProgressLoader";
 import apiService from "@/lib/apiService";
 import QuickAuditResult from "@/components/dashboard/QuickAuditResult";
 import BusinessSearchStep from "@/components/dashboard/quick-audit/BusinessSearchStep";
-
-// Helper: derive grade from score (consistent with backend mapper.py thresholds)
-function getGradeFromScore(score) {
-  if (score >= 90) return "A";
-  if (score >= 75) return "B";
-  if (score >= 50) return "C";
-  if (score >= 25) return "D";
-  return "F";
-}
+import { getGrade } from "@/lib/homepageAudit/constants";
 
 // Helper: normalize severity (matches backend mapper.py normalize_severity)
 function normalizeSeverity(value) {
@@ -279,7 +271,7 @@ export default function QuickAuditHero() {
                   score: psScore,
                   mobile: psRes.data.mobile,
                   desktop: psRes.data.desktop,
-                  grade: psScore !== null ? getGradeFromScore(psScore) : null,
+                  grade: psScore !== null ? getGrade(psScore) : null,
                   message: psRes.message || 'PageSpeed analysis completed'
                 },
                 // Legacy path kept for backward compat during migration
@@ -388,7 +380,7 @@ export default function QuickAuditHero() {
               ...existing.data.sections,
               accessibility: {
                 score: accessibilityScore,
-                grade: getGradeFromScore(accessibilityScore),
+                grade: getGrade(accessibilityScore),
                 checks: accessibilityChecks,
                 status: 'completed'
               }
@@ -476,7 +468,7 @@ export default function QuickAuditHero() {
               ...existing.data.sections,
               accessibility: {
                 score: 0,
-                grade: 'F',
+                grade: getGrade(0),
                 checks: [],
                 status: 'failed'
               }

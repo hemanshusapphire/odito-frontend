@@ -68,33 +68,12 @@ const handler = NextAuth({
 
   callbacks: {
 
-    async signIn({ account, profile, user }) {
+    async signIn({ account }) {
 
-      // Store Google profile data for jwt callback
-
-      if (account?.provider === "google" && profile) {
-
-        user.googleProfile = {
-
-          email: profile.email,
-
-          googleId: profile.sub,
-
-          name: profile.name,
-
-          avatar: profile.picture,
-
-          firstName: profile.given_name,
-
-          lastName: profile.family_name
-
-        };
-
-      }
-
-      
-
-      // Always return true for Google to prevent AccessDenied
+      // Always return true for Google to prevent AccessDenied. The actual
+      // backend exchange happens in the jwt callback using account.id_token,
+      // which the backend verifies against Google - nothing here needs to be
+      // trusted, so no profile data is stashed on the user object anymore.
 
       return true;
 
@@ -140,15 +119,19 @@ const handler = NextAuth({
 
       
 
-      // Handle backend token exchange for Google
+      // Handle backend token exchange for Google. The backend verifies
+      // account.id_token itself (signature, issuer, audience, email) rather
+      // than trusting any profile fields we could send it - this call sends
+      // nothing that isn't independently checkable by Google's own libraries
+      // on the receiving end.
 
-      if (account?.provider === "google" && user?.googleProfile) {
+      if (account?.provider === "google" && account?.id_token) {
 
         try {
 
           const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/oauth/google/callback`;
 
-          
+
 
           const response = await fetch(backendUrl, {
 
@@ -160,7 +143,7 @@ const handler = NextAuth({
 
             },
 
-            body: JSON.stringify(user.googleProfile)
+            body: JSON.stringify({ idToken: account.id_token })
 
           });
 

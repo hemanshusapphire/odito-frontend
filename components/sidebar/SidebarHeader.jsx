@@ -28,6 +28,7 @@ export function SidebarHeader({ isCollapsed = false }) {
           width={isCollapsed ? 28 : 100}
           height={28}
           className="object-contain"
+          style={{ width: isCollapsed ? 28 : 100, height: "auto" }}
           priority
         />
       </div>

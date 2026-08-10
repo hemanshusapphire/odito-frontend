@@ -45,7 +45,7 @@ export default function ProcessingProjectPageClient({ projectId }) {
     } catch (error) {
       console.error('Failed to refresh projects after processing:', error);
     }
-    router.push('/dashboard');
+    router.push('/app/dashboard');
   };
 
   return <ProcessingScreen projectId={projectId} onDone={handleProcessingDone} />;

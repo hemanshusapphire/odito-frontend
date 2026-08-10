@@ -7,7 +7,8 @@ export default function IssueRow({ issue, isSelected, isFixed, onSelect }) {
   }
 
   const getSeverityLabel = (severity) => {
-    if (severity === "critical" || severity === "high") return "● Critical"
+    if (severity === "critical") return "● Critical"
+    if (severity === "high") return "● High"
     if (severity === "warning" || severity === "medium") return "◆ Medium"
     if (severity === "low") return "○ Low"
     return "○ Low"
@@ -63,6 +64,24 @@ export default function IssueRow({ issue, isSelected, isFixed, onSelect }) {
         >
           {issue.category || "GENERAL"}
         </span>
+        {(issue.rule_id || issue.id) && (
+          <span 
+            className="ir-rule-id" 
+            style={{ 
+              opacity: 0.65, 
+              fontSize: '10px', 
+              fontFamily: 'monospace', 
+              color: 'var(--t3)', 
+              marginLeft: '6px',
+              border: '1px solid var(--b)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              background: 'var(--s)'
+            }}
+          >
+            {issue.rule_id || issue.id}
+          </span>
+        )}
       </div>
       
       <div className="ir-desc">

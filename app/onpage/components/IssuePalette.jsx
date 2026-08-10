@@ -1,10 +1,25 @@
-export default function IssuePalette({ counts, active, onChange }) {
-  const paletteItems = [
-    { id: "all", label: "All Issues", color: "#8494b0", count: counts.crit + counts.warn + counts.low },
-    { id: "crit", label: "Critical", color: "#ff3860", count: counts.crit },
-    { id: "warn", label: "Medium", color: "#ffb703", count: counts.warn },
-    { id: "low", label: "Low", color: "#00dfff", count: counts.low },
-  ]
+export default function IssuePalette({ counts = {}, active, onChange }) {
+  const isFiveCard = counts.high !== undefined;
+
+  const paletteItems = isFiveCard
+    ? [
+        {
+          id: "all",
+          label: "All Issues",
+          color: "#8494b0",
+          count: (counts.critical || 0) + (counts.high || 0) + (counts.medium || 0) + (counts.low || 0),
+        },
+        { id: "critical", label: "Critical", color: "#ff3860", count: counts.critical || 0 },
+        { id: "high", label: "High", color: "#ff8800", count: counts.high || 0 },
+        { id: "medium", label: "Medium", color: "#ffb703", count: counts.medium || 0 },
+        { id: "low", label: "Low", color: "#00dfff", count: counts.low || 0 },
+      ]
+    : [
+        { id: "all", label: "All Issues", color: "#8494b0", count: (counts.crit || 0) + (counts.warn || 0) + (counts.low || 0) },
+        { id: "crit", label: "Critical", color: "#ff3860", count: counts.crit || 0 },
+        { id: "warn", label: "Medium", color: "#ffb703", count: counts.warn || 0 },
+        { id: "low", label: "Low", color: "#00dfff", count: counts.low || 0 },
+      ];
 
   return (
     <div className="palette-row">

@@ -169,7 +169,7 @@ export default function ExecutiveSummaryPage({ projectId }) {
     );
   }
 
-  const { scores, issues, issueDistribution, aiAnalysis } = executiveData;
+  const { scores, issues, issueDistribution } = executiveData;
 
   // DEBUG: Log scores to verify technicalHealth is present
 
@@ -219,12 +219,6 @@ export default function ExecutiveSummaryPage({ projectId }) {
         </div>
 
         <div style={{ borderBottom: '1px solid #E5E7EB', marginBottom: 24 }} />
-
-        {/* AI Analysis - DYNAMIC */}
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, fontFamily: "'Inter', sans-serif" }}>AI Analysis Summary</h3>
-        <InsightBox title="Full-Site AI Analysis">
-          {aiAnalysis || "AI analysis is being generated..."}
-        </InsightBox>
 
         {/* Issue Distribution - FIXED DONUT CHART */}
         <h3 style={{ fontSize: 18, fontWeight: 700, margin: '28px 0 16px', fontFamily: "'Inter', sans-serif" }}>Issue Distribution</h3>

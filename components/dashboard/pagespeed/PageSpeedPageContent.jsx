@@ -1,8 +1,9 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useProject } from "@/contexts/ProjectContext"
-import { usePageSpeedData } from '@/hooks/useDashboardQueries'
+import { useQueryClient } from "@tanstack/react-query"
+import { usePageSpeedData, usePageSpeedStatus, usePageSpeedRescan } from '@/hooks/useDashboardQueries'
 import { PageSpeedSkeleton } from "@/components/skeletons/pagespeed"
 import DeviceTabs from "@/components/dashboard/pagespeed/DeviceTabs"
 import PerformanceRing from "@/components/dashboard/pagespeed/PerformanceRing"
@@ -124,107 +125,217 @@ const FIX_DATA = {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared button style helpers
+// ---------------------------------------------------------------------------
+const btnBase = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '8px 16px', border: 'none', borderRadius: 6,
+  fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'opacity .15s',
+}
+const btnPrimary  = { ...btnBase, background: 'var(--primary)', color: '#fff' }
+const btnDisabled = { ...btnBase, background: 'var(--surface2)', color: 'var(--text3)', cursor: 'not-allowed', opacity: .6 }
+const btnDanger   = { ...btnBase, background: 'rgba(255,69,96,.12)', color: 'var(--red)', border: '1px solid rgba(255,69,96,.25)' }
+
+function RescanButton({ onClick, disabled, label = 'Rescan', icon = '↺' }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={disabled ? btnDisabled : btnPrimary}
+    >
+      <span style={{ fontSize: 15 }}>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// State 1 — No data
+// ---------------------------------------------------------------------------
+function NoDataState({ onRescan, isRescanning }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
+      <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No PageSpeed results found</div>
+      <div style={{ color: 'var(--text3)', marginBottom: 28, fontSize: 14 }}>
+        The PageSpeed analysis has not been completed yet.
+      </div>
+      <RescanButton
+        onClick={onRescan}
+        disabled={isRescanning}
+        label={isRescanning ? 'Starting scan…' : 'Run PageSpeed Scan'}
+        icon="⚡"
+      />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// State 2 — Failed
+// ---------------------------------------------------------------------------
+function FailedState({ statusData, onRescan, isRescanning }) {
+  const ts = statusData?.last_run_at
+    ? new Date(statusData.last_run_at).toLocaleString()
+    : null
+
+  const errorMsg = statusData?.last_error
+    || statusData?.mobile_error
+    || statusData?.desktop_error
+    || 'Unknown error'
+
+  return (
+    <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
+      <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: 'var(--red)' }}>
+        PageSpeed scan failed
+      </div>
+      <div style={{
+        background: 'rgba(255,69,96,.08)', border: '1px solid rgba(255,69,96,.2)',
+        borderRadius: 8, padding: '12px 20px', margin: '16px auto', maxWidth: 480,
+        fontSize: 13, color: 'var(--red)', textAlign: 'left', wordBreak: 'break-word',
+      }}>
+        {errorMsg}
+      </div>
+      {ts && (
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 24 }}>
+          Last attempted: {ts}
+        </div>
+      )}
+      <RescanButton
+        onClick={onRescan}
+        disabled={isRescanning}
+        label={isRescanning ? 'Starting…' : 'Retry Scan'}
+        icon="↺"
+      />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// State 3 — Running
+// ---------------------------------------------------------------------------
+function RunningState() {
+  return (
+    <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>
+        <span style={{
+          display: 'inline-block',
+          animation: 'spin 1.2s linear infinite',
+        }}>⚡</span>
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+        PageSpeed scan in progress…
+      </div>
+      <div style={{ color: 'var(--text3)', marginBottom: 28, fontSize: 14 }}>
+        Fetching mobile and desktop metrics from Google PageSpeed Insights.
+      </div>
+      <div style={{
+        width: 200, height: 4, background: 'var(--surface2)',
+        borderRadius: 4, margin: '0 auto', overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%', width: '40%', borderRadius: 4,
+          background: 'var(--primary)',
+          animation: 'psProgress 1.8s ease-in-out infinite alternate',
+        }} />
+      </div>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes psProgress { from { margin-left: 0 } to { margin-left: 60% } }
+      `}</style>
+      <button style={btnDisabled} disabled>Rescan</button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 export default function PageSpeedPageContent() {
   const [device, setDevice] = useState("mobile")
-  const router = useRouter()
-  const { activeProject, activeProjectId, isLoading: projectLoading } = useProject()
+  const queryClient = useQueryClient()
+  const { activeProjectId, isLoading: projectLoading } = useProject()
 
-  // Use React Query for cached data fetching
-  const { data: pagespeedResponse, isLoading: loading, error } = usePageSpeedData(activeProjectId)
+  const { data: pagespeedResponse, isLoading: dataLoading } = usePageSpeedData(activeProjectId)
+  const { data: statusResponse, isLoading: statusLoading } = usePageSpeedStatus(activeProjectId, { enabled: !!activeProjectId })
+  const rescanMutation = usePageSpeedRescan(activeProjectId)
 
-  // Extract data from API response
   const pagespeedData = pagespeedResponse?.data || pagespeedResponse
+  const statusData    = statusResponse?.data
 
-  // Handle loading state
-  if (loading || projectLoading) {
-    return <PageSpeedSkeleton />
+  // ── WebSocket: listen for real-time pagespeed events ──────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeProjectId) return
+    const socket = window.__socket
+    if (!socket) return
+
+    const onCompleted = () => {
+      queryClient.invalidateQueries({ queryKey: ['pagespeed', activeProjectId] })
+      queryClient.invalidateQueries({ queryKey: ['pagespeed', activeProjectId, 'status'] })
+      queryClient.refetchQueries({ queryKey: ['pagespeed', activeProjectId] })
+    }
+    const onFailed = () => {
+      queryClient.invalidateQueries({ queryKey: ['pagespeed', activeProjectId, 'status'] })
+    }
+
+    socket.on('pagespeed:completed', onCompleted)
+    socket.on('pagespeed:failed',    onFailed)
+    return () => {
+      socket.off('pagespeed:completed', onCompleted)
+      socket.off('pagespeed:failed',    onFailed)
+    }
+  }, [activeProjectId, queryClient])
+
+  // ── Derive UI state ────────────────────────────────────────────────────────
+  const loading       = dataLoading || projectLoading || statusLoading
+  const isRunning     = statusData?.is_running === true || statusData?.scan_status === 'running'
+  const hasFailed     = !isRunning && statusData?.scan_status === 'failed'
+  const hasData       = !!(pagespeedData?.mobile || pagespeedData?.desktop)
+  const isRescanning  = rescanMutation.isPending
+
+  const handleRescan = () => {
+    if (isRescanning || isRunning) return
+    rescanMutation.mutate()
   }
 
-  // Handle error state
-  if (error) {
-    return (
-      <div className="error-container" style={{ textAlign: 'center', padding: '40px' }}>
-        <div className="error-icon">❌</div>
-        <div style={{ color: 'var(--red)', marginBottom: '16px' }}>{error.message || 'Failed to fetch PageSpeed data'}</div>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    )
+  // ── Guards ─────────────────────────────────────────────────────────────────
+  if (!activeProjectId) return null
+  if (loading) return <PageSpeedSkeleton />
+
+  // State 3 — Running (show over stale data so user sees progress)
+  if (isRunning) return <RunningState />
+
+  // State 2 — Failed AND no previous data to display
+  if (hasFailed && !hasData) {
+    return <FailedState statusData={statusData} onRescan={handleRescan} isRescanning={isRescanning} />
   }
 
-  // Handle no project state with redirect to project selection
-  if (!activeProjectId) {
-    return null // Let parent component handle no project state
+  // State 1 — No data at all
+  if (!hasData) {
+    return <NoDataState onRescan={handleRescan} isRescanning={isRescanning} />
   }
 
-  // Handle no data state
-  if (!pagespeedData || (!pagespeedData.mobile && !pagespeedData.desktop)) {
-    return (
-      <div className="no-data-container" style={{ textAlign: 'center', padding: '40px' }}>
-        <div className="no-data-icon">📊</div>
-        <div style={{ marginBottom: '16px' }}>No PageSpeed data available</div>
-        <div style={{ color: 'var(--text3)', marginBottom: '24px' }}>
-          {pagespeedData?.message || 'Run a PageSpeed audit to see performance metrics.'}
-        </div>
-        <button 
-          onClick={() => router.push('/dashboard')} 
-          style={{ 
-            padding: '8px 16px', 
-            backgroundColor: 'var(--primary)', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px', 
-            cursor: 'pointer' 
-          }}
-        >
-          Back to Dashboard
-        </button>
-      </div>
-    )
-  }
-
-  // Get current device data
+  // ── State 4 — Completed (show data) ───────────────────────────────────────
   const currentDeviceData = pagespeedData[device]
   if (!currentDeviceData) {
     return (
-      <div className="no-device-data" style={{ textAlign: 'center', padding: '40px' }}>
-        <div>No {device} data available</div>
+      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>
+        No {device} data available
       </div>
     )
   }
 
-  const score = Math.round(currentDeviceData.performance_score || 0)
+  const score       = Math.round(currentDeviceData.performance_score || 0)
   const scoreColors = getScoreColor(score)
 
-  // Helper function to format metric values
   const formatMetricValue = (label, rawValue, displayValue) => {
     if (displayValue && displayValue !== 'N/A') {
-      // Clean up displayValue to remove floating point artifacts
       return displayValue.replace(/\.0+s$/, 's').replace(/(\.\d+?)0+s$/, '$1s')
     }
-    
     if (rawValue === null || rawValue === undefined) return 'N/A'
-    
-    // Format based on metric type
     switch (label) {
-      case 'LCP':
-      case 'FCP':
-      case 'Speed Index':
+      case 'LCP': case 'FCP': case 'Speed Index':
         return `${Math.round(rawValue * 10) / 10}s`
       case 'CLS':
         return Math.round(rawValue * 1000) / 1000
@@ -235,128 +346,70 @@ export default function PageSpeedPageContent() {
     }
   }
 
-  // Prepare metrics with proper status logic
   const metrics = [
-    { 
-      label: "LCP", 
-      value: formatMetricValue("LCP", currentDeviceData.lcp?.value, currentDeviceData.lcp?.display_value), 
-      status: getMetricStatus('lcp', currentDeviceData.lcp?.value, currentDeviceData.lcp?.unit),
-      rawValue: currentDeviceData.lcp?.value
-    },
-    { 
-      label: "CLS", 
-      value: formatMetricValue("CLS", currentDeviceData.cls?.value, currentDeviceData.cls?.display_value), 
-      status: getMetricStatus('cls', currentDeviceData.cls?.value, currentDeviceData.cls?.unit),
-      rawValue: currentDeviceData.cls?.value
-    },
-    { 
-      label: "FCP", 
-      value: formatMetricValue("FCP", currentDeviceData.fcp?.value, currentDeviceData.fcp?.display_value), 
-      status: getMetricStatus('fcp', currentDeviceData.fcp?.value, currentDeviceData.fcp?.unit),
-      rawValue: currentDeviceData.fcp?.value
-    },
-    { 
-      label: "TBT", 
-      value: formatMetricValue("TBT", currentDeviceData.tbt?.value, currentDeviceData.tbt?.display_value), 
-      status: getMetricStatus('tbt', currentDeviceData.tbt?.value, currentDeviceData.tbt?.unit),
-      rawValue: currentDeviceData.tbt?.value
-    },
-    { 
-      label: "Speed Index", 
-      value: formatMetricValue("Speed Index", currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.display_value), 
-      status: getMetricStatus('speed_index', currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.unit),
-      rawValue: currentDeviceData.speed_index?.value
-    },
-    { 
-      label: "TTFB", 
-      value: formatMetricValue("TTFB", currentDeviceData.ttfb?.value, currentDeviceData.ttfb?.display_value), 
-      status: getMetricStatus('ttfb', currentDeviceData.ttfb?.value, currentDeviceData.ttfb?.unit),
-      rawValue: currentDeviceData.ttfb?.value
-    },
+    { label: "LCP",         value: formatMetricValue("LCP",         currentDeviceData.lcp?.value,         currentDeviceData.lcp?.display_value),         status: getMetricStatus('lcp',         currentDeviceData.lcp?.value,         currentDeviceData.lcp?.unit),         rawValue: currentDeviceData.lcp?.value },
+    { label: "CLS",         value: formatMetricValue("CLS",         currentDeviceData.cls?.value,         currentDeviceData.cls?.display_value),         status: getMetricStatus('cls',         currentDeviceData.cls?.value,         currentDeviceData.cls?.unit),         rawValue: currentDeviceData.cls?.value },
+    { label: "FCP",         value: formatMetricValue("FCP",         currentDeviceData.fcp?.value,         currentDeviceData.fcp?.display_value),         status: getMetricStatus('fcp',         currentDeviceData.fcp?.value,         currentDeviceData.fcp?.unit),         rawValue: currentDeviceData.fcp?.value },
+    { label: "TBT",         value: formatMetricValue("TBT",         currentDeviceData.tbt?.value,         currentDeviceData.tbt?.display_value),         status: getMetricStatus('tbt',         currentDeviceData.tbt?.value,         currentDeviceData.tbt?.unit),         rawValue: currentDeviceData.tbt?.value },
+    { label: "Speed Index", value: formatMetricValue("Speed Index", currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.display_value), status: getMetricStatus('speed_index', currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.unit), rawValue: currentDeviceData.speed_index?.value },
+    { label: "TTFB",        value: formatMetricValue("TTFB",        currentDeviceData.ttfb?.value,        currentDeviceData.ttfb?.display_value),        status: getMetricStatus('ttfb',        currentDeviceData.ttfb?.value,        currentDeviceData.ttfb?.unit),        rawValue: currentDeviceData.ttfb?.value },
   ]
 
-  // Filter out missing metrics - but keep TTFB as placeholder
-  const availableMetrics = metrics.filter(metric => {
-    if (metric.label === 'TTFB') {
-      // Always show TTFB, even if missing
-      return true;
-    }
-    return metric.status !== 'missing';
-  })
-
-  // Generate traffic impact message
+  const availableMetrics = metrics.filter(m => m.label === 'TTFB' || m.status !== 'missing')
   const trafficImpactMessage = getTrafficImpactMessage(currentDeviceData.lcp?.value, device)
 
-  // Extract passed audits from diagnostics (diagnostics with score >= 0.9)
   const getPassedAudits = () => {
-    const passedAudits = [];
-    
-    // Check diagnostics for passed audits
-    if (currentDeviceData.diagnostics && Array.isArray(currentDeviceData.diagnostics)) {
-      currentDeviceData.diagnostics.forEach(diagnostic => {
-        if (diagnostic.score >= 0.9) {
-          passedAudits.push(diagnostic.title);
-        }
-      });
+    const passed = []
+    currentDeviceData.diagnostics?.forEach(d => { if (d.score >= 0.9) passed.push(d.title) })
+    currentDeviceData.opportunities?.forEach(o => { if (o.score >= 0.9) passed.push(o.title) })
+    if (passed.length === 0) {
+      if (currentDeviceData.performance_score >= 90) passed.push("Performance optimized")
+      if (currentDeviceData.accessibility >= 90)     passed.push("Accessibility compliant")
+      if (currentDeviceData.best_practices >= 90)    passed.push("Best practices followed")
+      if (currentDeviceData.seo >= 90)               passed.push("SEO optimized")
+      if (passed.length === 0) passed.push("Valid HTML structure", "No critical errors found", "Basic optimizations applied")
     }
-    
-    // Check opportunities for passed audits (opportunities with score >= 0.9)
-    if (currentDeviceData.opportunities && Array.isArray(currentDeviceData.opportunities)) {
-      currentDeviceData.opportunities.forEach(opportunity => {
-        if (opportunity.score >= 0.9) {
-          passedAudits.push(opportunity.title);
-        }
-      });
-    }
-    
-    // If no passed audits found, add some common ones based on good metrics
-    if (passedAudits.length === 0) {
-      if (currentDeviceData.performance_score >= 90) {
-        passedAudits.push("Performance optimized");
-      }
-      if (currentDeviceData.accessibility >= 90) {
-        passedAudits.push("Accessibility compliant");
-      }
-      if (currentDeviceData.best_practices >= 90) {
-        passedAudits.push("Best practices followed");
-      }
-      if (currentDeviceData.seo >= 90) {
-        passedAudits.push("SEO optimized");
-      }
-      
-      // Add some basic passed audits if still empty
-      if (passedAudits.length === 0) {
-        passedAudits.push(
-          "Valid HTML structure",
-          "No critical errors found",
-          "Basic optimizations applied"
-        );
-      }
-    }
-    
-    return passedAudits;
+    return passed
   }
+
+  // Partial-success warning banner (one device failed but we still have data)
+  const isPartial = statusData?.scan_status === 'partial_success'
 
   return (
     <div>
+      {/* Header row with device tabs + rescan button */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div className="section-head" style={{ margin: 0 }}>
           <div className="section-title">PageSpeed Insights</div>
           <div className="section-tag">CORE WEB VITALS</div>
         </div>
-        <DeviceTabs active={device} onChange={setDevice} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <DeviceTabs active={device} onChange={setDevice} />
+          <RescanButton onClick={handleRescan} disabled={isRescanning || isRunning} />
+        </div>
       </div>
+
+      {/* Partial-success warning */}
+      {isPartial && (
+        <div style={{
+          background: 'rgba(255,187,51,.08)', border: '1px solid rgba(255,187,51,.25)',
+          borderRadius: 8, padding: '10px 16px', marginBottom: 20,
+          fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          ⚠️ Partial results — {statusData.mobile_status === 'failed' ? 'mobile' : 'desktop'} scan failed.
+          {statusData.mobile_error || statusData.desktop_error
+            ? ` (${statusData.mobile_error || statusData.desktop_error})`
+            : ''
+          }
+        </div>
+      )}
+
       <div className="two-col">
         <div>
           <div className="score-card" style={{ marginBottom: 16, "--grad": scoreColors.status === 'good' ? "linear-gradient(90deg,#10ffa0,#00e5ff)" : scoreColors.status === 'needs_improvement' ? "linear-gradient(90deg,#ffbb33,#ff8c1a)" : "linear-gradient(90deg,#ff4560,#ff1744)" }}>
             <div className="score-label">Performance Score</div>
             <div style={{ position: "relative", width: 120, height: 120 }}>
-              <PerformanceRing
-                score={score}
-                color={scoreColors.color}
-                color2={scoreColors.color2}
-                label={device}
-              />
+              <PerformanceRing score={score} color={scoreColors.color} color2={scoreColors.color2} label={device} />
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: scoreColors.status === 'good' ? "var(--green)" : scoreColors.status === 'needs_improvement' ? "var(--orange)" : "var(--red)" }}>{score}</div>
               </div>
@@ -389,114 +442,74 @@ export default function PageSpeedPageContent() {
         </div>
       </div>
 
-      {/* Core Web Vitals Metric Cards — hidden
-      <div className="section-head" style={{ marginTop: 32 }}>
-        <div className="section-title">Core Web Vitals</div>
-        <div className="section-tag">LIVE DATA</div>
-      </div>
-      <div className="metric-grid">
-        {availableMetrics.map((metric, i) => {
-          const statusClass = metric.status === 'good' ? 'pass' : metric.status === 'needs_improvement' ? 'warn' : 'fail';
-          const color = metric.status === 'good' ? 'var(--green)' : metric.status === 'needs_improvement' ? 'var(--amber)' : 'var(--red)';
-          const thresholdKey = metric.label.toLowerCase() === 'speed index' ? 'speed_index' : metric.label.toLowerCase();
-          const threshold = CWV_THRESHOLDS[thresholdKey];
-          let progressPercent = 0;
-          if (threshold && metric.rawValue) {
-            progressPercent = Math.min((metric.rawValue / threshold.poor) * 100, 100);
-          }
-          return (
-            <div key={i} className={`metric-card ${statusClass}`}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", color: "var(--text3)", textTransform: "uppercase" }}>{metric.label}</div>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}80` }}></div>
-              </div>
-              <div className="metric-val" style={{ color }}>{metric.value}</div>
-              <div className="metric-name">{metric.label === 'LCP' ? 'Largest Contentful Paint' : metric.label === 'CLS' ? 'Cumulative Layout Shift' : metric.label === 'FCP' ? 'First Contentful Paint' : metric.label === 'TBT' ? 'Total Blocking Time' : metric.label === 'Speed Index' ? 'Speed Index' : metric.label === 'TTFB' ? 'Time to First Byte' : 'Time to Interactive'}</div>
-              <div className="prog-bar" style={{ marginBottom: 4 }}>
-                <div className="prog-fill" style={{ width: `${progressPercent}%`, background: color }}></div>
-              </div>
-              <div style={{ fontSize: 10, color: "var(--text3)" }}>
-                Good ≤ {threshold ? (metric.label === 'CLS' ? threshold.good : threshold.good >= 1000 ? `${threshold.good/1000}s` : `${threshold.good}ms`) : 'N/A'}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      */}
-
       {/* Lighthouse Scores */}
       <div className="section-head" style={{ marginTop: 32 }}>
         <div className="section-title">Lighthouse Scores</div>
       </div>
       <div className="cat-grid">
         {[
-          { key: 'performance', icon: '⚡', label: 'Performance', value: Math.round(currentDeviceData.performance || currentDeviceData.performance_score || 0) },
-          { key: 'accessibility', icon: '♿', label: 'Accessibility', value: Math.round(currentDeviceData.accessibility || 0) },
-          { key: 'best_practices', icon: '✅', label: 'Best Practices', value: Math.round(currentDeviceData.best_practices || 0) },
-          { key: 'seo', icon: '🔍', label: 'SEO', value: Math.round(currentDeviceData.seo || 0) }
+          { key: 'performance',   icon: '⚡', label: 'Performance',   value: Math.round(currentDeviceData.performance  || currentDeviceData.performance_score || 0) },
+          { key: 'accessibility', icon: '♿', label: 'Accessibility',  value: Math.round(currentDeviceData.accessibility || 0) },
+          { key: 'best_practices',icon: '✅', label: 'Best Practices', value: Math.round(currentDeviceData.best_practices || 0) },
+          { key: 'seo',           icon: '🔍', label: 'SEO',            value: Math.round(currentDeviceData.seo || 0) },
         ].map(cat => {
-          const score = cat.value;
-          const color = score >= 90 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : 'var(--red)';
-          
+          const s = cat.value
+          const color = s >= 90 ? 'var(--green)' : s >= 50 ? 'var(--amber)' : 'var(--red)'
           return (
             <div key={cat.key} className="cat-card">
               <div style={{ width: 38, height: 38, borderRadius: 10, display: "grid", placeItems: "center", fontSize: 18, background: `${color}14`, flexShrink: 0 }}>{cat.icon}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{cat.label}</div>
-                <div className="prog-bar">
-                  <div className="prog-fill" style={{ width: `${score}%`, background: color }}></div>
-                </div>
+                <div className="prog-bar"><div className="prog-fill" style={{ width: `${s}%`, background: color }} /></div>
               </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color }}>{score}</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color }}>{s}</div>
             </div>
-          );
+          )
         })}
       </div>
 
       {/* Opportunities */}
-      {currentDeviceData.opportunities && currentDeviceData.opportunities.length > 0 && (
+      {currentDeviceData.opportunities?.length > 0 && (
         <>
           <div className="section-head" style={{ marginTop: 32 }}>
             <div className="section-title">Opportunities</div>
             <div className="section-tag">{currentDeviceData.opportunities.length} ITEMS</div>
           </div>
           {currentDeviceData.opportunities.map((opp, i) => {
-            const statusClass = opp.score < 0.5 ? 'fail' : opp.score < 0.9 ? 'warn' : 'pass';
-            
+            const sc = opp.score < 0.5 ? 'fail' : opp.score < 0.9 ? 'warn' : 'pass'
             return (
-              <div key={i} className={`opp-row ${statusClass}`}>
-                <div className={`opp-icon ${statusClass}`}>{opp.icon || '⚡'}</div>
+              <div key={i} className={`opp-row ${sc}`}>
+                <div className={`opp-icon ${sc}`}>{opp.icon || '⚡'}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="opp-title">{opp.title}</div>
-                  <div className="opp-desc">{opp.description ? opp.description.slice(0, 110) : ''}</div>
+                  <div className="opp-desc">{opp.description?.slice(0, 110)}</div>
                 </div>
-                {opp.saved && opp.saved !== "—" && <span className={`badge ${statusClass}`} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>Save {opp.saved}</span>}
+                {opp.saved && opp.saved !== "—" && <span className={`badge ${sc}`} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>Save {opp.saved}</span>}
               </div>
-            );
+            )
           })}
         </>
       )}
 
       {/* Diagnostics */}
-      {currentDeviceData.diagnostics && currentDeviceData.diagnostics.length > 0 && (
+      {currentDeviceData.diagnostics?.length > 0 && (
         <>
           <div className="section-head" style={{ marginTop: 20 }}>
             <div className="section-title">Diagnostics</div>
             <div className="section-tag">{currentDeviceData.diagnostics.length} ITEMS</div>
           </div>
           {currentDeviceData.diagnostics.map((diag, i) => {
-            const statusClass = diag.score < 0.5 ? 'fail' : diag.score < 0.9 ? 'warn' : 'pass';
-            
+            const sc = diag.score < 0.5 ? 'fail' : diag.score < 0.9 ? 'warn' : 'pass'
             return (
-              <div key={i} className={`opp-row ${statusClass}`}>
-                <div className={`opp-icon ${statusClass}`}>{diag.icon || '⚙'}</div>
+              <div key={i} className={`opp-row ${sc}`}>
+                <div className={`opp-icon ${sc}`}>{diag.icon || '⚙'}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="opp-title">{diag.title}</div>
-                  <div className="opp-desc">{diag.description ? diag.description.slice(0, 110) : ''}</div>
+                  <div className="opp-desc">{diag.description?.slice(0, 110)}</div>
                 </div>
-                <span className={`badge ${statusClass}`}>{statusClass === 'fail' ? '● Fail' : statusClass === 'warn' ? '◆ Warn' : '✔ Pass'}</span>
+                <span className={`badge ${sc}`}>{sc === 'fail' ? '● Fail' : sc === 'warn' ? '◆ Warn' : '✔ Pass'}</span>
               </div>
-            );
+            )
           })}
         </>
       )}

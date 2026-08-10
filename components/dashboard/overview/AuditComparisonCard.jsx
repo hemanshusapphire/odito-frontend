@@ -8,7 +8,10 @@ import { AuditComparisonSkeleton } from "@/components/skeletons/dashboard/AuditC
 
 // ── Metric tile ───────────────────────────────────────────────────────────────
 
-function MetricTile({ label, delta, suffix, isLowerBetter = false, noDataLabel = "—" }) {
+// Exported for reuse by other before/after/change panels (e.g. F4-002's
+// per-page Verification Result panel) — same tile, same DeltaBadge, no
+// second implementation of this rendering.
+export function MetricTile({ label, delta, suffix, isLowerBetter = false, noDataLabel = "—" }) {
   const hasData = delta?.previous != null && delta?.current != null;
 
   const currColor =

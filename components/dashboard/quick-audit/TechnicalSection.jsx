@@ -1,4 +1,5 @@
 import React from "react";
+import { getSeverityDashboardBadge } from "../../../lib/homepageAudit/constants";
 
 export default function TechnicalSection({ data }) {
   if (!data) return null;
@@ -13,19 +14,9 @@ export default function TechnicalSection({ data }) {
     return check ? check.status : 'fail';
   };
 
-  // Helper to get status badge color and text based on backend severity
-  const getStatusInfo = (severity) => {
-    switch (severity) {
-      case 'high':
-        return { color: 'red', text: 'Critical' };
-      case 'medium':
-        return { color: 'yellow', text: 'Warning' };
-      case 'low':
-        return { color: 'green', text: 'Optimized' };
-      default:
-        return { color: 'yellow', text: 'Warning' };
-    }
-  };
+  // Helper to get status badge color and text based on backend severity —
+  // sourced from the shared severityMap.
+  const getStatusInfo = (severity) => getSeverityDashboardBadge(severity);
 
   // Get real issues description based on backend data
   const getRealIssues = (name, status) => {

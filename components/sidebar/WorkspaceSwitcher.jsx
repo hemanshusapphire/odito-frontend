@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import { ChevronsUpDown, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/contexts/ProjectContext"
+import { useProjectBrandAsset } from "@/hooks/useDashboardQueries"
+import BrandAvatar from "@/components/ui/BrandAvatar"
 import {
   Popover,
   PopoverContent,
@@ -30,10 +32,61 @@ function getProjectSubtitle(project) {
   }
 }
 
+/**
+ * Single dropdown row - its own component so useProjectBrandAsset (per-
+ * project) can be called per-row without violating the rules of hooks (a
+ * loop/`.map()` callback can't call hooks directly). `enabled` gates the
+ * fetch to only run while the popover is actually open, so closed-sidebar
+ * page loads never fetch a logo for every project in the list - only the
+ * active project's logo (fetched once, in the parent) is always live.
+ */
+function ProjectSwitcherRow({ project, isSelected, isOpen, onSelect }) {
+  const name = getProjectLabel(project)
+  const subtitle = getProjectSubtitle(project)
+  const brandAssetQuery = useProjectBrandAsset(project._id, { enabled: isOpen })
+  const brandAsset = brandAssetQuery.data?.data
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(project)}
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
+        "outline-none hover:bg-[color-mix(in_srgb,var(--sidebar-foreground)_6%,transparent)]",
+        "focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
+        isSelected &&
+        "bg-[color-mix(in_srgb,var(--sidebar-foreground)_8%,transparent)]"
+      )}
+    >
+      <BrandAvatar
+        brandAsset={brandAsset}
+        name={name}
+        size={28}
+        rounded="rounded-md"
+        className="border border-[color-mix(in_srgb,var(--sidebar-foreground)_12%,transparent)] text-[11px]"
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0">
+        <span className="truncate text-[12px] font-semibold leading-snug text-sidebar-foreground">
+          {name}
+        </span>
+        <span className="truncate text-[10px] leading-snug text-sidebar-muted">
+          {subtitle}
+        </span>
+      </div>
+    </button>
+  )
+}
+
 export function WorkspaceSwitcher({ isCollapsed = false }) {
   const { activeProject, projects, setActiveProject } = useProject()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+
+  // Always live (not gated by `open`) - the trigger button showing the
+  // active project's logo is visible on every page, popover open or not.
+  const activeBrandAssetQuery = useProjectBrandAsset(activeProject?._id, { enabled: !!activeProject?._id })
+  const activeBrandAsset = activeBrandAssetQuery.data?.data
 
   const filteredProjects = useMemo(() => {
     const term = query.trim().toLowerCase()
@@ -50,7 +103,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }) {
   const projectName = getProjectLabel(activeProject)
   const displayName =
     projectName.length > 24 ? `${projectName.slice(0, 22)}…` : projectName
-  const initial = projectName.charAt(0).toUpperCase()
+  const activeSubtitle = getProjectSubtitle(activeProject)
 
   const handleSelect = (project) => {
     setActiveProject(project)
@@ -73,27 +126,29 @@ export function WorkspaceSwitcher({ isCollapsed = false }) {
           "data-[state=open]:border-[color-mix(in_srgb,var(--sidebar-ring)_55%,transparent)]",
           "data-[state=open]:bg-[color-mix(in_srgb,var(--sidebar-foreground)_7%,var(--sidebar))]",
           "data-[state=open]:shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
-          isCollapsed ? "justify-center p-2" : "h-10 px-2.5 py-0"
+          isCollapsed ? "justify-center p-2" : "h-12 px-2.5 py-0"
         )}
         aria-label="Switch project"
         aria-expanded={open}
       >
-        <div
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-[8px] border font-semibold",
-            "border-[color-mix(in_srgb,var(--sidebar-foreground)_12%,transparent)]",
-            "bg-[color-mix(in_srgb,var(--sidebar-foreground)_8%,transparent)] text-sidebar-foreground",
-            isCollapsed ? "h-8 w-8 text-sm" : "h-7 w-7 text-xs"
-          )}
-        >
-          {initial}
-        </div>
+        <BrandAvatar
+          brandAsset={activeBrandAsset}
+          name={projectName}
+          size={isCollapsed ? 32 : 28}
+          rounded="rounded-[8px]"
+          className="border border-[color-mix(in_srgb,var(--sidebar-foreground)_12%,transparent)] text-xs"
+        />
 
         {!isCollapsed && (
           <>
-            <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-none text-sidebar-foreground">
-              {displayName}
-            </span>
+            <div className="min-w-0 flex-1 flex flex-col gap-0">
+              <span className="truncate text-[13px] font-semibold leading-tight text-sidebar-foreground">
+                {displayName}
+              </span>
+              <span className="truncate text-[10.5px] leading-tight text-sidebar-muted">
+                {activeSubtitle}
+              </span>
+            </div>
             <ChevronsUpDown
               className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-colors group-hover/ws:text-sidebar-foreground/80 group-data-[state=open]/ws:text-sidebar-foreground"
               strokeWidth={2}
@@ -168,45 +223,15 @@ export function WorkspaceSwitcher({ isCollapsed = false }) {
                 No projects found
               </div>
             )}
-            {filteredProjects.map((project) => {
-              const name = getProjectLabel(project)
-              const subtitle = getProjectSubtitle(project)
-              const isSelected = activeProject?._id === project._id
-
-              return (
-                <button
-                  key={project._id}
-                  type="button"
-                  onClick={() => handleSelect(project)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
-                    "outline-none hover:bg-[color-mix(in_srgb,var(--sidebar-foreground)_6%,transparent)]",
-                    "focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
-                    isSelected &&
-                    "bg-[color-mix(in_srgb,var(--sidebar-foreground)_8%,transparent)]"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold",
-                      "border-[color-mix(in_srgb,var(--sidebar-foreground)_12%,transparent)]",
-                      "bg-[color-mix(in_srgb,var(--sidebar-foreground)_8%,transparent)] text-sidebar-foreground"
-                    )}
-                  >
-                    {name.charAt(0).toUpperCase()}
-                  </div>
-
-                  <div className="flex min-w-0 flex-1 flex-col gap-0">
-                    <span className="truncate text-[12px] font-semibold leading-snug text-sidebar-foreground">
-                      {name}
-                    </span>
-                    <span className="truncate text-[10px] leading-snug text-sidebar-muted">
-                      {subtitle}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
+            {filteredProjects.map((project) => (
+              <ProjectSwitcherRow
+                key={project._id}
+                project={project}
+                isSelected={activeProject?._id === project._id}
+                isOpen={open}
+                onSelect={handleSelect}
+              />
+            ))}
           </div>
         </PopoverContent>
       </Popover>

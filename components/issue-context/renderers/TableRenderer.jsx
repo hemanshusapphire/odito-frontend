@@ -79,7 +79,18 @@ export default function TableRenderer({ currentState }) {
 
         {/* Rows — max 20 displayed */}
         {rows.slice(0, 20).map((row, i) => {
-          const rowValues = keys.map(col => row[col] ?? row[col.toLowerCase()] ?? '—')
+          const rowValues = keys.map(col => {
+            if (row[col] !== undefined && row[col] !== null) return row[col]
+            const lower = col.toLowerCase()
+            if (row[lower] !== undefined && row[lower] !== null) return row[lower]
+            // camelCase: "Page URL" → "pageUrl", "Match Status" → "matchStatus"
+            const camel = lower.replace(/\s+(.)/g, (_, c) => c.toUpperCase())
+            if (row[camel] !== undefined && row[camel] !== null) return row[camel]
+            // snake_case: "Page URL" → "page_url"
+            const snake = lower.replace(/\s+/g, '_')
+            if (row[snake] !== undefined && row[snake] !== null) return row[snake]
+            return '—'
+          })
           return (
             <div
               key={i}

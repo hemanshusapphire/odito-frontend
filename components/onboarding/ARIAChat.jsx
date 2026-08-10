@@ -4,7 +4,33 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import apiService from '@/lib/apiService';
 import BusinessResultsList from '@/components/business/BusinessResultsList.jsx';
+import ButtonGroup from './ButtonGroup';
+import KeywordRecommendationCard from './KeywordRecommendationCard';
 import { renderInlineMarkdown } from '@/lib/security/sanitize';
+import { useSubscription } from '@/hooks/useDashboardQueries';
+import { ONBOARDING_UPGRADE_PENDING_KEY, ONBOARDING_UPGRADE_RESUME_KEY } from '@/lib/onboardingResume';
+
+// Phase 15.5 (updated Phase 3 of the Upgrade unification) — the Upgrade
+// Plan CTA below now navigates to the Choose Plan page instead of calling
+// checkout directly, so ONBOARDING_UPGRADE_PENDING_KEY carries the resume
+// payload across that navigation; the Choose Plan page hands it off into
+// ONBOARDING_UPGRADE_RESUME_KEY (this file's original mechanism, unchanged)
+// at the exact moment it actually redirects to Stripe or completes a plan
+// change. See lib/onboardingResume.js for the full handoff explanation.
+// ONBOARDING_UPGRADE_RESUME_KEY itself is still read/cleared once on mount
+// below — never written anywhere in this file anymore.
+
+// Every backend error `code` that means "this project can't be created for
+// a billing/subscription-lifecycle reason, not a real failure" — all of
+// them route into the exact same Upgrade CTA (see the catch block in
+// startProjectAndRankingFlow). This is deliberately only the two codes
+// that actually exist in the backend today (grepped, not assumed):
+// INSUFFICIENT_CREDITS (creditService.js's deductCredits) and
+// SUBSCRIPTION_NOT_ACTIVE (subscriptionLifecycle.js's canConsumeQuota,
+// returned for every non-'active' status alike — inactive, past_due,
+// paused, canceled all collapse to this one code; there is no
+// per-status code to add here, and none is invented).
+const BILLING_LIFECYCLE_ERROR_CODES = new Set(['INSUFFICIENT_CREDITS', 'SUBSCRIPTION_NOT_ACTIVE']);
 
 const ARIAChat = ({ onComplete }) => {
   // ── Flow states ──────────────────────────────────────────────────────
@@ -30,6 +56,7 @@ const ARIAChat = ({ onComplete }) => {
     ASK_SUB_TYPE: 'ASK_SUB_TYPE',
     ASK_TARGET_LEVEL: 'ASK_TARGET_LEVEL',
     ASK_TARGET_COUNTRY: 'ASK_TARGET_COUNTRY',
+    ASK_LOCAL_CITY: 'ASK_LOCAL_CITY',
     GENERATING_KEYWORDS: 'GENERATING_KEYWORDS',
     CONFIRM_KEYWORDS: 'CONFIRM_KEYWORDS',
     ASK_CUSTOM_KEYWORDS: 'ASK_CUSTOM_KEYWORDS',
@@ -39,6 +66,16 @@ const ARIAChat = ({ onComplete }) => {
     CHECKING_RANKINGS: 'CHECKING_RANKINGS',
     SAVING_RANKINGS: 'SAVING_RANKINGS',
     SHOW_RANKING_RESULTS: 'SHOW_RANKING_RESULTS',
+
+    // Phase 15.5: zero-credit upgrade CTA, entered instead of attempting
+    // project creation when the user has no credits remaining.
+    NEEDS_UPGRADE: 'NEEDS_UPGRADE',
+    // Resume-sync fix: the subscription is confirmed active with credits
+    // available (via a fresh refetchSubscription() check), but the user
+    // hasn't confirmed they're ready to continue yet — see the
+    // subscriptionData-watching effect below for why this is a distinct
+    // state from silently auto-continuing straight into CREATING_PROJECT.
+    SUBSCRIPTION_ACTIVATED: 'SUBSCRIPTION_ACTIVATED',
   };
 
   // ── Country options for National SEO targeting ──────────────────────
@@ -75,9 +112,7 @@ const ARIAChat = ({ onComplete }) => {
     { label: 'Service-based', icon: '🛠️' },
     { label: 'Product-based', icon: '📦' },
     { label: 'E-commerce', icon: '🛒' },
-    { label: 'Local Business', icon: '📍' },
     { label: 'Agency', icon: '🏢' },
-    { label: 'SaaS / Tech', icon: '💻' },
   ];
 
   // ── State ────────────────────────────────────────────────────────────
@@ -92,6 +127,7 @@ const ARIAChat = ({ onComplete }) => {
   const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const [isCheckingRankings, setIsCheckingRankings] = useState(false);
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
+  const [isResolvingCity, setIsResolvingCity] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [projectData, setProjectData] = useState({
     businessName: '',
@@ -112,11 +148,129 @@ const ARIAChat = ({ onComplete }) => {
     language: 'en',
     // Website Manual Fallback fields
     onboardingMode: 'google_places',
-    extractedMetadata: null
+    extractedMetadata: null,
+    resolvedCity: null
   });
 
   const chatEndRef = useRef(null);
   const router = useRouter();
+
+  // ── Phase 15.5: zero-credit Upgrade CTA ──────────────────────────────
+  // Reuses the exact same hook Settings → Subscription already uses — no
+  // second subscription query. The checkout/plan mutation itself now lives
+  // on the Choose Plan page (Phase 3 of the Upgrade unification) — this
+  // component only navigates there and, on return, reacts to fresh
+  // subscription data exactly as before.
+  const { data: subscriptionData, refetch: refetchSubscription } = useSubscription();
+  // Where to return via the "Back" button — whatever flowState was active
+  // right before a credit check redirected into NEEDS_UPGRADE.
+  const previousFlowStateRef = useRef(FLOW_STATES.ASK_BUSINESS_NAME);
+  // The exact {overrideKeywords, projectData} for the attempt that was
+  // blocked by a zero-credit result — read by handleUpgradeClick() when
+  // persisting resume state right before navigating to the Choose Plan page.
+  const pendingAttemptRef = useRef(null);
+  // Synchronous double-click guard for the Upgrade Plan button — a fast
+  // double-click can fire the navigation twice before React re-renders a
+  // disabled attribute.
+  const upgradeInFlightRef = useRef(false);
+  // Reactive echo of upgradeInFlightRef, for the button's visual disabled/
+  // loading state only — the ref above is the actual guarantee.
+  const [isNavigatingToPlans, setIsNavigatingToPlans] = useState(false);
+  // Same guard, for the Proceed button (SUBSCRIPTION_ACTIVATED state) —
+  // prevents a fast double-click from calling startProjectAndRankingFlow()
+  // twice and creating two projects.
+  const proceedInFlightRef = useRef(false);
+  // Set once, on mount, if we're returning from a Stripe Checkout redirect
+  // that started from this zero-credit CTA — triggers the auto-resume
+  // effect below once projectData has been restored.
+  const [autoResumeAttempt, setAutoResumeAttempt] = useState(null);
+
+  // Restore state persisted right before an Upgrade-triggered redirect to
+  // Stripe Checkout. Runs once, on mount. A normal onboarding session (one
+  // that never hit the zero-credit CTA) finds nothing here — a no-op.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = sessionStorage.getItem(ONBOARDING_UPGRADE_RESUME_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(ONBOARDING_UPGRADE_RESUME_KEY);
+    try {
+      const parsed = JSON.parse(raw);
+      setProjectData(prev => ({ ...prev, ...parsed.projectData }));
+      previousFlowStateRef.current = parsed.previousFlowState || FLOW_STATES.ASK_BUSINESS_NAME;
+      setMessages(m => [...m, { type: 'ai', text: 'Welcome back! Checking your account...' }]);
+      // Carries the ORIGINAL {overrideKeywords, projectData} explicitly —
+      // the effect below passes these straight through to
+      // startProjectAndRankingFlow() rather than relying on `projectData`
+      // React state having already re-rendered, which a same-tick read
+      // cannot guarantee.
+      setAutoResumeAttempt({ overrideKeywords: parsed.overrideKeywords, projectData: parsed.projectData });
+    } catch (e) {
+      console.error('Failed to restore onboarding resume state', e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fires once autoResumeAttempt is set — refetches subscription fresh
+  // (never trusts a cached value) and either shows the "you're ready"
+  // success/Proceed state or re-shows the Upgrade CTA if credits are still
+  // 0 (e.g. checkout was cancelled, or the webhook hasn't landed yet —
+  // see the subscriptionData-watching effect below for that second case).
+  // Deliberately does NOT auto-continue straight into project creation —
+  // the user confirms via the Proceed button, which is what actually
+  // calls startProjectAndRankingFlow() (the single continuation path,
+  // reused, not duplicated).
+  useEffect(() => {
+    if (!autoResumeAttempt) return;
+    const attempt = autoResumeAttempt;
+    setAutoResumeAttempt(null);
+    (async () => {
+      const fresh = await refetchSubscription();
+      const status = fresh.data?.data?.status;
+      const remaining = fresh.data?.data?.credits?.remaining ?? 0;
+      pendingAttemptRef.current = attempt;
+      if (status === 'active' && remaining > 0) {
+        setMessages(m => [...m, {
+          type: 'ai',
+          text: '✅ Subscription activated successfully!\n\nYou\'re ready to continue creating your first project.',
+          showProceedCTA: true,
+        }]);
+        setFlowState(FLOW_STATES.SUBSCRIPTION_ACTIVATED);
+      } else {
+        setMessages(m => [...m, {
+          type: 'ai',
+          text: 'You still have no project credits remaining.\n\nUpgrade to continue creating projects.',
+          showUpgradeCTA: true,
+        }]);
+        setFlowState(FLOW_STATES.NEEDS_UPGRADE);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoResumeAttempt]);
+
+  // Resume-sync fix — the state-machine invariant: it must never be true
+  // that the subscription is active with credits available while the UI
+  // still shows NEEDS_UPGRADE. The resume effect above makes one check at
+  // mount time, which can race the webhook (Stripe's redirect back can
+  // beat webhook delivery/processing). Rather than polling or timing out,
+  // this effect makes leaving NEEDS_UPGRADE a standing, reactive
+  // consequence of subscriptionData itself — it re-evaluates every time
+  // subscriptionData changes for ANY reason (the resume effect's own
+  // refetch above, or any other refetch of the same shared useSubscription()
+  // query elsewhere in the app), and self-corrects the instant fresher data
+  // says the subscription is really active. No new fetch is triggered here.
+  useEffect(() => {
+    if (flowState !== FLOW_STATES.NEEDS_UPGRADE) return;
+    const status = subscriptionData?.data?.status;
+    const remaining = subscriptionData?.data?.credits?.remaining;
+    if (status === 'active' && typeof remaining === 'number' && remaining > 0) {
+      setMessages(m => [...m, {
+        type: 'ai',
+        text: '✅ Subscription activated successfully!\n\nYou\'re ready to continue creating your first project.',
+        showProceedCTA: true,
+      }]);
+      setFlowState(FLOW_STATES.SUBSCRIPTION_ACTIVATED);
+    }
+  }, [subscriptionData, flowState]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -348,6 +502,51 @@ const ARIAChat = ({ onComplete }) => {
     setFlowState(FLOW_STATES.ASK_SUB_TYPE);
   };
 
+  // ── Priority 2: auto-resolve city from website data (website manual path) ──
+  const tryResolveLocalCity = async () => {
+    setIsResolvingCity(true);
+    // Switch away from ASK_TARGET_LEVEL immediately so its buttons disappear
+    setFlowState(FLOW_STATES.GENERATING_KEYWORDS);
+
+    try {
+      const address = projectData.location || projectData.businessLocation || null;
+      const response = await apiService.resolveWebsiteLocation({
+        address,
+        extractedMetadata: projectData.extractedMetadata,
+      });
+
+      if (response.success && response.data?.city) {
+        // Priority 2: city extracted from website metadata / address
+        const { city, country } = response.data;
+        console.log(`[LOCAL_LOCATION] Website Location Found | city=${city}`);
+        setProjectData(prev => ({
+          ...prev,
+          resolvedCity: city,
+          location: prev.location || city,
+          ...(country && !prev.country && { country }),
+        }));
+        generateKeywordsFlow(projectData.subType, address, null, null, null, city);
+      } else {
+        // Priority 3: ask the user for the city
+        console.log('[LOCAL_LOCATION] Website Location Not Found');
+        setMessages(m => [...m, {
+          type: 'ai',
+          text: "I couldn't determine your business location from your website.\n\nSince you've selected **Local SEO**, which city would you like to target?\n\n_Examples: Nashik · New York · London · Sydney_"
+        }]);
+        setFlowState(FLOW_STATES.ASK_LOCAL_CITY);
+      }
+    } catch {
+      console.log('[LOCAL_LOCATION] Website Location Not Found');
+      setMessages(m => [...m, {
+        type: 'ai',
+        text: "Which city would you like to target for Local SEO?\n\n_Examples: Nashik, New York, London, Sydney_"
+      }]);
+      setFlowState(FLOW_STATES.ASK_LOCAL_CITY);
+    } finally {
+      setIsResolvingCity(false);
+    }
+  };
+
   // ── Target level selection handler ──────────────────────────────────
   const handleTargetLevelSelect = (level) => {
     setProjectData(prev => ({ ...prev, targetLevel: level }));
@@ -357,12 +556,18 @@ const ARIAChat = ({ onComplete }) => {
     ]);
 
     if (level === 'local') {
-      // Local SEO: use business coordinates for city-level DataForSEO location code
-      const location = projectData.verifiedBusiness?.address || projectData.businessLocation || null;
-      const lat = projectData.verifiedBusiness?.location?.lat ?? null;
-      const lng = projectData.verifiedBusiness?.location?.lng ?? null;
-      setFlowState(FLOW_STATES.GENERATING_KEYWORDS);
-      generateKeywordsFlow(projectData.subType, location, lat, lng);
+      if (projectData.verifiedBusiness) {
+        // Priority 1: Google Places verified — use confirmed address and coordinates
+        console.log('[LOCAL_LOCATION] Google Places Found');
+        const location = projectData.verifiedBusiness.address || projectData.businessLocation || null;
+        const lat = projectData.verifiedBusiness.location?.lat ?? null;
+        const lng = projectData.verifiedBusiness.location?.lng ?? null;
+        setFlowState(FLOW_STATES.GENERATING_KEYWORDS);
+        generateKeywordsFlow(projectData.subType, location, lat, lng, null, projectData.verifiedBusiness.city || null);
+      } else {
+        // Website manual fallback — no verified business; try auto-resolution first
+        tryResolveLocalCity();
+      }
     } else {
       // National SEO: ask user to select target country before generating keywords
       setMessages(m => [...m, {
@@ -389,7 +594,7 @@ const ARIAChat = ({ onComplete }) => {
   };
 
   // ── Keyword generation flow ─────────────────────────────────────────
-  const generateKeywordsFlow = async (subType, location, lat = null, lng = null, countryOverride = null) => {
+  const generateKeywordsFlow = async (subType, location, lat = null, lng = null, countryOverride = null, city = null) => {
     setIsGeneratingKeywords(true);
     setMessages(m => [...m, { type: "ai", text: "🔍 Finding the best keywords for your business..." }]);
 
@@ -400,16 +605,19 @@ const ARIAChat = ({ onComplete }) => {
         countryOverride || projectData.country,
         projectData.language,
         lat,
-        lng
+        lng,
+        city
       );
 
       if (response.success && response.data?.keywords?.length > 0) {
-        const keywords = response.data.keywords;
+        // API returns [{keyword, volume}] objects — extract strings for display and project creation
+        const keywords = response.data.keywords.map(k => (typeof k === 'string' ? k : k.keyword));
         setProjectData(prev => ({ ...prev, selectedKeywords: keywords, keywords }));
         setMessages(m => [...m, {
           type: "ai",
-          text: `Here are the top keywords I found:\n\n${keywords.map((k, i) => `${i + 1}. **${k}**`).join('\n')}\n\nDo you want to go with these?`,
-          keywordConfirmation: true
+          text: `Here are the top keywords I found for your business:`,
+          keywordConfirmation: true,
+          keywordList: keywords
         }]);
         setFlowState(FLOW_STATES.CONFIRM_KEYWORDS);
       } else {
@@ -452,15 +660,78 @@ const ARIAChat = ({ onComplete }) => {
     }
   };
 
+  // ── Phase 3 (Upgrade unification): zero-credit Upgrade CTA handler ────
+  // Navigates to the shared Choose Plan page instead of calling checkout
+  // directly. The resume payload is written to a STAGING key (not the final
+  // ONBOARDING_UPGRADE_RESUME_KEY) — the Choose Plan page is what copies it
+  // into the final key, at the exact moment it actually redirects to Stripe
+  // or completes a plan change, preserving the original guarantee that the
+  // resume flag only ever exists right before a real return-to-onboarding
+  // is imminent. See lib/onboardingResume.js.
+  const handleUpgradeClick = () => {
+    // Synchronous guard — a fast double-click can fire the navigation twice
+    // before React re-renders a disabled attribute.
+    if (upgradeInFlightRef.current) return;
+    upgradeInFlightRef.current = true;
+    setIsNavigatingToPlans(true);
+
+    if (typeof window !== 'undefined' && pendingAttemptRef.current) {
+      sessionStorage.setItem(ONBOARDING_UPGRADE_PENDING_KEY, JSON.stringify({
+        projectData: pendingAttemptRef.current.projectData,
+        overrideKeywords: pendingAttemptRef.current.overrideKeywords,
+        previousFlowState: previousFlowStateRef.current,
+      }));
+    }
+    router.push('/subscription/plans');
+    // No need to reset the ref — the page is navigating away.
+  };
+
+  const handleUpgradeBack = () => {
+    setMessages(m => [...m, { type: "user", text: "Back" }]);
+    setFlowState(previousFlowStateRef.current || FLOW_STATES.ASK_BUSINESS_NAME);
+  };
+
   // ── NON-BLOCKING: Create project → trigger background tasks → redirect ─────
-  const startProjectAndRankingFlow = async (overrideKeywords = null) => {
+  // projectDataOverride lets the post-checkout auto-resume path (see the
+  // autoResumeAttempt effect above) pass the EXACT restored data explicitly,
+  // rather than depending on `projectData` React state having already
+  // re-rendered by the time this runs — the same stale-closure-avoidance
+  // idiom already used elsewhere in this file (e.g. handleCountrySelect).
+  const startProjectAndRankingFlow = async (overrideKeywords = null, projectDataOverride = null) => {
+    const activeProjectData = projectDataOverride || projectData;
+    const cameFromFlowState = flowState;
+    const finalKeywords = overrideKeywords || activeProjectData.selectedKeywords || [];
+
+    setIsCreating(true); // disable input immediately, same as before
+
+    // Phase 15.5: fresh, authoritative credit check BEFORE attempting
+    // project creation or showing the "Creating your project..." spinner —
+    // never trust a cached value here, since this is the moment a credit
+    // actually gets consumed. If the check itself fails (network hiccup),
+    // fall through and let the backend's own atomic gate
+    // (INSUFFICIENT_CREDITS, handled below) be the fallback.
+    try {
+      const freshSub = await refetchSubscription();
+      const remaining = freshSub.data?.data?.credits?.remaining;
+      if (typeof remaining === 'number' && remaining <= 0) {
+        pendingAttemptRef.current = { overrideKeywords: finalKeywords, projectData: activeProjectData };
+        previousFlowStateRef.current = cameFromFlowState;
+        setIsCreating(false);
+        setMessages(m => [...m, {
+          type: 'ai',
+          text: 'You have no project credits remaining.\n\nUpgrade to continue creating projects.',
+          showUpgradeCTA: true,
+        }]);
+        setFlowState(FLOW_STATES.NEEDS_UPGRADE);
+        return;
+      }
+    } catch (checkError) {
+      console.error('Credit pre-check failed, proceeding to let the backend gate it', checkError);
+    }
+
     setFlowState(FLOW_STATES.CREATING_PROJECT);
-    setIsCreating(true);
 
     try {
-      // ✅ STEP 0: Use override keywords or fall back to state
-      const finalKeywords = overrideKeywords || projectData.selectedKeywords || [];
-      
       // 🚨 SAFETY CHECK: Ensure we have keywords
       if (!finalKeywords || finalKeywords.length === 0) {
         console.warn("❌ No keywords found for project creation");
@@ -474,7 +745,7 @@ const ARIAChat = ({ onComplete }) => {
       console.log("🚨 KEYWORDS SOURCE:", overrideKeywords ? "CUSTOM (override)" : "STATE (fallback)");
 
       // STEP 1: Validate & create the project
-      const websiteUrl = projectData.websiteUrl;
+      const websiteUrl = activeProjectData.websiteUrl;
       try { new URL(websiteUrl); } catch {
         setMessages(m => [...m, { type: "ai", text: "❌ Invalid website URL. Please check and try again." }]);
         setIsCreating(false);
@@ -483,19 +754,19 @@ const ARIAChat = ({ onComplete }) => {
       }
 
       const projectName = generateProjectName(websiteUrl);
-      
+
       // ✅ FIXED: Use finalKeywords instead of stale state
       const keywordsBeforeAPI = finalKeywords.filter(k => k.trim()).slice(0, 5);
       console.log('🔍 DEBUG: Keywords before API call:', {
-        selectedKeywords: projectData.selectedKeywords,
-        keywords: projectData.keywords,
+        selectedKeywords: activeProjectData.selectedKeywords,
+        keywords: activeProjectData.keywords,
         keywordsBeforeAPI,
         keywordsLength: keywordsBeforeAPI.length,
         projectDataState: {
-          selectedKeywords: projectData.selectedKeywords,
-          keywords: projectData.keywords,
-          subType: projectData.subType,
-          businessType: projectData.businessType
+          selectedKeywords: activeProjectData.selectedKeywords,
+          keywords: activeProjectData.keywords,
+          subType: activeProjectData.subType,
+          businessType: activeProjectData.businessType
         }
       });
 
@@ -506,36 +777,38 @@ const ARIAChat = ({ onComplete }) => {
         project_name: projectName,
         main_url: websiteUrl,
         keywords: keywordsBeforeAPI,
-        industry: projectData.businessType || projectData.industry,
-        location: projectData.verifiedBusiness?.address || projectData.location || '',
-        country: projectData.country,
-        language: projectData.language,
+        industry: activeProjectData.businessType || activeProjectData.industry,
+        location: activeProjectData.verifiedBusiness?.address || activeProjectData.location || '',
+        country: activeProjectData.country,
+        language: activeProjectData.language,
         status: 'active',
-        business_type: projectData.businessType,
-        seo_scope: projectData.targetLevel === 'local' ? 'local' : 'national',
+        business_type: activeProjectData.businessType,
+        seo_scope: activeProjectData.targetLevel === 'local' ? 'local' : 'national',
         // Website Manual Fallback fields
-        onboarding_mode: projectData.onboardingMode || 'google_places',
-        discovery_source: projectData.onboardingMode === 'website_manual' ? 'website_scrape' : 'google_places',
-        source: projectData.onboardingMode === 'website_manual' ? 'website_manual' : 'web',
-        ...(projectData.extractedMetadata && {
-          extracted_metadata: projectData.extractedMetadata
+        onboarding_mode: activeProjectData.onboardingMode || 'google_places',
+        discovery_source: activeProjectData.onboardingMode === 'website_manual' ? 'website_scrape' : 'google_places',
+        source: activeProjectData.onboardingMode === 'website_manual' ? 'website_manual' : 'web',
+        ...(activeProjectData.extractedMetadata && {
+          extracted_metadata: activeProjectData.extractedMetadata
         }),
-        ...(projectData.verifiedBusiness && {
+        ...(activeProjectData.verifiedBusiness ? {
           verified_business: {
-            placeId: projectData.verifiedBusiness.placeId,
-            name: projectData.verifiedBusiness.name,
-            address: projectData.verifiedBusiness.address,
-            city: projectData.verifiedBusiness.city || null,
-            state: projectData.verifiedBusiness.state || null,
-            country: projectData.verifiedBusiness.country || null,
-            countryCode: projectData.verifiedBusiness.countryCode || null,
-            website: projectData.verifiedBusiness.website,
-            phone: projectData.verifiedBusiness.phone,
-            rating: projectData.verifiedBusiness.rating,
-            location: projectData.verifiedBusiness.location,
+            placeId: activeProjectData.verifiedBusiness.placeId,
+            name: activeProjectData.verifiedBusiness.name,
+            address: activeProjectData.verifiedBusiness.address,
+            city: activeProjectData.verifiedBusiness.city || null,
+            state: activeProjectData.verifiedBusiness.state || null,
+            country: activeProjectData.verifiedBusiness.country || null,
+            countryCode: activeProjectData.verifiedBusiness.countryCode || null,
+            website: activeProjectData.verifiedBusiness.website,
+            phone: activeProjectData.verifiedBusiness.phone,
+            rating: activeProjectData.verifiedBusiness.rating,
+            location: activeProjectData.verifiedBusiness.location,
             verifiedAt: new Date().toISOString()
           }
-        })
+        } : (activeProjectData.targetLevel === 'local' && activeProjectData.resolvedCity ? {
+          verified_business: { city: activeProjectData.resolvedCity }
+        } : {}))
       };
 
       // 🚨 STEP 1: FRONTEND → BACKEND REQUEST
@@ -557,25 +830,33 @@ const ARIAChat = ({ onComplete }) => {
       const projectId = response.data?.projectId;
       if (!projectId) throw new Error('Project ID not found in response');
 
-      console.log('🔍 DEBUG: Project created successfully:', {
-        projectId,
-        responseKeywords: response.data?.project?.keywords
-      });
+      // deductCredits() just consumed a credit server-side — refetch so the
+      // cached subscription data (Settings → Subscription, header, etc.)
+      // reflects the new remaining count instead of the pre-creation snapshot.
+      refetchSubscription();
 
       // STEP 2: Trigger background tasks WITHOUT waiting
       // CRITICAL FIX: Pass the actual keywords used in API call to prevent stale closure data
-      console.log('🚨 API KEYWORDS (CALLER):', keywordsBeforeAPI);
-      
-      // Local SEO: pass business coordinates → backend does Haversine city-level lookup
+      // Local SEO: pass business coordinates → backend does city-level lookup
       // National SEO: intentionally null → backend falls through to country-level location_code
-      const businessLocationData = projectData.targetLevel === 'local' && projectData.verifiedBusiness ? {
-        address: projectData.verifiedBusiness.address,
-        lat: projectData.verifiedBusiness.location?.lat,
-        lng: projectData.verifiedBusiness.location?.lng
+      // Website manual mode: verifiedBusiness is null; backend uses `location` address string instead (Priority 3 branch)
+      const businessLocationData = activeProjectData.targetLevel === 'local' && activeProjectData.verifiedBusiness ? {
+        address: activeProjectData.verifiedBusiness.address,
+        lat: activeProjectData.verifiedBusiness.location?.lat,
+        lng: activeProjectData.verifiedBusiness.location?.lng
       } : null;
-      
-      console.log('🚨 BUSINESS LOCATION FOR MAPPING:', businessLocationData);
-      triggerBackgroundTasks(projectId, websiteUrl, keywordsBeforeAPI, businessLocationData);
+
+      // City for Local SEO: Google Places city (Priority 1) or resolved/user-entered city (Priority 2/3)
+      const localCity = activeProjectData.targetLevel === 'local'
+        ? (activeProjectData.verifiedBusiness?.city || activeProjectData.resolvedCity || null)
+        : null;
+
+      // Log country fallback when Local SEO has no city (website manual + no address parseable)
+      if (activeProjectData.targetLevel === 'local' && !localCity && !activeProjectData.verifiedBusiness) {
+        console.log('[LOCAL_LOCATION] Country Fallback Used');
+      }
+
+      triggerBackgroundTasks(projectId, websiteUrl, keywordsBeforeAPI, businessLocationData, localCity, activeProjectData);
 
       // STEP 3: Immediate redirect to processing page
       const redirectUrl = `/processing/${projectId}`;
@@ -588,6 +869,34 @@ const ARIAChat = ({ onComplete }) => {
       router.push(redirectUrl);
 
     } catch (error) {
+      // Every billing/subscription-lifecycle rejection the backend can
+      // actually return from this endpoint funnels into the exact same
+      // Upgrade flow — no separate UI, state, or handler per code.
+      // INSUFFICIENT_CREDITS: seoProjectController.js's deductCredits() gate.
+      // SUBSCRIPTION_NOT_ACTIVE: seoProjectController.js's canConsumeQuota()
+      //   gate (subscriptionLifecycle.js) — this is the ONE code the backend
+      //   returns for every non-'active' status (inactive, past_due, paused,
+      //   canceled all collapse to it; there is no per-status code to
+      //   distinguish them, so none is invented here either).
+      if (BILLING_LIFECYCLE_ERROR_CODES.has(error.code)) {
+        // Defensive fallback for cases the pre-check above can't fully
+        // close — e.g. the last credit was consumed by another tab/session
+        // in between the pre-check and this request landing, or the
+        // pre-check only checks credits.remaining and can't see a
+        // status-only rejection (a past_due/paused/canceled user can still
+        // have unused credit balance). The backend's own gate is the real
+        // authority here either way.
+        pendingAttemptRef.current = { overrideKeywords: finalKeywords, projectData: activeProjectData };
+        previousFlowStateRef.current = cameFromFlowState;
+        setMessages(m => [...m, {
+          type: 'ai',
+          text: 'You have no project credits remaining.\n\nUpgrade to continue creating projects.',
+          showUpgradeCTA: true,
+        }]);
+        setFlowState(FLOW_STATES.NEEDS_UPGRADE);
+        setIsCreating(false);
+        return;
+      }
       console.error('Project creation error:', error);
       setMessages(m => [...m, {
         type: "ai",
@@ -597,8 +906,27 @@ const ARIAChat = ({ onComplete }) => {
     }
   };
 
+  // Resume-sync fix — the Proceed button's handler. Calls
+  // startProjectAndRankingFlow() directly: the single, existing
+  // continuation path, not a second one. That function's own fresh
+  // credit/status pre-check (already in place since Phase 15.5) runs
+  // again here too, so if this click happens to still be ahead of the
+  // webhook somehow, it correctly falls back to NEEDS_UPGRADE rather than
+  // attempting a project creation that would fail server-side.
+  const handleProceedClick = () => {
+    if (proceedInFlightRef.current) return;
+    proceedInFlightRef.current = true;
+    const attempt = pendingAttemptRef.current;
+    setMessages(m => [...m, { type: "user", text: "Proceed" }]);
+    startProjectAndRankingFlow(attempt?.overrideKeywords, attempt?.projectData);
+    // No need to reset the ref — startProjectAndRankingFlow immediately
+    // sets isCreating(true) and moves flowState off SUBSCRIPTION_ACTIVATED,
+    // so the Proceed button is gone on the very next render either way.
+  };
+
   // ── Fire-and-forget background tasks ─────────────────────────────────────
-  const triggerBackgroundTasks = async (projectId, websiteUrl, keywords, businessLocation = null) => {
+  const triggerBackgroundTasks = async (projectId, websiteUrl, keywords, businessLocation = null, localCity = null, projectDataOverride = null) => {
+    const activeProjectData = projectDataOverride || projectData;
     try {
       // STRICT VALIDATION: Ensure keywords are provided
       if (!keywords || keywords.length === 0) {
@@ -607,55 +935,34 @@ const ARIAChat = ({ onComplete }) => {
 
       // USE ONLY passed keywords - NO fallback logic
       const keywordsForTasks = keywords;
-      
-      console.log('🚨 API KEYWORDS:', keywords);
-      console.log('🚨 TASK KEYWORDS:', keywordsForTasks);
-      console.log('🔍 DEBUG: Keywords at background task start:', {
-        projectId,
-        keywordsForTasks,
-        keywordsString: JSON.stringify(keywordsForTasks),
-        source: 'passed_parameter_only'
-      });
 
       // Background task 1: Check rankings (non-blocking)
-      console.log('🚨 CALLING CHECK RANKING WITH BUSINESS LOCATION:', businessLocation);
-      
       apiService.checkRanking(
         websiteUrl,
         keywordsForTasks,
-        businessLocation || projectData.verifiedBusiness?.address || projectData.location,
-        projectData.country,
-        projectData.language,
+        businessLocation || activeProjectData.verifiedBusiness?.address || activeProjectData.location,
+        activeProjectData.country,
+        activeProjectData.language,
         businessLocation,
-        projectData.targetLevel === 'local' ? 'local' : 'national',
-        // City name for keyword city-suffix (Local SEO only); from Google Places addressComponents
-        projectData.targetLevel === 'local' ? (projectData.verifiedBusiness?.city || null) : null
+        activeProjectData.targetLevel === 'local' ? 'local' : 'national',
+        // City name for DataForSEO location resolution (Local SEO only)
+        // City name for DataForSEO location resolution (Places city OR resolved/user-entered city)
+        activeProjectData.targetLevel === 'local' ? (activeProjectData.verifiedBusiness?.city || localCity || null) : null,
+        // Business name for Google Maps API matching (Local SEO only)
+        activeProjectData.targetLevel === 'local' ? (activeProjectData.verifiedBusiness?.name || null) : null
       ).then(rankResponse => {
-        console.log('🔍 DEBUG: Ranking check response:', {
-          projectId,
-          success: rankResponse.success,
-          keywordsUsed: keywordsForTasks,
-          results: rankResponse.data?.results
-        });
-        
         if (rankResponse.success && rankResponse.data?.results) {
           // Save rankings — carry through all geo context for future refresh reproducibility
           apiService.saveRanking(
             projectId,
             websiteUrl,
-            projectData.verifiedBusiness?.address || projectData.location,
+            activeProjectData.verifiedBusiness?.address || activeProjectData.location,
             rankResponse.data.results,
             rankResponse.data.location_code ?? null,
-            projectData.country,
-            projectData.language,
-            projectData.targetLevel === 'local' ? 'local' : 'national'
-          ).then(saveResponse => {
-            console.log('🔍 DEBUG: Ranking save response:', {
-              projectId,
-              success: saveResponse.success,
-              keywordsSaved: keywordsForTasks
-            });
-          }).catch(saveError => {
+            activeProjectData.country,
+            activeProjectData.language,
+            activeProjectData.targetLevel === 'local' ? 'local' : 'national'
+          ).catch(saveError => {
             console.error('Background ranking save failed:', saveError);
           });
         }
@@ -663,20 +970,16 @@ const ARIAChat = ({ onComplete }) => {
         console.error('Background ranking check failed:', rankError);
       });
 
-      // Background task 2: Start audit (non-blocking, 1 credit per audit)
+      // Background task 2: Start audit (non-blocking). The project credit was
+      // already spent at project creation — starting an audit never checks
+      // or consumes credits, so no credit-specific error can occur here.
       apiService.startAudit(projectId).then(auditResponse => {
         console.log('🔍 DEBUG: Audit start response:', {
           projectId,
           success: auditResponse.success
         });
       }).catch(auditError => {
-        // Surface credit errors clearly — don't silently swallow
-        const errorMessage = auditError?.message || '';
-        if (errorMessage.includes('credits') || errorMessage.includes('INSUFFICIENT')) {
-          console.warn('⚠️ Audit start failed due to insufficient credits:', { projectId, error: errorMessage });
-        } else {
-          console.error('Background audit start failed:', auditError);
-        }
+        console.error('Background audit start failed:', auditError);
       });
 
     } catch (error) {
@@ -778,6 +1081,20 @@ const ARIAChat = ({ onComplete }) => {
           break;
         }
 
+        case FLOW_STATES.ASK_LOCAL_CITY: {
+          const city = userResponse.trim();
+          if (!city) {
+            setMessages(m => [...m, { type: 'ai', text: 'Please enter a valid city name.' }]);
+            return;
+          }
+          console.log(`[LOCAL_LOCATION] User Selected City | city=${city}`);
+          setProjectData(prev => ({ ...prev, resolvedCity: city, location: prev.location || city }));
+          const address = projectData.location || projectData.businessLocation || null;
+          setFlowState(FLOW_STATES.GENERATING_KEYWORDS);
+          generateKeywordsFlow(projectData.subType, address, null, null, null, city);
+          break;
+        }
+
         default:
           break;
       }
@@ -788,36 +1105,12 @@ const ARIAChat = ({ onComplete }) => {
 
   // Business type selector cards
   const renderBusinessTypeSelector = () => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 10, maxWidth: '100%' }}>
+    <div className="chat-selector-grid">
       {BUSINESS_TYPES.map(({ label, icon }) => (
         <button
           key={label}
           onClick={() => handleBusinessTypeSelect(label)}
-          style={{
-            padding: '10px 12px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 500,
-            textAlign: 'left',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
+          className="chat-selector-option"
         >
           <span style={{ fontSize: 18 }}>{icon}</span>
           <span>{label}</span>
@@ -828,7 +1121,7 @@ const ARIAChat = ({ onComplete }) => {
 
   // Target level selector
   const renderTargetLevelSelector = () => (
-    <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+    <div className="chat-selector-grid">
       {[
         { key: 'local', label: '📍 Local (city-level)', desc: 'Target your city area' },
         { key: 'country', label: '🌐 Country level', desc: 'Target entire country' }
@@ -836,30 +1129,11 @@ const ARIAChat = ({ onComplete }) => {
         <button
           key={key}
           onClick={() => handleTargetLevelSelect(key)}
-          style={{
-            flex: 1,
-            padding: '12px 14px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 500,
-            textAlign: 'center',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-          }}
+          className="chat-selector-option"
+          style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}
         >
           <div style={{ fontSize: 14, fontWeight: 600 }}>{label}</div>
-          <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>{desc}</div>
+          <div style={{ fontSize: 11, opacity: 0.6 }}>{desc}</div>
         </button>
       ))}
     </div>
@@ -875,49 +1149,21 @@ const ARIAChat = ({ onComplete }) => {
       : COUNTRIES;
 
     return (
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 10, width: '100%', minWidth: 0 }}>
         <input
           type="text"
+          className="chat-input"
           placeholder="Search country..."
           value={countrySearch}
           onChange={e => setCountrySearch(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 8,
-            color: '#fff',
-            fontSize: 13,
-            marginBottom: 8,
-            boxSizing: 'border-box'
-          }}
+          style={{ width: '100%', marginBottom: 8 }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
           {filtered.map(({ code, name }) => (
             <button
               key={code}
               onClick={() => handleCountrySelect(code, name)}
-              style={{
-                padding: '9px 14px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 8,
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
-                textAlign: 'left',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-              }}
+              className="chat-selector-option"
             >
               {name} <span style={{ opacity: 0.5, fontSize: 11 }}>({code})</span>
             </button>
@@ -926,39 +1172,6 @@ const ARIAChat = ({ onComplete }) => {
       </div>
     );
   };
-
-  // Keyword confirm buttons
-  const renderKeywordConfirmButtons = () => (
-    <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-      <button
-        onClick={() => handleKeywordConfirm(true)}
-        style={{
-          flex: 1, padding: '10px 16px',
-          background: 'linear-gradient(135deg, #10b981, #059669)',
-          color: '#fff', border: 'none', borderRadius: 8,
-          cursor: 'pointer', fontWeight: 600, fontSize: 14,
-          transition: 'all 0.2s ease'
-        }}
-      >
-        ✅ Yes, use these
-      </button>
-      <button
-        onClick={() => {
-          console.log("🚨 ENTER MY OWN BUTTON CLICKED!");
-          handleKeywordConfirm(false);
-        }}
-        style={{
-          flex: 1, padding: '10px 16px',
-          background: 'rgba(255,255,255,0.08)',
-          color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8,
-          cursor: 'pointer', fontWeight: 500, fontSize: 14,
-          transition: 'all 0.2s ease'
-        }}
-      >
-        ✏️ Enter my own
-      </button>
-    </div>
-  );
 
   // Loading indicator
   const renderLoadingIndicator = (message) => (
@@ -977,38 +1190,51 @@ const ARIAChat = ({ onComplete }) => {
 
   // ── Website Manual Fallback: CTA buttons ────────────────────────────
   const renderWebsiteFallbackCTA = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-      <button
-        onClick={handleContinueWithWebsite}
-        style={{
-          padding: '12px 20px',
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          color: '#fff', border: 'none', borderRadius: 10,
-          cursor: 'pointer', fontWeight: 600, fontSize: 14,
-          transition: 'all 0.2s ease',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.4)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-      >
-        <span style={{ fontSize: 16 }}>🌐</span> Continue with Website
+    <div className="chat-selector-grid">
+      <button className="chat-selector-option" onClick={handleContinueWithWebsite}>
+        <span style={{ fontSize: 16 }}>🌐</span>
+        <span>Continue with Website</span>
       </button>
-      <button
-        onClick={handleTrySearchAgain}
-        style={{
-          padding: '10px 16px',
-          background: 'rgba(255,255,255,0.06)',
-          color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-          cursor: 'pointer', fontWeight: 500, fontSize: 13,
-          transition: 'all 0.2s ease',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-      >
-        🔄 Try searching again
+      <button className="chat-selector-option" onClick={handleTrySearchAgain}>
+        <span style={{ fontSize: 16 }}>🔄</span>
+        <span>Try searching again</span>
       </button>
     </div>
+  );
+
+  // ── Phase 15.5: zero-credit Upgrade CTA — same primary/secondary button
+  // pair pattern as renderWebsiteFallbackCTA() above, reusing this file's
+  // established visual language rather than importing Settings' shadcn
+  // Button/Loader2 into a component that otherwise never uses them.
+  const renderUpgradeCTA = () => (
+    isNavigatingToPlans ? (
+      renderLoadingIndicator('Redirecting to plans...')
+    ) : (
+      <ButtonGroup
+        stack
+        buttons={[
+          { key: 'upgrade', label: 'Upgrade Plan', icon: '⚡', variant: 'primary', onClick: handleUpgradeClick, disabled: isNavigatingToPlans },
+          { key: 'back', label: 'Back', icon: '←', variant: 'secondary', onClick: handleUpgradeBack },
+        ]}
+      />
+    )
+  );
+
+  // Resume-sync fix — the success/Proceed CTA shown once the subscription
+  // is confirmed active with credits available. Single primary button,
+  // same visual pattern as the Upgrade Plan button above (and
+  // renderWebsiteFallbackCTA before it) — no new button style invented.
+  const renderSubscriptionActivatedCTA = () => (
+    isCreating ? (
+      renderLoadingIndicator('Creating your project...')
+    ) : (
+      <ButtonGroup
+        stack
+        buttons={[
+          { key: 'proceed', label: 'Proceed', icon: '✅', variant: 'success', onClick: handleProceedClick, disabled: isCreating },
+        ]}
+      />
+    )
   );
 
   // ── Website Manual Fallback: Scraping progress ─────────────────────
@@ -1041,39 +1267,26 @@ const ARIAChat = ({ onComplete }) => {
   // ── Website Manual Fallback: Extracted data confirmation ────────────
   const renderExtractedDataConfirmation = (data) => {
     if (!data) return null;
+    const rows = [
+      ['Business', data.businessName, { fontSize: 14, color: '#fff', fontWeight: 500 }],
+      ['Address', data.address],
+      ['Phone', data.phone],
+      ['Email', data.email],
+      ['Category', data.category],
+    ];
     return (
-      <div style={{ marginTop: 12, padding: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)' }}>
+      <div style={{ marginTop: 12, padding: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {data.businessName && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80 }}>Business</span>
-              <span style={{ fontSize: 14, color: '#fff', fontWeight: 500 }}>{data.businessName}</span>
+          {rows.map(([label, value, valueStyle]) => value && (
+            <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80, flexShrink: 0 }}>{label}</span>
+              <span style={{
+                fontSize: 13, color: 'rgba(255,255,255,0.8)', flex: 1, minWidth: 0,
+                overflowWrap: 'anywhere', wordBreak: 'break-word',
+                ...valueStyle
+              }}>{value}</span>
             </div>
-          )}
-          {data.address && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80 }}>Address</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{data.address}</span>
-            </div>
-          )}
-          {data.phone && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80 }}>Phone</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{data.phone}</span>
-            </div>
-          )}
-          {data.email && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80 }}>Email</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{data.email}</span>
-            </div>
-          )}
-          {data.category && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', minWidth: 80 }}>Category</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{data.category}</span>
-            </div>
-          )}
+          ))}
           {/* Confidence indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Confidence:</span>
@@ -1083,35 +1296,18 @@ const ARIAChat = ({ onComplete }) => {
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{data.confidence || 0}%</span>
           </div>
         </div>
-        {/* Confirm / Edit buttons */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <button
-            onClick={() => handleConfirmExtractedData()}
-            style={{
-              flex: 1, padding: '10px 16px',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              color: '#fff', border: 'none', borderRadius: 8,
-              cursor: 'pointer', fontWeight: 600, fontSize: 13,
-              transition: 'all 0.2s ease'
-            }}
-          >
-            ✅ Looks good!
-          </button>
-          <button
-            onClick={() => {
-              setMessages(m => [...m, { type: "ai", text: "No problem! Let me try a different approach. What's your website URL?" }]);
-              setFlowState(FLOW_STATES.ASK_MANUAL_WEBSITE);
-            }}
-            style={{
-              flex: 1, padding: '10px 16px',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8,
-              cursor: 'pointer', fontWeight: 500, fontSize: 13,
-              transition: 'all 0.2s ease'
-            }}
-          >
-            🔄 Try another URL
-          </button>
+        <div style={{ marginTop: 14 }}>
+          <ButtonGroup
+            buttons={[
+              { key: 'confirm', label: 'Looks good!', icon: '✅', variant: 'success', onClick: () => handleConfirmExtractedData() },
+              {
+                key: 'retry', label: 'Try another URL', icon: '🔄', variant: 'secondary', onClick: () => {
+                  setMessages(m => [...m, { type: "ai", text: "No problem! Let me try a different approach. What's your website URL?" }]);
+                  setFlowState(FLOW_STATES.ASK_MANUAL_WEBSITE);
+                }
+              },
+            ]}
+          />
         </div>
       </div>
     );
@@ -1131,41 +1327,30 @@ const ARIAChat = ({ onComplete }) => {
     FLOW_STATES.WEBSITE_MANUAL_MODE,
     FLOW_STATES.SCRAPING_WEBSITE,
     FLOW_STATES.CONFIRM_EXTRACTED_DATA,
+    // Phase 15.5
+    FLOW_STATES.NEEDS_UPGRADE,
+    // Resume-sync fix
+    FLOW_STATES.SUBSCRIPTION_ACTIVATED,
   ];
 
   // ── Render ──────────────────────────────────────────────────────────
+  const showInput = !hideInputStates.includes(flowState);
+
   return (
-    <div className="glass-card" style={{ width: "100%", maxWidth: 520, padding: 24 }}>
-      <div style={{ marginBottom: 16 }}>
+    <div className="glass-card chat-shell">
+      <div className="chat-scroll-area">
         {messages.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.type === "user" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-            {m.type === "ai" && (
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--grad1)", display: "grid", placeItems: "center", fontSize: 12, marginRight: 8, flexShrink: 0, marginTop: 4 }}>✦</div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", maxWidth: "80%" }}>
-              <div 
+          <div key={i} className={`chat-message-row ${m.type}`}>
+            {m.type === "ai" && <div className="chat-avatar">✦</div>}
+            <div className="chat-bubble-group">
+              <div
                 className={`chat-bubble ${m.type}`}
-                style={{ 
-                  whiteSpace: 'pre-line',
-                  ...({}) 
-                }}
                 dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(m.text) }}
               />
 
-              {/* Action button */}
+              {/* Action button (currently unused by any flow branch, kept for forward-compat) */}
               {m.action && (
-                <button
-                  onClick={m.action.onClick}
-                  style={{
-                    marginTop: 8, padding: "8px 16px",
-                    backgroundColor: "var(--grad1)", color: "white",
-                    border: "none", borderRadius: "6px",
-                    cursor: "pointer", fontSize: "14px", fontWeight: "500",
-                    alignSelf: "flex-start"
-                  }}
-                >
-                  {m.action.text}
-                </button>
+                <ButtonGroup buttons={[{ key: 'action', label: m.action.text, variant: 'primary', onClick: m.action.onClick }]} />
               )}
 
               {/* Business results (UNCHANGED) */}
@@ -1180,11 +1365,23 @@ const ARIAChat = ({ onComplete }) => {
                 />
               )}
 
-              {/* Keyword confirmation buttons */}
-              {m.keywordConfirmation && flowState === FLOW_STATES.CONFIRM_KEYWORDS && renderKeywordConfirmButtons()}
+              {/* Keyword recommendation card */}
+              {m.keywordConfirmation && flowState === FLOW_STATES.CONFIRM_KEYWORDS && (
+                <KeywordRecommendationCard
+                  keywords={m.keywordList || []}
+                  onConfirm={() => handleKeywordConfirm(true)}
+                  onEnterOwn={() => handleKeywordConfirm(false)}
+                />
+              )}
 
               {/* Website fallback CTA buttons (NEW) */}
               {m.showWebsiteFallbackCTA && flowState === FLOW_STATES.WEBSITE_MANUAL_MODE && renderWebsiteFallbackCTA()}
+
+              {/* Zero-credit Upgrade CTA (Phase 15.5) */}
+              {m.showUpgradeCTA && flowState === FLOW_STATES.NEEDS_UPGRADE && renderUpgradeCTA()}
+
+              {/* Resume-sync fix */}
+              {m.showProceedCTA && flowState === FLOW_STATES.SUBSCRIPTION_ACTIVATED && renderSubscriptionActivatedCTA()}
 
               {/* Scraping progress indicator (NEW) */}
               {m.isScrapingProgress && flowState === FLOW_STATES.SCRAPING_WEBSITE && renderScrapingProgress()}
@@ -1197,9 +1394,9 @@ const ARIAChat = ({ onComplete }) => {
 
         {/* Business search loading (UNCHANGED) */}
         {flowState === FLOW_STATES.SEARCHING_BUSINESS && (
-          <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--grad1)", display: "grid", placeItems: "center", fontSize: 12, marginRight: 8, flexShrink: 0, marginTop: 4 }}>✦</div>
-            <div style={{ display: "flex", flexDirection: "column", maxWidth: "80%" }}>
+          <div className="chat-message-row ai">
+            <div className="chat-avatar">✦</div>
+            <div className="chat-bubble-group">
               <BusinessResultsList
                 results={[]}
                 onSelect={handleBusinessSelection}
@@ -1229,43 +1426,40 @@ const ARIAChat = ({ onComplete }) => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Text input — hidden during button/loading states */}
-      {(() => {
-        return !hideInputStates.includes(flowState);
-      })() && (
-        <>
-          <div className="chat-input-row">
-            <input
-              className="chat-input"
-              placeholder={
-                flowState === FLOW_STATES.ASK_BUSINESS_NAME ? "Enter your business name..." :
-                flowState === FLOW_STATES.ASK_BUSINESS_LOCATION ? "Enter city or area..." :
-                flowState === FLOW_STATES.ASK_WEBSITE_URL ? "https://yourwebsite.com" :
-                flowState === FLOW_STATES.ASK_MANUAL_WEBSITE ? "https://yourbusiness.com" :
-                flowState === FLOW_STATES.ASK_SUB_TYPE ? "e.g., IT services, digital marketing..." :
-                flowState === FLOW_STATES.ASK_CUSTOM_KEYWORDS ? "keyword1, keyword2, keyword3..." :
-                "Type your answer..."
+      {/* Text input — hidden during button/loading states, always below the scroll area */}
+      {showInput && (
+        <div className="chat-input-row">
+          <input
+            className="chat-input"
+            placeholder={
+              flowState === FLOW_STATES.ASK_BUSINESS_NAME ? "Enter your business name..." :
+              flowState === FLOW_STATES.ASK_BUSINESS_LOCATION ? "Enter city or area..." :
+              flowState === FLOW_STATES.ASK_WEBSITE_URL ? "https://yourwebsite.com" :
+              flowState === FLOW_STATES.ASK_MANUAL_WEBSITE ? "https://yourbusiness.com" :
+              flowState === FLOW_STATES.ASK_SUB_TYPE ? "e.g., IT services, digital marketing..." :
+              flowState === FLOW_STATES.ASK_LOCAL_CITY ? "e.g., Nashik, New York, London..." :
+              flowState === FLOW_STATES.ASK_CUSTOM_KEYWORDS ? "keyword1, keyword2, keyword3..." :
+              "Type your answer..."
+            }
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+            }}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                send();
               }
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-              }}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  send();
-                }
-              }}
-              disabled={isCreating || isStartingAnalysis || isSearchingBusiness || isGeneratingKeywords || isCheckingRankings || isScrapingWebsite}
-            />
-            <button
-              onClick={send}
-              disabled={!input.trim() || isCreating || isStartingAnalysis || isSearchingBusiness || isGeneratingKeywords || isCheckingRankings || isScrapingWebsite}
-              className="chat-send-btn"
-            >
-              {isCheckingRankings ? '📊' : isGeneratingKeywords ? '🔍' : isStartingAnalysis ? '🔄' : isCreating ? '⏳' : isSearchingBusiness ? '🔍' : '➤'}
-            </button>
-          </div>
-        </>
+            }}
+            disabled={isCreating || isStartingAnalysis || isSearchingBusiness || isGeneratingKeywords || isCheckingRankings || isScrapingWebsite || isResolvingCity}
+          />
+          <button
+            onClick={send}
+            disabled={!input.trim() || isCreating || isStartingAnalysis || isSearchingBusiness || isGeneratingKeywords || isCheckingRankings || isScrapingWebsite}
+            className="chat-send"
+          >
+            {isCheckingRankings ? '📊' : isGeneratingKeywords ? '🔍' : isStartingAnalysis ? '🔄' : isCreating ? '⏳' : isSearchingBusiness ? '🔍' : '➤'}
+          </button>
+        </div>
       )}
     </div>
   );

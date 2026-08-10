@@ -1,4 +1,5 @@
 import React from "react";
+import { getSeverityDashboardBadge } from "../../../lib/homepageAudit/constants";
 
 export default function OnPageSeoSection({ data }) {
   if (!data) return null;
@@ -6,19 +7,9 @@ export default function OnPageSeoSection({ data }) {
   const pi = data.page_info || {};
   const seoScore = data.sections?.on_page?.score ?? 68;
 
-  // Helper to get status badge color and text based on backend severity
-  const getStatusInfo = (severity) => {
-    switch (severity) {
-      case 'high':
-        return { color: 'red', text: 'Critical' };
-      case 'medium':
-        return { color: 'yellow', text: 'Warning' };
-      case 'low':
-        return { color: 'green', text: 'Optimized' };
-      default:
-        return { color: 'yellow', text: 'Warning' };
-    }
-  };
+  // Helper to get status badge color and text based on backend severity —
+  // sourced from the shared severityMap.
+  const getStatusInfo = (severity) => getSeverityDashboardBadge(severity);
 
   // 1. Title Tag
   const titleTag = pi.title || "Example Business - Your Trusted Partner for All Enterprise Software Solutions and Custom Digital Transformation Services";

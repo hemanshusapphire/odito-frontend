@@ -2,7 +2,7 @@
 const nextConfig = {
   // 1. Keep server-only packages out of the client/edge bundle.
   //    These are used exclusively in API routes / server utilities.
-  serverExternalPackages: ['puppeteer', 'pdfkit', 'stripe', 'handlebars'],
+  serverExternalPackages: ['puppeteer', 'pdfkit', 'stripe'],
 
   // 2. Security headers applied to every response.
   async headers() {
@@ -37,6 +37,47 @@ const nextConfig = {
 
   // 6. Strict mode surfaces effect/lifecycle bugs in development.
   reactStrictMode: true,
+
+  // 7. Disable Next.js 15 ISR/Static dev indicator (lightning bolt icon in dev mode).
+  devIndicators: {
+    appIsrStatus: false,
+  },
+
+  // 8. Temporary redirects for the /app prefix migration — every authenticated
+  //    route moved from its old unprefixed path to /app/<same path>. Not
+  //    `permanent` (308) on purpose: these are meant to be removable later
+  //    once no old bookmarks/emails/cached links are left pointing at the
+  //    pre-migration paths. `:path*` also carries any nested sub-route
+  //    (e.g. /dashboard/issues, /settings/subscription,
+  //    /google-visibility/business-profile) and preserves query strings
+  //    (e.g. ?issue=..., ?success=true) automatically.
+  async redirects() {
+    const migratedRoutes = [
+      'dashboard',
+      'onpage',
+      'accessibility',
+      'technicalchecks',
+      'pagespeed',
+      'keywords',
+      'google-visibility',
+      'aiso',
+      'aeo-hub',
+      'geo-hub',
+      'ai-video',
+      'history-logs',
+      'analytics',
+      'comparison',
+      'settings',
+      'pre-audit',
+      'deleted-projects',
+    ]
+
+    return migratedRoutes.map((route) => ({
+      source: `/${route}/:path*`,
+      destination: `/app/${route}/:path*`,
+      permanent: false,
+    }))
+  },
 }
 
 export default nextConfig

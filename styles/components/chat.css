@@ -1,66 +1,476 @@
 /* ═══════════════════════════════════════════════════════════════
    Odito Component Styles — Chat (Onboarding)
+
+   Layout hierarchy:
+     .chat-shell            responsive width (Desktop 860 / Tablet 700 / Mobile 100%)
+       .chat-scroll-area    scrollable message list, input stays outside/below it
+         .chat-message-row  one row per message (avatar + bubble group)
+           .chat-avatar
+           .chat-bubble-group
+             .chat-bubble
+             .chat-button-group / .keyword-card / etc.
+       .chat-input-row      pinned below the scroll area, never scrolls away
+
+   Breakpoints: 699px (mobile ↔ tablet), 1023px (tablet ↔ desktop) — matches
+   the thresholds already used elsewhere in this design system (cards.css).
    ═══════════════════════════════════════════════════════════════ */
 
-.chat-input-row {
+/* ── Shell ─────────────────────────────────────────────────────── */
+
+.chat-shell {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-6, 24px);
+  box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .chat-shell {
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 699px) {
+  .chat-shell {
+    max-width: 100%;
+    padding: var(--space-4, 16px);
+  }
+}
+
+/* ── Scroll area ───────────────────────────────────────────────── */
+/* Bounded height so a long conversation scrolls within the card
+   instead of stretching the whole page — the input row below it is a
+   sibling, not a child, so it's never pushed off-screen or scrolled
+   away with the messages. */
+
+.chat-scroll-area {
   display: flex;
-  gap: var(--space-2, 8px);
-  margin-top: var(--space-3, 12px);
+  flex-direction: column;
+  max-height: min(64vh, 640px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: var(--space-2, 8px);
+  margin-right: calc(var(--space-2, 8px) * -1);
+  margin-bottom: var(--space-4, 16px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong, rgba(255,255,255,0.14)) transparent;
 }
 
-.chat-input {
-  flex: 1;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md, 10px);
-  padding: var(--space-2_5, 10px) var(--space-3_5, 14px);
-  font-size: var(--text-md, 13.5px);
-  color: var(--color-text-primary);
-  font-family: var(--font-body);
-  outline: none;
-  transition: var(--transition);
+.chat-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong, rgba(255,255,255,0.14));
+  border-radius: 999px;
 }
 
-.chat-input:focus {
-  border-color: var(--color-brand-violet);
+@media (max-width: 699px) {
+  .chat-scroll-area {
+    max-height: min(70vh, 560px);
+  }
 }
 
-.chat-send {
-  padding: var(--space-2_5, 10px) var(--space-5, 18px);
+/* ── Message row ───────────────────────────────────────────────── */
+
+.chat-message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2_5, 10px);
+  margin-bottom: var(--space-5, 20px);
+}
+
+.chat-message-row.user {
+  justify-content: flex-end;
+}
+
+.chat-message-row.ai {
+  justify-content: flex-start;
+}
+
+.chat-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   background: var(--gradient-brand);
-  border: none;
-  border-radius: var(--radius-md, 10px);
-  color: #fff;
-  font-size: var(--text-base, 13px);
-  font-weight: var(--weight-semibold, 600);
-  cursor: pointer;
-  transition: var(--transition);
-  font-family: var(--font-body);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.chat-send:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-hover-cyan);
+/* The group holds the bubble plus anything hanging off it (buttons,
+   cards, selectors). min-width: 0 is the actual fix for the "New York"
+   → "new / york" bug: flex items default to min-width: auto, which
+   refuses to shrink below the text's intrinsic size and fights the
+   bubble's own wrapping rules. Setting it to 0 hands wrapping control
+   entirely to overflow-wrap/word-break on the bubble itself. */
+.chat-bubble-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+  width: max-content;
 }
+
+.chat-message-row.ai .chat-bubble-group {
+  align-items: flex-start;
+  max-width: 75%;
+}
+
+.chat-message-row.user .chat-bubble-group {
+  align-items: flex-end;
+  max-width: 70%;
+  min-width: 180px;
+}
+
+@media (max-width: 699px) {
+  .chat-message-row.ai .chat-bubble-group,
+  .chat-message-row.user .chat-bubble-group {
+    max-width: 88%;
+    min-width: 0;
+  }
+}
+
+/* ── Bubble ────────────────────────────────────────────────────── */
 
 .chat-bubble {
-  max-width: 80%;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: var(--space-3, 12px) var(--space-4, 16px);
   border-radius: var(--radius-lg, 14px);
   font-size: var(--text-md, 13.5px);
   line-height: var(--leading-normal, 1.55);
-  margin-bottom: var(--space-2_5, 10px);
+  /* Long URLs/keywords/company names must never escape the bubble —
+     overflow-wrap: anywhere breaks even unbroken strings as a last
+     resort; word-break: break-word prefers real word boundaries first. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .chat-bubble.ai {
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border-default);
   border-bottom-left-radius: 4px;
+  color: var(--color-text-primary);
+  box-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.3);
 }
 
 .chat-bubble.user {
   background: var(--gradient-brand);
   color: #fff;
   border-bottom-right-radius: 4px;
-  margin-left: auto;
+  min-width: 180px;
+  text-align: left;
+  box-shadow: 0 2px 12px -4px rgba(109, 40, 217, 0.35);
+}
+
+@media (max-width: 699px) {
+  .chat-bubble.user {
+    min-width: 0;
+  }
+}
+
+/* Any URL rendered inside a bubble (e.g. website confirmation echoes)
+   gets break-all specifically, per spec — everything else keeps the
+   gentler break-word behavior above. */
+.chat-bubble a,
+.chat-bubble .break-url {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* ── Input row (sibling of the scroll area, always visible) ──────── */
+
+.chat-input-row {
+  display: flex;
+  gap: var(--space-2, 8px);
+  align-items: center;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--space-3, 12px) var(--space-3_5, 14px);
+  font-size: var(--text-md, 13.5px);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  outline: none;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+
+.chat-input:focus {
+  border-color: var(--color-brand-violet, #7730ed);
+}
+
+.chat-send {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  color: #fff;
+  font-size: var(--text-lg, 16px);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.chat-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover-cyan);
+}
+
+.chat-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Button group (shared by keyword confirm, target level, website
+   fallback, upgrade CTA, subscription-activated CTA, etc.) ───────── */
+
+.chat-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2_5, 10px);
+  /* fit-content, not width: 100% — as a direct child of the shrink-to-fit
+     .chat-bubble-group (no wider sibling to establish the column's width
+     first), a 100%-wide child creates a circular sizing dependency that
+     resolves too narrow and forces buttons to wrap even with room to
+     spare. */
+  width: fit-content;
+  max-width: 100%;
+  /* fit-content alone isn't enough: browsers compute a flex-wrap
+     container's intrinsic (max-content) size from its WIDEST SINGLE item,
+     not the sum of a row's items — wrapping means no single width is
+     strictly required, so there's nothing forcing room for two items
+     side by side. min-width is a plain declared floor, not subject to
+     that ambiguity, so it's what actually guarantees two ~160px buttons
+     fit on one row instead of wrapping despite having space to spare.
+     min() keeps it from overflowing a genuinely narrower parent. */
+  min-width: 330px;
+}
+
+.chat-button-group.stack {
+  flex-direction: column;
+  /* Always one-per-row by explicit intent (not width-driven wrapping), so
+     unlike the base row-wrap case, there's no "measure correct max-content
+     width first" concern here — width: 100% is safe and gives these CTAs a
+     consistent, predictable width instead of shrinking to content. */
+  width: 100%;
+}
+
+/* flex-basis applies to the main axis, which is height in a column-direction
+   flex container — without an explicit width here, stacked buttons would
+   fall back to shrink-to-fit content width instead of spanning the group. */
+.chat-button-group.stack .chat-button {
+  width: 100%;
+}
+
+.chat-button {
+  flex: 1 1 160px;
+  min-height: 44px;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-radius: var(--radius-md, 10px);
+  font-size: var(--text-md, 13.5px);
+  font-weight: var(--weight-semibold, 600);
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  transition: var(--transition);
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.chat-button--primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+}
+.chat-button--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+
+.chat-button--success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+.chat-button--success:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+}
+
+.chat-button--secondary {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+.chat-button--secondary:hover:not(:disabled) {
+  background: var(--color-surface-active);
+  border-color: var(--color-border-strong);
+}
+
+.chat-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 699px) {
+  .chat-button-group {
+    flex-direction: column;
+    /* True edge-to-edge stacking — single-column layout has no row-wrap
+       circularity to avoid, so width: 100% here is unambiguously correct. */
+    width: 100%;
+  }
+  .chat-button {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+/* ── Selector grids (business type, target level, country) ───────── */
+
+.chat-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-2_5, 10px);
+  width: 100%;
+  /* Same fix as .chat-button-group: when this grid is a direct child of
+     the shrink-to-fit .chat-bubble-group (e.g. renderWebsiteFallbackCTA,
+     right after its own short bubble), width: 100% alone resolves against
+     an ambiguous/too-narrow computed size and collapses to one column.
+     min-width is a plain floor, not subject to that circularity — it's a
+     no-op when this grid is instead a scroll-area sibling with an
+     already-definite width (business type / target level selectors). */
+  min-width: 330px;
+}
+
+@media (max-width: 699px) {
+  /* Must come AFTER the base .chat-selector-grid rule above — same
+     specificity, so source order decides, and this needs to win on
+     mobile. Forces single-column so the 330px floor (needed on desktop to
+     beat the shrink-to-fit circularity) never fights the much narrower
+     mobile bubble-group cap. Confirmed via live screenshot — without
+     this, "Try searching again" spilled past the card's right edge. */
+  .chat-selector-grid {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+}
+
+.chat-selector-option {
+  padding: var(--space-3, 12px) var(--space-3_5, 14px);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md, 10px);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--text-md, 13.5px);
+  font-weight: var(--weight-medium, 500);
+  text-align: left;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
+
+.chat-selector-option:hover {
+  background: var(--color-surface-active);
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+/* ── Keyword recommendation card ──────────────────────────────────
+   Structured list — not markdown text dumped into a bubble — so
+   numbering, spacing and wrapping are all real layout, not text
+   formatting hacks. */
+
+.keyword-card {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg, 14px);
+  padding: var(--space-5, 20px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.keyword-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide, 0.04em);
+}
+
+.keyword-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.keyword-card-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md, 10px);
+  min-width: 0;
+}
+
+.keyword-card-number {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--weight-bold, 700);
+  display: grid;
+  place-items: center;
+}
+
+.keyword-card-text {
+  font-size: var(--text-md, 13.5px);
+  font-weight: var(--weight-medium, 500);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.keyword-card-prompt {
+  font-size: var(--text-md, 13.5px);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal, 1.55);
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { getScoreTier } from "../../../lib/homepageAudit/constants";
 
 export default function HeroSection({ data }) {
   if (!data) return null;
@@ -37,23 +38,24 @@ export default function HeroSection({ data }) {
 
   const overallDash = scoreToDash(overallScore);
 
-  // Dynamic text based on score
+  // Dynamic text based on score — tier sourced from the shared scoreBands
+  // (canonical: A>=85, B>=70, C>=50, else F), matching the backend's formula.
+  // NOTE: this collapses the previous 5-tier wording (Excellent/Above
+  // Average/Average/Below Average/Needs Work) into the canonical 4-tier
+  // scheme (excellent/good/needs-improvement/poor).
   const getScoreText = (score) => {
-    if (score >= 90) return {
+    const tier = getScoreTier(score);
+    if (tier === "excellent") return {
       status: "Excellent",
       description: "Outstanding performance! You're in the top tier."
     };
-    if (score >= 75) return {
-      status: "Above Average",
+    if (tier === "good") return {
+      status: "Good",
       description: `Performing better than ${Math.round(score - 25)}% of competitors in your niche.`
     };
-    if (score >= 50) return {
-      status: "Average",
+    if (tier === "needs-improvement") return {
+      status: "Needs Improvement",
       description: "Good performance with room for improvement."
-    };
-    if (score >= 25) return {
-      status: "Below Average",
-      description: "Some improvements needed to compete effectively."
     };
     return {
       status: "Needs Work",

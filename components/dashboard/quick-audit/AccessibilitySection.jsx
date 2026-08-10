@@ -1,5 +1,11 @@
 import React from "react";
 import s from "../QuickAuditResult.module.css";
+import {
+  getGrade as getSharedGrade,
+  GRADE_TEXT_COLOR,
+  GRADE_RING_COLOR,
+  getSeverityDashboardBadge,
+} from "../../../lib/homepageAudit/constants";
 
 function Field({ name, check, desc, children }) {
   const checkCls = check === "pass" ? s.checkGreen : check === "fail" ? s.checkRed : check === "warning" ? s.checkWarning : s.checkInfo;
@@ -16,21 +22,21 @@ function Field({ name, check, desc, children }) {
   );
 }
 
-/* Helper: derive grade from score (consistent with backend) */
+/* Helper: derive grade from score — sourced from the shared scoreBands. */
 function getGrade(score) {
-  if (score >= 85) return "A";
-  if (score >= 70) return "B";
-  if (score >= 50) return "C";
-  return "F";
+  return getSharedGrade(score);
 }
 
 /* Helper: derive grade info from accessibility score */
 function getAccessibilityGrade(score) {
   const grade = getGrade(score);
-  if (grade === "A") return { grade: "A", color: "#1d4ed8", titleColor: "#059669", title: "Your accessibility is excellent!" };
-  if (grade === "B") return { grade: "B", color: "#2563eb", titleColor: "#2563eb", title: "Your accessibility is above average." };
-  if (grade === "C") return { grade: "C", color: "#7c3aed", titleColor: "#d97706", title: "Your accessibility could be better." };
-  return { grade: "F", color: "#dc2626", titleColor: "#dc2626", title: "Your accessibility needs significant improvement." };
+  const titles = {
+    A: "Your accessibility is excellent!",
+    B: "Your accessibility is above average.",
+    C: "Your accessibility could be better.",
+    F: "Your accessibility needs significant improvement.",
+  };
+  return { grade, color: GRADE_RING_COLOR[grade], titleColor: GRADE_TEXT_COLOR[grade], title: titles[grade] };
 }
 
 function scoreToDash(score, size) {
@@ -99,13 +105,17 @@ export default function AccessibilitySection({ data }) {
     return null;
   }
 
-  // Helper to get status badge color and text
+  // Helper to get status badge color and text. NOTE: unlike the shared
+  // severityMap (where severity 'low' maps to green/Optimized for a passing
+  // check), a FAILING accessibility check with severity 'low' must not show
+  // green here — green is reserved for status === 'pass'. So only the
+  // critical/high and medium/warning bands are sourced from the shared map;
+  // anything else on a non-passing check keeps the original orange/Issue badge.
   const getStatusInfo = (status, severity) => {
     if (status === 'pass') return { color: 'green', text: 'Optimized' };
-    // Use severity from canonical check data
     const sev = (severity || '').toLowerCase();
-    if (['critical', 'high'].includes(sev)) return { color: 'red', text: 'Critical' };
-    if (['medium', 'warning'].includes(sev)) return { color: 'yellow', text: 'Warning' };
+    if (['critical', 'high'].includes(sev)) return getSeverityDashboardBadge('critical');
+    if (['medium', 'warning'].includes(sev)) return getSeverityDashboardBadge('medium');
     return { color: 'orange', text: 'Issue' };
   };
 

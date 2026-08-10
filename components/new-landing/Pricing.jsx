@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { savePaymentIntent } from "@/utils/paymentUtils";
 import { Check, X } from "lucide-react";
 
 export default function Pricing() {
@@ -15,27 +14,15 @@ export default function Pricing() {
     switch (planType) {
       case 'start':
         if (isAuthenticated) {
-          router.push('/dashboard');
+          router.push('/app/dashboard');
         } else {
           router.push('/signup');
         }
         break;
       
       case 'scale':
-        const billingCycle = isYearly ? 'yearly' : 'monthly';
-        const price = isYearly ? '$299/year' : '$299/month';
-        
-        savePaymentIntent({
-          planType: 'premium_monthly',
-          billingCycle,
-          planName: 'Scale',
-          price
-        });
-        
         if (!isAuthenticated) {
           router.push('/login');
-        } else {
-          window.dispatchEvent(new CustomEvent('showPaymentConfirm'));
         }
         break;
       

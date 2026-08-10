@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { signIn } from "next-auth/react";
-import { disallowPaymentResume } from "@/utils/paymentUtils";
 import { PublicGuard } from "@/components/guards/AuthGuard";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Brain, Zap } from "lucide-react";
 
@@ -163,10 +162,7 @@ function SignupForm({ formData, setFormData, error, setError, isLoading, setIsLo
 
       console.log("✅ Registration successful!", result.user);
 
-      // NEVER allow payment resume after signup - user must complete email verification first
-      disallowPaymentResume();
-
-      // Continue with verification flow - NO payment modal
+      // Continue with verification flow
       // Store email and password for verification flow
       localStorage.setItem("verificationEmail", formData.email);
       localStorage.setItem("tempPassword", formData.password);
@@ -186,7 +182,7 @@ function SignupForm({ formData, setFormData, error, setError, isLoading, setIsLo
   const handleGoogleSignup = async () => {
     try {
       await signIn("google", {
-        callbackUrl: "/dashboard",
+        callbackUrl: "/app/dashboard",
         redirect: true,
       });
     } catch (error) {

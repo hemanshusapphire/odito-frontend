@@ -63,10 +63,10 @@ function ScoreGrid({ seoHealth = 0, aiVisibility = 0, performance = 0, technical
 
   const handleCardClick = (cardType) => {
     switch (cardType) {
-      case 'seo':  router.push('/onpage');          break;
-      case 'ai':   router.push('/ai-search-audit'); break;
-      case 'perf': router.push('/pagespeed');       break;
-      case 'tech': router.push('/technicalchecks'); break;
+      case 'seo':  router.push('/app/onpage');          break;
+      case 'ai':   router.push('/app/aiso'); break;
+      case 'perf': router.push('/app/pagespeed');       break;
+      case 'tech': router.push('/app/technicalchecks'); break;
       default: break;
     }
   };

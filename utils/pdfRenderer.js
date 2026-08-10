@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { createRoot } from 'react-dom/client';
 import html2canvas from 'html2canvas';
@@ -227,7 +227,35 @@ function addInlineComponentRegistration(pageContent, pageIndex) {
     26: { id: 'ai-growth-forecast', name: 'AI Growth Forecast' },
     27: { id: 'action-plan', name: 'Action Plan' },
     28: { id: 'audit-methodology', name: 'Audit Methodology' },
-    29: { id: 'about-odito', name: 'About Odito' }
+    29: { id: 'about-odito', name: 'About Odito' },
+
+    // Homepage Audit PDF pages — indices 30-40 chosen to sit past Full
+    // Audit's own range (0-29) so lookups never collide. All implicitly
+    // needsDataFetch=false (that flag is decided by the ternary a few
+    // lines below, keyed off specific Full-Audit indices only — 30-40
+    // aren't in that list, so they default to false), which is correct:
+    // these pages take pre-fetched pdfData as a prop and never fetch
+    // internally, so they're ready as soon as they render.
+    //
+    // V3 architecture: one major topic per page (was 8 pages with 3 of them
+    // combining two unrelated topics each — Score+OnPage, Technical+Security,
+    // Performance+Accessibility — which caused Chrome's print fragmentation
+    // to split those pages unpredictably as issue counts grew). Now 12 pages
+    // (the closing CTA section is itself split across 30-40/30-41 — cards
+    // 1-3 alone, then cards 4-6 + closing copy + button — since the single
+    // combined version was overflowing onto an extra physical page).
+    30: { id: 'homepage-cover-score-overview', name: 'Homepage Cover & Score Overview' },
+    31: { id: 'homepage-score-breakdown', name: 'Homepage Score Breakdown' },
+    32: { id: 'homepage-on-page-seo', name: 'Homepage On Page SEO' },
+    33: { id: 'homepage-technical-seo', name: 'Homepage Technical SEO' },
+    34: { id: 'homepage-security-audit', name: 'Homepage Security Audit' },
+    35: { id: 'homepage-ai-visibility-geo', name: 'Homepage AI Visibility & GEO' },
+    36: { id: 'homepage-performance', name: 'Homepage Performance & Core Web Vitals' },
+    37: { id: 'homepage-accessibility', name: 'Homepage Accessibility' },
+    38: { id: 'homepage-social-profiles', name: 'Homepage Social Profiles' },
+    39: { id: 'homepage-local-business', name: 'Homepage Local Business Presence' },
+    40: { id: 'homepage-audit-benefits', name: 'Homepage Audit Benefits' },
+    41: { id: 'homepage-final-cta', name: 'Homepage Final CTA' },
   };
 
   const component = componentMap[pageIndex];
@@ -300,8 +328,22 @@ export class PDFRenderer {
 
   /**
    * NEW APPROACH: Render React component in iframe and capture
+   *
+   * @param {ReactNode} component
+   * @param {number} pageIndex
+   * @param {number} totalPages
+   * @param {object} [options] - Capture size/background overrides. Defaults
+   *   preserve Full Audit's exact original behavior (960x1280, white bg)
+   *   for any existing call site that doesn't pass this argument. Homepage
+   *   Audit passes its own theme's real A4 dimensions here instead of
+   *   resizing its page components to match Full Audit's fixed size.
+   * @param {number} [options.width=960]
+   * @param {number} [options.height=1280]
+   * @param {string} [options.backgroundColor='#ffffff']
    */
-  async renderComponent(component, pageIndex, totalPages) {
+  async renderComponent(component, pageIndex, totalPages, options = {}) {
+    const { width = 960, height = 1280, backgroundColor = '#ffffff' } = options;
+
     return new Promise(async (resolve, reject) => {
       let iframe = null;
 
@@ -312,11 +354,11 @@ export class PDFRenderer {
         iframe.style.position = 'absolute';
         iframe.style.left = '-9999px';
         iframe.style.top = '0';
-        iframe.style.width = '960px';
-        iframe.style.height = '1280px';
+        iframe.style.width = `${width}px`;
+        iframe.style.height = `${height}px`;
         iframe.style.border = 'none';
         iframe.style.overflow = 'hidden';
-        
+
         document.body.appendChild(iframe);
 
         // Wait for iframe to load
@@ -329,16 +371,16 @@ export class PDFRenderer {
         // Get iframe document
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-        
+
         // Render React component to HTML string
         const tempContainer = document.createElement('div');
-        tempContainer.style.width = '960px';
-        tempContainer.style.minHeight = '1280px';
-        tempContainer.style.background = '#fff';
+        tempContainer.style.width = `${width}px`;
+        tempContainer.style.minHeight = `${height}px`;
+        tempContainer.style.background = backgroundColor;
         tempContainer.style.fontFamily = "'DM Sans', sans-serif";
         tempContainer.style.position = 'relative';
         tempContainer.className = 'font-loaded';
-        
+
         const root = createRoot(tempContainer);
         root.render(component);
 
@@ -347,7 +389,7 @@ export class PDFRenderer {
 
         // Get the rendered HTML
         const pageContent = tempContainer.innerHTML;
-        
+
         // Clean up React root
         root.unmount();
 
@@ -361,9 +403,9 @@ export class PDFRenderer {
         await new Promise(resolve => setTimeout(resolve, 50));
 
         // CRITICAL: Wait for page to be ready (data loaded) BEFORE font loading
-        
+
         // Debug: Check window contexts
-        
+
         await new Promise((resolve, reject) => {
           const maxTime = 30000;
           const start = Date.now();
@@ -394,22 +436,56 @@ export class PDFRenderer {
           checkReady();
         });
 
-        // Now wait for fonts to load AFTER data is ready
+        // Now wait for fonts to load AFTER data is ready.
+        //
+        // Font readiness gate: `.load('1em Inter')` alone only requests the
+        // 400 weight (no weight descriptor in the shorthand = 'normal').
+        // This page set uses fontWeight 700/800 heavily (Brand Name, section
+        // headers, score values, severity/status badges) — those faces were
+        // being captured before they'd actually loaded, confirmed via
+        // document.fonts.check('700'/'800' ... 'Inter') both returning false
+        // at the moment html2canvas() ran. Explicitly request every weight
+        // this page set uses, then gate on document.fonts.check() for each
+        // (not just the load() promises resolving) before capturing.
+        const fontsDoc = iframe.contentWindow.document;
         await Promise.all([
-          iframe.contentWindow.document.fonts.load('1em Inter'),
-          iframe.contentWindow.document.fonts.load('1em DM Sans'),
-          iframe.contentWindow.document.fonts.ready
+          fontsDoc.fonts.load('400 1em Inter'),
+          fontsDoc.fonts.load('700 1em Inter'),
+          fontsDoc.fonts.load('800 1em Inter'),
+          fontsDoc.fonts.load('1em DM Sans'),
+          fontsDoc.fonts.ready
         ]);
 
+        await new Promise((resolveFonts) => {
+          const maxFontWait = 5000;
+          const fontWaitStart = Date.now();
+          const checkFontsReady = () => {
+            const inter700Ready = fontsDoc.fonts.check('700 1em Inter');
+            const inter800Ready = fontsDoc.fonts.check('800 1em Inter');
+            if ((inter700Ready && inter800Ready) || Date.now() - fontWaitStart > maxFontWait) {
+              resolveFonts();
+            } else {
+              setTimeout(checkFontsReady, 50);
+            }
+          };
+          checkFontsReady();
+        });
+
+        console.log('[PDF Renderer] Font status before capture:', {
+          pageIndex,
+          inter400: fontsDoc.fonts.check('400 1em Inter'),
+          inter700: fontsDoc.fonts.check('700 1em Inter'),
+          inter800: fontsDoc.fonts.check('800 1em Inter'),
+        });
 
         // Capture iframe body
         const canvas = await html2canvas(iframeDoc.body, {
-          width: 960,
-          height: 1280,
+          width,
+          height,
           scale: 2, // Retina quality
           useCORS: true,
           allowTaint: true,
-          backgroundColor: '#ffffff',
+          backgroundColor,
           logging: false,
           removeContainer: false,
           foreignObjectRendering: false,
@@ -473,7 +549,7 @@ export class PDFRenderer {
     if (!this.pdf) {
       throw new Error('PDF not initialized');
     }
-    
+
     // Convert jsPDF to blob
     const pdfOutput = this.pdf.output('blob');
     return pdfOutput;

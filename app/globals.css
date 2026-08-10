@@ -155,9 +155,18 @@
   }
 }
 
+/* ── ShadCN Base Tokens (theme-independent) ─────────────────────
+   --radius must never live inside a light/dark-scoped block: it has
+   no dark-mode counterpart in styles/themes/dark.css, so scoping it
+   to :root:not(.dark) left it undefined under .dark, which made every
+   --radius-* derived in the @theme bridge above invalid at computed-
+   value time in dark mode (border-radius silently resolves to 0). */
+:root {
+  --radius: 0.625rem;
+}
+
 /* ── ShadCN Light Mode Tokens (default) ────────────────────────── */
 :root:not(.dark) {
-  --radius: 0.625rem;
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
   --card: var(--surface-primary);

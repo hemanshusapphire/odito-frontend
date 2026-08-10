@@ -61,7 +61,7 @@ export default function FixPanel({ issue, url, projectId, onFixed, onClose }) {
         body: JSON.stringify({
           projectId,
           issueId,
-          issueSource: "on_page",
+          issueSource: issue.rule_id ? "ai_visibility" : "on_page",
           pageUrl: url || undefined,
           ruleMetadata: {
             title: issue.title || issue.issue || issue.issue_message,
@@ -167,7 +167,7 @@ export default function FixPanel({ issue, url, projectId, onFixed, onClose }) {
             <IssueRecommendationPanel
               projectId={projectId}
               issueId={issue.issue_code || issue.rule_id || issue.id}
-              issueSource="on_page"
+              issueSource={issue.rule_id ? "ai_visibility" : "on_page"}
               selUrl={url}
               issue={issue}
               onMarkFixed={onFixed}

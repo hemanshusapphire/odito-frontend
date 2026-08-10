@@ -74,6 +74,52 @@ export function usePageIssues(projectId, pageUrl) {
   })
 }
 
+// ==================== URL VERIFICATION QUERIES (F4-002) ====================
+
+// staleTime: 0 — a fresh run can complete at any time and the result must
+// never look stale (mirrors the "never show a stale AI value" rule the
+// backend itself enforces on this same field set).
+export function useLatestVerification(projectId, pageUrl, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.verification.latest(projectId, pageUrl),
+    queryFn: () => apiService.getLatestVerification(projectId, pageUrl),
+    enabled: !!projectId && !!pageUrl && enabled,
+    staleTime: 0,
+    retry: false,
+  })
+}
+
+// F4-003: history for one page. Cached per-project (not per-page — see
+// queryKeys.verification.projectHistory) since the underlying fetch is
+// project-wide; `select` filters+keeps the backend's newest-first order for
+// just this page. `enabled` is driven by the History panel's own
+// expanded/collapsed local state, not by useUrlVerification's progress —
+// browsing past runs is independent of whatever just ran this session.
+export function useVerificationHistory(projectId, pageUrl, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.verification.projectHistory(projectId),
+    queryFn: () => apiService.getVerificationHistory(projectId, { limit: 50 }),
+    enabled: !!projectId && !!pageUrl && enabled,
+    staleTime: staleTimes.AUDIT_RESULT,
+    select: (response) => (response?.data || []).filter((run) => run.pageUrl === pageUrl),
+  })
+}
+
+// F4-004: single run by id, for the Run Detail Drawer. `enabled` is driven
+// by the drawer's own open state — opening fetches only that run; closing
+// doesn't touch the history list's own cached query at all.
+// staleTime: STATIC — a terminal run's persisted fields never change again
+// once finalized, so there's nothing to refetch.
+export function useVerificationRun(runId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.verification.run(runId),
+    queryFn: () => apiService.getVerificationRun(runId),
+    enabled: !!runId && enabled,
+    staleTime: staleTimes.STATIC,
+    retry: false,
+  })
+}
+
 // ==================== ACCESSIBILITY QUERIES ====================
 
 export function useAccessibilityIssues(projectId) {
@@ -96,6 +142,32 @@ export function usePageSpeedData(projectId) {
   })
 }
 
+export function usePageSpeedStatus(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['pagespeed', projectId, 'status'],
+    queryFn: () => apiService.getPageSpeedStatus(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.data?.scan_status
+      return status === 'running' ? 4000 : false
+    },
+  })
+}
+
+export function usePageSpeedRescan(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.rescanPageSpeed(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pagespeed', projectId, 'status'] })
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['pagespeed', projectId, 'status'] })
+    },
+  })
+}
+
 
 // ==================== PROJECTS QUERIES ====================
 
@@ -110,13 +182,183 @@ export function useProjects(page = 1, limit = 50, enabled = true) {
   })
 }
 
+/**
+ * Trashed (soft-deleted) projects for the Deleted Projects page.
+ */
+export function useTrashedProjects(page = 1, limit = 10) {
+  return useQuery({
+    queryKey: queryKeys.projects.trash({ page, limit }),
+    queryFn: () => apiService.getTrashedProjects(page, limit),
+    staleTime: staleTimes.STANDARD,
+    gcTime: gcTimes.STANDARD,
+    refetchOnWindowFocus: false,
+  })
+}
+
+/**
+ * Restore a trashed project. On success, invalidates both the active
+ * projects list (so the restored project reappears everywhere — dashboard,
+ * sidebar, project selector) and the trash list (so it disappears there).
+ */
+export function useRestoreProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (projectId) => apiService.restoreProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })
+      queryClient.invalidateQueries({ queryKey: ['projects', 'trash'] })
+    },
+  })
+}
+
+/**
+ * Soft-delete (move to Trash) a project via the existing project-delete
+ * endpoint — same endpoint used since Project Trash & Restore Phase 1, no
+ * new API. Invalidates the active list (the project disappears from it) and
+ * the trash list (it appears there).
+ */
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (projectId) => apiService.deleteProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })
+      queryClient.invalidateQueries({ queryKey: ['projects', 'trash'] })
+    },
+  })
+}
+
+/**
+ * Permanently delete a trashed project (Project Trash & Restore, Phase 3).
+ * Same cache invalidation as useRestoreProject — the project disappears from
+ * both the active list and the trash list, this time for good.
+ */
+export function usePermanentlyDeleteProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (projectId) => apiService.permanentlyDeleteProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })
+      queryClient.invalidateQueries({ queryKey: ['projects', 'trash'] })
+    },
+  })
+}
+
+/**
+ * Update a project's scrape_frequency ('manual' | 'weekly'). Reuses the
+ * existing project update endpoint — no dedicated backend route.
+ * Invalidates the projects list/detail so the sidebar and other panels
+ * pick up the change on their next refetch.
+ */
+export function useUpdateScrapeFrequency(projectId) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (scrape_frequency) => apiService.updateProject(projectId, { scrape_frequency }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })
+    },
+  })
+}
+
+// ==================== AISO HUB QUERIES ====================
+
+export function useAISOHub(projectId) {
+  return useQuery({
+    queryKey: queryKeys.aisoHub.data(projectId),
+    queryFn:  () => apiService.getAISOHubData(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useAISOHubIssues(projectId) {
+  return useQuery({
+    queryKey: queryKeys.aisoHub.issues(projectId),
+    queryFn:  () => apiService.getAISOHubIssues(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useAISOHubIssueDetail(projectId, ruleId) {
+  return useQuery({
+    queryKey: queryKeys.aisoHub.detail(projectId, ruleId),
+    queryFn:  () => apiService.getAISOHubIssueDetail(projectId, ruleId),
+    enabled:  !!projectId && !!ruleId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== AI PAGES QUERIES ====================
+
+export function usePageAIIssues(projectId, url) {
+  return useQuery({
+    queryKey: queryKeys.aiPages.issues(projectId, url),
+    queryFn:  () => apiService.getPageAIIssues(projectId, url),
+    enabled:  !!projectId && !!url,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== GEO HUB QUERIES ====================
+
+export function useGEOHub(projectId) {
+  return useQuery({
+    queryKey: queryKeys.geoHub.data(projectId),
+    queryFn:  () => apiService.getGEOHubData(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useGEOHubIssues(projectId) {
+  return useQuery({
+    queryKey: queryKeys.geoHub.issues(projectId),
+    queryFn:  () => apiService.getGEOHubIssues(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useGEOHubIssueDetail(projectId, ruleId) {
+  return useQuery({
+    queryKey: queryKeys.geoHub.detail(projectId, ruleId),
+    queryFn:  () => apiService.getGEOHubIssueDetail(projectId, ruleId),
+    enabled:  !!projectId && !!ruleId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
 // ==================== AEO HUB QUERIES ====================
 
 export function useAEOHub(projectId) {
   return useQuery({
     queryKey: queryKeys.aeoHub.data(projectId),
-    queryFn: () => apiService.getAEOHubData(projectId),
-    enabled: !!projectId,
+    queryFn:  () => apiService.getAEOHubData(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useAEOHubIssues(projectId) {
+  return useQuery({
+    queryKey: queryKeys.aeoHub.issues(projectId),
+    queryFn:  () => apiService.getAEOHubIssues(projectId),
+    enabled:  !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useAEOHubIssueDetail(projectId, ruleId) {
+  return useQuery({
+    queryKey: queryKeys.aeoHub.detail(projectId, ruleId),
+    queryFn:  () => apiService.getAEOHubIssueDetail(projectId, ruleId),
+    enabled:  !!projectId && !!ruleId,
     staleTime: staleTimes.STANDARD,
   })
 }
@@ -381,15 +623,6 @@ export function useProjectTrends(projectId) {
   })
 }
 
-export function useAiImpact(projectId) {
-  return useQuery({
-    queryKey: queryKeys.auditHistory.aiImpact(projectId),
-    queryFn: () => apiService.getAiImpact(projectId),
-    enabled: !!projectId,
-    staleTime: staleTimes.AUDIT_RESULT,
-  })
-}
-
 export function useAllAuditHistory(projectId) {
   return useQuery({
     queryKey: queryKeys.auditHistory.historyAll(projectId),
@@ -419,5 +652,945 @@ export function usePageRawHtml(projectId, url) {
     gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+  })
+}
+
+// ==================== SUBSCRIPTION QUERIES ====================
+
+/** The authenticated user's current plan, status, and live credits/pages quota. */
+export function useSubscription() {
+  return useQuery({
+    queryKey: queryKeys.subscription.mine(),
+    queryFn: () => apiService.getSubscription(),
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== CONNECTED ACCOUNTS (GOOGLE) ====================
+
+/**
+ * Account-level Google connection status for Settings → Connected
+ * Accounts — distinct from any project-scoped Google status query
+ * elsewhere in this file; this one rolls up across every project the user
+ * has ever connected Google to (see
+ * odito_backend/.../googleAccountConnectionService.js).
+ */
+export function useGoogleAccountStatus() {
+  return useQuery({
+    queryKey: queryKeys.googleAccount.status(),
+    queryFn: () => apiService.getGoogleAccountStatus(),
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Revokes every Google connection this user has, account-wide. */
+export function useDisconnectGoogleAccount() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.disconnectGoogleAccount(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.googleAccount.status() })
+    },
+  })
+}
+
+// ==================== BRAND ASSET RESOLVER ====================
+
+/**
+ * Platform-wide "best available logo" for a project - Google Business
+ * Profile logo -> website logo -> website favicon -> generated initials
+ * (see odito_backend/src/services/brandAssetService.js). Long staleTime
+ * since branding rarely changes and the backend itself caches the website
+ * logo/favicon for 7 days - this hook just avoids re-fetching on every
+ * navigation within that window.
+ */
+export function useProjectBrandAsset(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.brandAsset.detail(projectId),
+    queryFn: () => apiService.getProjectBrandAsset(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STATIC,
+    gcTime: gcTimes.STATIC,
+  })
+}
+
+// ==================== BUSINESS PROFILE REVIEWS & RATING ====================
+
+/**
+ * Average rating / total review count. Response includes `available: false`
+ * with a `reason` when Google restricts review access for this app — the
+ * component renders "Unavailable" + tooltip in that case, never a fake 0.
+ */
+export function useBusinessProfileRating(projectId) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.rating(projectId),
+    queryFn: () => apiService.getBusinessProfileRating(projectId),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Paginated, searchable review list for the Reviews Drawer. */
+export function useBusinessProfileReviews(projectId, { page = 1, limit = 20, search = '' } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.reviews(projectId, { page, limit, search }),
+    queryFn: () => apiService.getBusinessProfileReviews(projectId, { page, limit, search }),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData, // keep prior page visible while the next page loads
+  })
+}
+
+/** Triggers a metadata + reviews sync and refreshes both queries above. */
+export function useSyncBusinessProfileReviews(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncBusinessProfileReviews(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.rating(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'reviews'] })
+    },
+  })
+}
+
+// ==================== BUSINESS PROFILE DASHBOARD ====================
+// Connection/status/accounts/locations/select/sync/data/details/trends/media
+// for the dedicated Business Profile page. Mirrors the exact request flow
+// google-visibility/page.jsx's Business Profile card already uses directly
+// via apiService (status → accounts → locations → select → sync → data),
+// just wrapped in query hooks so the new page is fully React Query-driven.
+
+/** Connection + selection + last-sync status for this project. */
+export function useBusinessProfileStatus(projectId) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.status(projectId),
+    queryFn: () => apiService.getBusinessProfileStatus(projectId),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Accessible Google Business Profile accounts (used by the account/location picker). */
+export function useBusinessProfileAccounts(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.accounts(projectId),
+    queryFn: () => apiService.getBusinessProfileAccounts(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Locations for a selected account. */
+export function useBusinessProfileLocations(projectId, accountId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.locations(projectId, accountId),
+    queryFn: () => apiService.getBusinessProfileLocations(projectId, accountId),
+    enabled: !!projectId && !!accountId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Persists the chosen account/location and enables the service. */
+export function useSelectBusinessProfile(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ accountId, locationId }) => apiService.selectBusinessProfile(projectId, accountId, locationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.status(projectId) })
+    },
+  })
+}
+
+/**
+ * Full "Sync Now": performance + metadata + extended details + reviews +
+ * media (backend's runReviewsAndMetadataSync now covers all of these in one
+ * pass). Invalidates every Business Profile query for this project so the
+ * whole page reflects the fresh sync.
+ */
+export function useSyncBusinessProfile(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncBusinessProfile(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.status(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.data(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.details(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.rating(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'trends'] })
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'media'] })
+    },
+  })
+}
+
+/** Latest persisted performance snapshot row (BusinessProfileData). */
+export function useBusinessProfileData(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.data(projectId),
+    queryFn: () => apiService.getBusinessProfileData(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Extended profile fields: description, categories, hours, coordinates, service area, verification status. */
+export function useBusinessProfileDetails(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.details(projectId),
+    queryFn: () => apiService.getBusinessProfileDetails(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Day-by-day performance series + range totals, powering both the KPI cards and the trend chart. */
+export function useBusinessProfileTrends(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.trends(projectId, range),
+    queryFn: () => apiService.getBusinessProfileTrends(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Paginated, optionally category-filtered photos/videos for the Photos gallery. */
+export function useBusinessProfileMedia(projectId, { page = 1, limit = 24, category = '' } = {}, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.media(projectId, { page, limit, category }),
+    queryFn: () => apiService.getBusinessProfileMedia(projectId, { page, limit, category }),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== SEARCH CONSOLE DASHBOARD ====================
+// Connection/status/sites/select/sync/data/trends for the dedicated Search
+// Console page. Structural mirror of the Business Profile block above,
+// adapted for Search Console's flat site list (no account->location tiers).
+
+/** Connection + selection + last-sync status for this project. */
+export function useSearchConsoleStatus(projectId) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.status(projectId),
+    queryFn: () => apiService.getSearchConsoleStatus(projectId),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Accessible Search Console sites for the connected Google account. */
+export function useSearchConsoleSites(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.sites(projectId),
+    queryFn: () => apiService.getSearchConsoleSites(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useSelectSearchConsoleSite(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (siteUrl) => apiService.selectSearchConsoleSite(projectId, siteUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.searchConsole.status(projectId) })
+    },
+  })
+}
+
+export function useSyncSearchConsole(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncSearchConsole(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.searchConsole.status(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['search-console', projectId, 'data'] })
+      queryClient.invalidateQueries({ queryKey: ['search-console', projectId, 'trends'] })
+      // Prefix-matches every dimension (query/country/device/searchAppearance) -
+      // sync refreshes all 4 in one pass server-side, so one invalidation here
+      // covers all of them instead of one call per dimension.
+      queryClient.invalidateQueries({ queryKey: ['search-console', projectId, 'breakdown'] })
+    },
+  })
+}
+
+/** Page-level performance rows + summary totals (Top Performing Pages table + KPI totals). */
+export function useSearchConsoleData(projectId, params = {}, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.data(projectId, params),
+    queryFn: () => apiService.getSearchConsoleData(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Day-by-day performance series, powering the Search Performance Trends chart. */
+export function useSearchConsoleTrends(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.trends(projectId, range),
+    queryFn: () => apiService.getSearchConsoleTrends(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Stored dimension breakdown (query/country/device/searchAppearance) - synced alongside page-level data. */
+export function useSearchConsoleBreakdown(projectId, dimension, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.breakdown(projectId, dimension),
+    queryFn: () => apiService.getSearchConsoleBreakdown(projectId, dimension),
+    enabled: !!projectId && !!dimension && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Submitted sitemaps for the selected property (live-fetched, not synced). */
+export function useSearchConsoleSitemaps(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.searchConsole.sitemaps(projectId),
+    queryFn: () => apiService.getSearchConsoleSitemaps(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** On-demand URL Inspection - not cached as a query since each call inspects a different URL. */
+export function useInspectSearchConsoleUrl(projectId) {
+  return useMutation({
+    mutationFn: (url) => apiService.inspectSearchConsoleUrl(projectId, url),
+  })
+}
+
+// ==================== GOOGLE ADS - CONNECT FLOW (Phase 7.1) ====================
+// Google Ads is a separate OAuth purpose from Business Profile/Search
+// Console/Analytics above (its own GoogleConnection row, its own consent
+// screen - see oauth.routes.js's "google_ads" branch), so it has no shared
+// status endpoint the way those three do. There is no dedicated
+// /google-ads/status route either - GET /google-ads/sync-status doubles as
+// the connection-status source: it 400s only when there's no connection at
+// all (unambiguous - see resolveProjectAndAdsConnection in
+// googleAdsController.js, which never sets requireSelectedAccount for this
+// route), and 200s with customerId:null when connected-but-unselected. One
+// endpoint, one query key, covers "not connected" through "synced" - no new
+// backend endpoint needed.
+
+/**
+ * Raw sync/connection bookkeeping for this project's Google Ads connection.
+ * Pass `refetchInterval` while a sync is in flight to poll as a fallback in
+ * case a websocket event is missed (same fallback-poll pattern as
+ * useAuditTrigger.js) - omit it otherwise so this behaves like every other
+ * status query (STANDARD staleTime, no background polling).
+ */
+export function useGoogleAdsSyncStatus(projectId, { enabled = true, refetchInterval } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.syncStatus(projectId),
+    queryFn: () => apiService.getGoogleAdsSyncStatus(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: refetchInterval ? staleTimes.REALTIME : staleTimes.STANDARD,
+    refetchInterval: refetchInterval || false,
+    // A 400 here means "no google_ads connection yet" - an expected,
+    // frequent business state (every project starts unconnected), not a
+    // transient fetch failure - retrying it is pointless noise.
+    retry: (failureCount, error) => error?.status !== 400 && failureCount < 2,
+  })
+}
+
+/**
+ * Derives the Google Ads connect-flow state from useGoogleAdsSyncStatus
+ * instead of issuing a second request - `connected` is false specifically
+ * when the query failed with HTTP 400 (see the file-level comment above for
+ * why that status code is unambiguous for this one endpoint); any other
+ * error (403, 429, 500, network) is a real error and is surfaced as such
+ * rather than silently reinterpreted as "not connected".
+ *
+ * Pass `{ poll: true }` while a sync is known to be running (State 4) so
+ * this shares the same query-key cache entry with a refetchInterval, as a
+ * fallback in case the websocket progress event is missed - same
+ * fallback-poll rationale as useAuditTrigger.js.
+ */
+export function useGoogleAdsConnection(projectId, { poll = false } = {}) {
+  const query = useGoogleAdsSyncStatus(projectId, { refetchInterval: poll ? 5000 : undefined })
+  const data = query.data?.data
+  const isNotConnected = query.isError && query.error?.status === 400
+  const isRealError = query.isError && !isNotConnected
+
+  return {
+    isLoading: query.isLoading,
+    isError: isRealError,
+    error: isRealError ? query.error : null,
+    connected: !!data && !isNotConnected,
+    selected: !!data?.customerId,
+    syncing: !!data?.inProgress,
+    syncFailed: !!data?.lastSyncFailedAt && (!data?.lastSyncCompletedAt || new Date(data.lastSyncFailedAt) > new Date(data.lastSyncCompletedAt)),
+    ready: !!data?.customerId && !data?.inProgress && !!data?.lastSyncCompletedAt,
+    data,
+    refetch: query.refetch,
+  }
+}
+
+/** Accessible Google Ads accounts for the connected Google account - only fetch once connected. */
+export function useGoogleAdsAccounts(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.accounts(projectId),
+    queryFn: () => apiService.getGoogleAdsAccounts(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useSelectGoogleAdsAccount(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ customerId, loginCustomerId }) => apiService.selectGoogleAdsAccount(projectId, customerId, loginCustomerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.googleAds.syncStatus(projectId) })
+    },
+  })
+}
+
+/** Starts the async GOOGLE_ADS_SYNC job (202 + jobId) - progress arrives via socket + poll, not this mutation's response. */
+export function useTriggerGoogleAdsSync(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.refreshGoogleAdsSync(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.googleAds.syncStatus(projectId) })
+    },
+  })
+}
+
+// ==================== GOOGLE ADS DASHBOARD (Phase 7.2) ====================
+// Every hook below reads from MongoDB via googleAdsController.js (never
+// calls Google directly), backed by data that googleAdsSyncService.js
+// already persists. Same shape throughout: useQuery + queryKeys.googleAds.*
+// + apiService.getGoogleAds*, enabled only once an account is selected
+// (the caller passes `ready` down from useGoogleAdsConnection - every one
+// of these 400s server-side without a selected customerId, so there's no
+// reason to fire the request before that's true).
+//
+// staleTimes.DYNAMIC (1 min) throughout: this data only actually changes
+// when a sync completes, and useInvalidateGoogleAdsQueries below force-
+// invalidates everything the moment that happens - the 1-minute staleTime
+// just avoids refetching on every tab focus/remount in between syncs.
+
+/** One request, every account-wide KPI total (spend/clicks/impressions/ctr/avgCpc/conversions/roas/etc). */
+export function useGoogleAdsOverview(projectId, dateRange, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.overview(projectId, dateRange),
+    queryFn: () => apiService.getGoogleAdsOverview(projectId, dateRange),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Historical trend series (daily/weekly/monthly) backing the Campaign Performance chart and the KPI sparklines. */
+export function useGoogleAdsTrends(projectId, dateRange, granularity = 'daily', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.trends(projectId, dateRange, granularity),
+    queryFn: () => apiService.getGoogleAdsTrends(projectId, dateRange, granularity),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Paginated campaign list, each row pre-enriched server-side with its metrics + health + budget health. */
+export function useGoogleAdsCampaigns(projectId, { page = 1, limit = 100, status, search, dateRange } = {}, { enabled = true } = {}) {
+  const params = { page, limit, status: status || null, search: search || null, dateRange }
+  return useQuery({
+    queryKey: queryKeys.googleAds.campaigns(projectId, params),
+    queryFn: () => apiService.getGoogleAdsCampaigns(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Account-wide health tiles (Budget Pacing / Quality Score / Ad Strength / Conversion Tracking). */
+export function useGoogleAdsCampaignHealth(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.campaignHealthSummary(projectId),
+    queryFn: () => apiService.getGoogleAdsCampaignHealthSummary(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Top keywords by cost/clicks. startDate/endDate are optional - see GoogleAdsKeyword.getProjectKeywords' doc comment for the interval-overlap semantics. */
+export function useGoogleAdsKeywords(projectId, { page = 1, limit = 50, search, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
+  const params = { page, limit, search: search || null, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
+  return useQuery({
+    queryKey: queryKeys.googleAds.keywords(projectId, params),
+    queryFn: () => apiService.getGoogleAdsKeywords(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Triggers the independent GOOGLE_ADS_KEYWORD_SYNC job - own refresh action, own job type (see Phase 6.4). */
+export function useRefreshGoogleAdsKeywords(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.refreshGoogleAdsKeywords(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['google-ads', projectId, 'keywords'] })
+    },
+  })
+}
+
+/** Recent search queries that triggered ads, with a suggested next action. startDate/endDate optional - same interval-overlap semantics as useGoogleAdsKeywords. */
+export function useGoogleAdsSearchTerms(projectId, { page = 1, limit = 25, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
+  const params = { page, limit, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
+  return useQuery({
+    queryKey: queryKeys.googleAds.searchTerms(projectId, params),
+    queryFn: () => apiService.getGoogleAdsSearchTerms(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Current Optimization Score + its historical trend. */
+export function useGoogleAdsOptimizationScore(projectId, dateRange, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.optimizationScore(projectId, dateRange),
+    queryFn: () => apiService.getGoogleAdsOptimizationScore(projectId, dateRange),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** AI-suggested optimizations + pending/applied/dismissed status summary. */
+export function useGoogleAdsRecommendations(projectId, { page = 1, limit = 25 } = {}, { enabled = true } = {}) {
+  const params = { page, limit }
+  return useQuery({
+    queryKey: queryKeys.googleAds.recommendations(projectId, params),
+    queryFn: () => apiService.getGoogleAdsRecommendations(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Triggers the independent GOOGLE_ADS_RECOMMENDATION_SYNC job. */
+export function useRefreshGoogleAdsRecommendations(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.refreshGoogleAdsRecommendations(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['google-ads', projectId, 'recommendations'] })
+    },
+  })
+}
+
+/** Account-wide spend/clicks/impressions/ctr/avgCpc/roas broken down by device. */
+export function useGoogleAdsDevices(projectId, dateRange, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.devicePerformance(projectId, dateRange),
+    queryFn: () => apiService.getGoogleAdsDevicePerformance(projectId, dateRange),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Top countries/regions/cities by spend. */
+export function useGoogleAdsGeo(projectId, { level = 'country', limit = 10 } = {}, { enabled = true } = {}) {
+  const params = { level, page: 1, limit }
+  return useQuery({
+    queryKey: queryKeys.googleAds.geoPerformance(projectId, params),
+    queryFn: () => apiService.getGoogleAdsGeoPerformance(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** All 6 audience dimensions (age, gender, household income, affinity, in-market, audience segment) in one response. */
+export function useGoogleAdsAudience(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.audiencePerformance(projectId),
+    queryFn: () => apiService.getGoogleAdsAudiencePerformance(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Ad performance grouped by format (Responsive Search / Performance Max / Display / Video / Shopping). */
+export function useGoogleAdsAds(projectId, { enabled = true } = {}) {
+  const params = { groupBy: 'ad_type' }
+  return useQuery({
+    queryKey: queryKeys.googleAds.adPerformance(projectId, params),
+    queryFn: () => apiService.getGoogleAdsAdPerformance(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Daily/monthly budget, spend, remaining, utilization, burn rate, per-campaign budget health, active alerts. */
+export function useGoogleAdsBudget(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.budgetOverview(projectId),
+    queryFn: () => apiService.getGoogleAdsBudgetOverview(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Linear burn-rate-based projected spend for the rest of the current month. */
+export function useGoogleAdsBudgetForecast(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.budgetForecast(projectId),
+    queryFn: () => apiService.getGoogleAdsBudgetForecast(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Attribution model + top conversion sources + click-vs-view-through split. */
+export function useGoogleAdsAttribution(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.attribution(projectId),
+    queryFn: () => apiService.getGoogleAdsAttribution(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Capability matrix - which widgets have real data behind them for this account yet. */
+export function useGoogleAdsCapabilities(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.capabilities(projectId),
+    queryFn: () => apiService.getGoogleAdsCapabilities(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Merged, timestamp-sorted activity feed (syncs, recommendations, budget alerts, campaign changes, optimization events). */
+export function useGoogleAdsActivity(projectId, { limit = 8, lookbackDays = 14 } = {}, { enabled = true } = {}) {
+  const params = { limit, lookbackDays }
+  return useQuery({
+    queryKey: queryKeys.googleAds.activity(projectId, params),
+    queryFn: () => apiService.getGoogleAdsActivity(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/**
+ * Invalidates every Google Ads dashboard query for this project in one call
+ * - the single source of truth Refresh Data / sync-completed handling uses
+ * (see page.jsx), so adding a future hook here never means also remembering
+ * to add it to a second, separately-maintained invalidation list. Relies on
+ * every queryKeys.googleAds.* factory above starting with ['google-ads',
+ * projectId, ...] - React Query's partial-key matching invalidates all of
+ * them from this one prefix.
+ */
+export function useInvalidateGoogleAdsQueries(projectId) {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: ['google-ads', projectId] })
+}
+
+// ==================== ANALYTICS (GA4) DASHBOARD ====================
+// Connection/status/properties/select/sync/trends/breakdowns/pages/events/
+// conversions/realtime/health/activity for the dedicated Analytics page.
+// Exact structural mirror of the Business Profile block above - same hook
+// shapes, same staleTime tiers, same invalidation pattern - so the two
+// Google Visibility dashboards are driven by one consistent React Query
+// architecture, not two independently-invented ones.
+
+/** Connection + selection + last-sync status for this project. */
+export function useAnalyticsStatus(projectId) {
+  return useQuery({
+    queryKey: queryKeys.analytics.status(projectId),
+    queryFn: () => apiService.getAnalyticsStatus(projectId),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Accessible GA4 properties (used by the property picker). */
+export function useAnalyticsProperties(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.properties(projectId),
+    queryFn: () => apiService.getAnalyticsProperties(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Persists the chosen property and enables the service. */
+export function useSelectAnalyticsProperty(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (propertyId) => apiService.selectAnalyticsProperty(projectId, propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.status(projectId) })
+    },
+  })
+}
+
+/**
+ * Manual "Sync Now" / "Refresh Data". Invalidates every Analytics query for
+ * this project (except realtime, which is never cached/never stale by
+ * definition) so the whole dashboard reflects the fresh sync - mirrors
+ * useSyncBusinessProfile's invalidation list exactly.
+ */
+export function useSyncAnalytics(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncAnalytics(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.status(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'trends'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'breakdowns'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'pages'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'events'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'conversions'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', projectId, 'health'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.activity(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.property(projectId) })
+    },
+  })
+}
+
+/** GA4 property facts (name, website, Measurement ID, timezone) - Analytics Header / Property card. */
+export function useAnalyticsProperty(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.property(projectId),
+    queryFn: () => apiService.getAnalyticsPropertyDetails(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STATIC, // property facts rarely change
+  })
+}
+
+/** Daily trend series + totals, powering the Hero KPI grid, Traffic Trends chart and Today's Summary. */
+export function useAnalyticsTrends(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.trends(projectId, range),
+    queryFn: () => apiService.getAnalyticsTrends(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Traffic Sources, Top Channels, Countries, Devices, Browsers and Operating Systems - one batched fetch. */
+export function useAnalyticsBreakdowns(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.breakdowns(projectId, range),
+    queryFn: () => apiService.getAnalyticsBreakdowns(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Top landing pages - still backed by the legacy per-page AnalyticsData
+ * endpoint (GET .../analytics/data), not a Phase 1-3 endpoint; the planned
+ * metric expansion (bounce rate, conversions per page) was never built (see
+ * Phase 4's Technical Debt Remaining), so only views/users/engagement are
+ * available today.
+ */
+export function useAnalyticsPages(projectId, { limit = 10 } = {}, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.pages(projectId, { limit }),
+    queryFn: () => apiService.getAnalyticsData(projectId, { limit, sort: 'pageViews', order: 'desc' }),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Top events by count, with users and period-over-period trend. */
+export function useAnalyticsEvents(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.events(projectId, range),
+    queryFn: () => apiService.getAnalyticsEventsList(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Conversion events bucketed into named categories. */
+export function useAnalyticsConversions(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.conversions(projectId, range),
+    queryFn: () => apiService.getAnalyticsConversionsList(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Realtime active-user snapshot. Short staleTime + refetchInterval - this
+ * is the one Analytics query that's genuinely always-live, never served
+ * from the 10-minute backend cache (see analyticsService.js's
+ * getAnalyticsRealtimeData), so the frontend polls it on its own short
+ * cadence rather than relying on manual refresh.
+ */
+export function useAnalyticsRealtime(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.realtime(projectId),
+    queryFn: () => apiService.getAnalyticsRealtime(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.REALTIME,
+    refetchInterval: enabled ? 30 * 1000 : false,
+  })
+}
+
+/** Odito-derived Analytics Health score - reuses the Trends endpoint's own cache server-side, no extra Google cost. */
+export function useAnalyticsHealth(projectId, range = '30', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.health(projectId, range),
+    queryFn: () => apiService.getAnalyticsHealth(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Recent Analytics Activity - synthesized server-side from connection timestamps. */
+export function useAnalyticsActivity(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.analytics.activity(projectId),
+    queryFn: () => apiService.getAnalyticsActivity(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Every active plan (Starter today; Pro/Premium will appear here automatically once added). */
+export function usePlans() {
+  return useQuery({
+    queryKey: queryKeys.subscription.plans(),
+    queryFn: () => apiService.getPlans(),
+    staleTime: staleTimes.STATIC,
+  })
+}
+
+/**
+ * Creates a Stripe Checkout Session for a plan. Does not invalidate any
+ * query on success — nothing about the user's subscription changes until a
+ * payment actually completes (webhook handling, a later phase), so there
+ * is nothing to refetch yet.
+ */
+export function useCreateCheckoutSession() {
+  return useMutation({
+    mutationFn: (plan) => apiService.createCheckoutSession(plan),
+  })
+}
+
+/**
+ * Creates a Stripe Billing Portal session. Same shape as
+ * useCreateCheckoutSession() — a one-shot redirect URL, no cache
+ * invalidation needed since nothing about the subscription changes here
+ * (any change a user makes inside the Portal flows back through the
+ * existing webhook handlers, not through this mutation).
+ */
+export function useCreateBillingPortalSession() {
+  return useMutation({
+    mutationFn: () => apiService.createBillingPortalSession(),
+  })
+}
+
+/**
+ * Requests a plan change on the user's EXISTING Stripe subscription — the
+ * upgrade/downgrade counterpart to useCreateCheckoutSession() (which only
+ * ever creates a brand-new subscription). This call itself doesn't change
+ * the plan; it only asks Stripe to update the price on the existing
+ * subscription. The actual local plan/quota change happens once Stripe's
+ * customer.subscription.updated webhook confirms it (see
+ * subscriptionWebhookService.js), same as every other subscription-state
+ * change in this app. Invalidating on success still refetches
+ * useSubscription()'s query — harmless if the webhook hasn't landed yet
+ * (it'll just show the same data again), useful the moment it has.
+ */
+export function useChangePlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (plan) => apiService.changePlan(plan),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subscription.mine() })
+    },
+  })
+}
+
+/**
+ * The authenticated user's most recent Custom Plan request, or `null` if
+ * they've never submitted one. Drives the Custom card's status-aware CTA
+ * (Request Custom Plan / Request Pending / View Request / request again).
+ */
+export function useMyCustomPlanRequest() {
+  return useQuery({
+    queryKey: queryKeys.customPlanRequest.mine(),
+    queryFn: () => apiService.getMyCustomPlanRequest(),
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Submits a Custom Plan request. Invalidates the same query above on
+ * success so the Custom card immediately reflects the new 'pending' status
+ * without a manual refetch.
+ */
+export function useSubmitCustomPlanRequest() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload) => apiService.submitCustomPlanRequest(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customPlanRequest.mine() })
+    },
+  })
+}
+
+/**
+ * Creates a one-time (mode: 'payment') Stripe Checkout Session for a
+ * "Buy More Pages" purchase — NOT a subscription change. Same one-shot
+ * redirect-URL shape as useCreateCheckoutSession(); no cache invalidation
+ * here either, since pages.limit only actually changes once the webhook
+ * confirms payment (BuyPagesModal's caller refetches subscription() on
+ * return from Stripe, not here).
+ */
+export function useCreatePagePurchaseCheckout() {
+  return useMutation({
+    mutationFn: (params) => apiService.createPagePurchaseCheckout(params),
+  })
+}
+
+/**
+ * Creates a one-time (mode: 'payment') Stripe Checkout Session for a
+ * "Buy Credits" purchase — NOT a subscription change. Exact structural
+ * mirror of useCreatePagePurchaseCheckout() above, credits substituted for
+ * pages.
+ */
+export function useCreateCreditPurchaseCheckout() {
+  return useMutation({
+    mutationFn: (params) => apiService.createCreditPurchaseCheckout(params),
+  })
+}
+
+/**
+ * The authenticated user's billing history, newest first. `page` defaults
+ * to 1 — no pagination UI exists yet, but the query key already includes
+ * `page` so adding pagination controls later is just passing a different
+ * value in, no new hook needed.
+ */
+export function useBillingHistory(page = 1) {
+  return useQuery({
+    queryKey: queryKeys.subscription.history(page),
+    queryFn: () => apiService.getBillingHistory(page),
+    staleTime: staleTimes.STANDARD,
   })
 }

@@ -4,8 +4,6 @@ import "./globals.css";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 
-import GlobalPaymentModal from "@/components/modals/GlobalPaymentModal";
-
 import { QueryProvider } from "@/lib/queryClient";
 
 import { WebVitals } from "@/lib/monitoring/web-vitals";
@@ -84,7 +82,6 @@ export default function RootLayout({ children }) {
         <QueryProvider>
           <AuthProvider>
             {children}
-            <GlobalPaymentModal />
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 
 import { useEffect, useState } from 'react';
 
+import { getRoleLandingRoute } from '@/lib/roleRoutes';
+
 
 
 export function AuthGuard({ children }) {
@@ -41,6 +43,28 @@ export function AuthGuard({ children }) {
       router.push('/verify-email');
 
       return;
+
+    }
+
+
+
+    // Roles with their own dedicated area (System Admin, etc.) never enter
+
+    // the customer project/onboarding flow — send them to their own
+
+    // landing route and skip hasProjects entirely.
+
+    if (isInitialized && !isLoading && isAuthenticated && user?.isEmailVerified) {
+
+      const roleLandingRoute = getRoleLandingRoute(user.roleId);
+
+      if (roleLandingRoute) {
+
+        router.push(roleLandingRoute);
+
+        return;
+
+      }
 
     }
 
@@ -160,6 +184,31 @@ export function AuthGuard({ children }) {
 
 
 
+  // Don't render dashboard content for a role with its own dedicated area —
+  // it's mid-redirect to that area, never the customer project/onboarding flow.
+
+  if (isAuthenticated && user?.isEmailVerified && getRoleLandingRoute(user.roleId)) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <div className="flex flex-col items-center space-y-4">
+
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+
+          <p className="text-muted-foreground text-sm">Redirecting...</p>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+
+
   // Show loading spinner during project check
 
   if (isAuthenticated && user?.isEmailVerified && (hasProjects === null || isCheckingProjects)) {
@@ -236,6 +285,22 @@ export function PublicGuard({ children }) {
 
       if (isInitialized && !isLoading && isAuthenticated && user?.isEmailVerified) {
 
+        // Roles with their own dedicated area (System Admin, etc.) go
+
+        // straight there — never through hasProjects/onboarding/dashboard.
+
+        const roleLandingRoute = getRoleLandingRoute(user.roleId);
+
+        if (roleLandingRoute) {
+
+          router.push(roleLandingRoute);
+
+          return;
+
+        }
+
+
+
         // Prevent multiple redirects
 
         if (isCheckingProjects) return;
@@ -248,11 +313,11 @@ export function PublicGuard({ children }) {
 
           const hasProjects = await checkProjectExistence();
 
-          
+
 
           if (hasProjects) {
 
-            router.push('/dashboard');
+            router.push('/app/dashboard');
 
           } else {
 
@@ -316,7 +381,9 @@ export function PublicGuard({ children }) {
 
 
 
-  // Don't render anything while redirecting to dashboard
+  // Don't render anything while redirecting to dashboard (or a role's own
+
+  // dedicated area, e.g. System Admin)
 
   return (
 
@@ -326,7 +393,11 @@ export function PublicGuard({ children }) {
 
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
 
-        <p className="text-muted-foreground text-sm">Redirecting to dashboard...</p>
+        <p className="text-muted-foreground text-sm">
+
+          {getRoleLandingRoute(user?.roleId) ? 'Redirecting...' : 'Redirecting to dashboard...'}
+
+        </p>
 
       </div>
 

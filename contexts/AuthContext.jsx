@@ -8,9 +8,9 @@ import { SessionProvider, useSession, signOut } from 'next-auth/react';
 
 import apiService from '@/lib/apiService';
 
-import { clearPaymentIntent } from '@/utils/paymentUtils';
-
 import { queryClient } from '@/lib/queryClient';
+
+import socketService from '@/lib/socketService';
 
 
 
@@ -85,6 +85,31 @@ export function AuthProvider({ children }) {
     checkAuth();
 
   }, []);
+
+
+
+  // Application-level Socket.IO lifecycle — the single place this connects,
+  // for every authenticated route (this provider wraps the whole app at the
+  // root layout). Reacts to `user` rather than being called from individual
+  // pages/features (BulkVerificationController, useUrlVerification, etc. only
+  // ever join rooms / register listeners — they never call connect()).
+  // socketService.connect() already no-ops if a live socket exists (see its
+  // own `this.socket && this.connected` check), so a spurious re-run of this
+  // effect (e.g. a fresh `user` object with the same identity from the
+  // NextAuth bootstrap effect) can never create a second connection.
+  useEffect(() => {
+
+    if (user) {
+
+      socketService.connect(apiService.getToken());
+
+    } else {
+
+      socketService.disconnect();
+
+    }
+
+  }, [user]);
 
 
 
@@ -173,10 +198,6 @@ export function AuthProvider({ children }) {
       setUser(null);
 
       setHasProjects(null); // Clear project cache on logout
-
-      // Clear payment intent on logout
-
-      clearPaymentIntent();
 
       // 🔒 PHASE 3: Clear React Query cache to prevent cross-user data contamination
 

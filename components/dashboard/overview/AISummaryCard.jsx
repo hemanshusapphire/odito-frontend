@@ -8,7 +8,7 @@ export default function AISummaryCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleVideoBrief = () => {
-    router.push('/ai-video');
+    router.push('/app/ai-video');
   };
 
   return (

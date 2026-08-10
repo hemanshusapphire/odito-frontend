@@ -81,6 +81,7 @@ function ForgotPasswordHero() {
 function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const validateEmail = (email) => {
@@ -88,27 +89,38 @@ function ForgotPasswordForm() {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError("");
+
     if (!email) {
-      alert("Please enter your email address");
+      setError("Please enter your email address");
       return;
     }
-    
+
     if (!validateEmail(email)) {
-      alert("Please enter a valid email address");
+      setError("Please enter a valid email address");
       return;
     }
-    
+
     setIsLoading(true);
-    console.log("Password reset requested for:", email);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      const apiService = (await import("@/lib/apiService")).default;
+      await apiService.forgotPassword(email);
+
+      // The endpoint's response is deliberately generic (never reveals
+      // whether the account exists) — so navigation always proceeds the
+      // same way regardless of what the backend actually did. This goes to
+      // the OTP verification step, never directly to /reset-password — a
+      // reset-password URL is only ever reachable with a token minted
+      // after that OTP is verified (see verify-reset-otp/page.jsx).
+      localStorage.setItem("resetPasswordEmail", email);
+      router.push(`/verify-reset-otp?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setError(err?.message || "Something went wrong. Please try again.");
       setIsLoading(false);
-      router.push("/verify-email");
-    }, 1000);
+    }
   };
 
   const isFormValid = email && validateEmail(email);
@@ -159,7 +171,13 @@ function ForgotPasswordForm() {
                   />
                 </div>
               </div>
-              
+
+              {error && (
+                <div className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg">
+                  {error}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={!isFormValid || isLoading}

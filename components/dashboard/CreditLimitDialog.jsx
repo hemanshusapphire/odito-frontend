@@ -14,7 +14,16 @@ export function CreditLimitDialog({ open, onClose }) {
 
   const handleUpgrade = () => {
     onClose();
-    router.push("/pricing");
+    router.push("/subscription/plans");
+  };
+
+  // Reuses the existing Buy Credits flow, which lives entirely on
+  // /settings/subscription (useBuyCreditsFlow.js + the modal it drives) —
+  // no separate "Buy Credits" route exists to link to directly, so this
+  // navigates to where that flow already is rather than rebuilding it here.
+  const handleBuyCredits = () => {
+    onClose();
+    router.push("/app/settings/subscription");
   };
 
   return (
@@ -38,7 +47,7 @@ export function CreditLimitDialog({ open, onClose }) {
         <div className="border-t border-border" />
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-7 py-4">
+        <div className="flex flex-col-reverse gap-3 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={onClose}
@@ -46,14 +55,23 @@ export function CreditLimitDialog({ open, onClose }) {
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleUpgrade}
-            className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #7730ed 0%, #00dfff 100%)" }}
-          >
-            Upgrade Plan
-          </button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={handleBuyCredits}
+              className="rounded-lg border border-primary/40 bg-transparent px-5 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+            >
+              Buy Credits
+            </button>
+            <button
+              type="button"
+              onClick={handleUpgrade}
+              className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #7730ed 0%, #00dfff 100%)" }}
+            >
+              Upgrade Plan
+            </button>
+          </div>
         </div>
 
       </AlertDialogContent>

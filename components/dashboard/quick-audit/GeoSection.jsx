@@ -1,5 +1,11 @@
 import React from "react";
 import s from "../QuickAuditResult.module.css";
+import {
+  getGrade as getSharedGrade,
+  GRADE_TEXT_COLOR,
+  GRADE_RING_COLOR,
+  getSeverityDashboardBadge,
+} from "../../../lib/homepageAudit/constants";
 
 function GradeHero({ bgStroke, fgStroke, dash, grade, gradeColor, titleColor, title, desc }) {
   return (
@@ -35,21 +41,21 @@ function Field({ name, check, desc, children, badge }) {
   );
 }
 
-/* Helper: derive grade from score (consistent with backend) */
+/* Helper: derive grade from score — sourced from the shared scoreBands. */
 function getGrade(score) {
-  if (score >= 85) return "A";
-  if (score >= 70) return "B";
-  if (score >= 50) return "C";
-  return "F";
+  return getSharedGrade(score);
 }
 
 /* Helper: derive grade info from AI score */
 function getGeoGrade(score) {
   const grade = getGrade(score);
-  if (grade === "A") return { grade: "A", color: "#1d4ed8", titleColor: "#059669", title: "Your Generative Engine Optimization is good!" };
-  if (grade === "B") return { grade: "B", color: "#2563eb", titleColor: "#2563eb", title: "Your Generative Engine Optimization is above average." };
-  if (grade === "C") return { grade: "C", color: "#7c3aed", titleColor: "#d97706", title: "Your Generative Engine Optimization needs improvement." };
-  return { grade: "F", color: "#dc2626", titleColor: "#dc2626", title: "Your Generative Engine Optimization is very poor." };
+  const titles = {
+    A: "Your Generative Engine Optimization is good!",
+    B: "Your Generative Engine Optimization is above average.",
+    C: "Your Generative Engine Optimization needs improvement.",
+    F: "Your Generative Engine Optimization is very poor.",
+  };
+  return { grade, color: GRADE_RING_COLOR[grade], titleColor: GRADE_TEXT_COLOR[grade], title: titles[grade] };
 }
 
 function scoreToDash(score, size) {
@@ -144,19 +150,9 @@ export default function GeoSection({ data }) {
   const aiChecks = data.sections?.ai?.checks || [];
   const getCheckStatus = (name) => aiChecks.find(c => c.name === name)?.status ?? null;
 
-  // Helper to get status badge color and text based on backend severity
-  const getStatusInfo = (severity) => {
-    switch (severity) {
-      case 'high':
-        return { color: 'red', text: 'Critical' };
-      case 'medium':
-        return { color: 'yellow', text: 'Warning' };
-      case 'low':
-        return { color: 'green', text: 'Optimized' };
-      default:
-        return { color: 'yellow', text: 'Warning' };
-    }
-  };
+  // Helper to get status badge color and text based on backend severity —
+  // sourced from the shared severityMap.
+  const getStatusInfo = (severity) => getSeverityDashboardBadge(severity);
 
   // AI Visibility checks data using actual data from old code
   const aiChecksData = [

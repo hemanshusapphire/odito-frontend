@@ -212,6 +212,25 @@ export default function IssueDetailView({
   const recommendation = data?.data;
   const meta = data?.meta;
 
+  // Recommendation mutation state is lifted to this parent (see comment
+  // above) specifically so it survives tab switches — but that same lift
+  // means nothing was clearing it when the user moves to a different URL,
+  // so a stale recommendation for the previous URL kept rendering under the
+  // newly-selected page's context. useMutation has no queryKey (unlike
+  // useIssueContext below, which is correctly keyed by selUrl and so
+  // self-invalidates), so it never resets on its own — reset() must be
+  // called explicitly. This also covers the Clear button (selUrl -> null)
+  // since that's just another value change on the same dependency.
+  //
+  // reset() detaches this observer from whatever mutation was in flight
+  // (see MutationObserver#reset in @tanstack/query-core), so even a
+  // slow-resolving generation for the previous URL can never flip this
+  // panel back to a stale "success" state after the user has moved on.
+  useEffect(() => {
+    recommendationMutation.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selUrl])
+
   // Calculate progress
   const totalUrls = fixedCount + openUrls.length
   const progress = totalUrls > 0 ? Math.round((fixedCount / totalUrls) * 100) : 0

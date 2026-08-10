@@ -30,6 +30,13 @@ import {
   ClipboardList,
   History,
   MessageSquareQuote,
+  Globe,
+  Building,
+  Search,
+  Megaphone,
+  Users,
+  Share2,
+  Server,
 } from "lucide-react"
 
 /**
@@ -45,44 +52,104 @@ export const sidebarSections = [
       {
         id: "pre-audit",
         label: "Pre Audit",
-        href: "/pre-audit",
+        href: "/app/pre-audit",
         icon: ClipboardList,
       },
       {
         id: "overview",
         label: "Overview",
-        href: "/dashboard",
+        href: "/app/dashboard",
         icon: LayoutDashboard,
       },
       {
         id: "onpage",
         label: "On-Page Issues",
-        href: "/onpage",
+        href: "/app/onpage",
         icon: FileText,
       },
       {
         id: "accessibility",
         label: "Accessibility Issues",
-        href: "/accessibility",
+        href: "/app/accessibility",
         icon: Accessibility,
       },
       {
         id: "technical-checks",
         label: "Technical Checks",
-        href: "/technicalchecks",
+        href: "/app/technicalchecks",
         icon: Settings,
       },
       {
         id: "pagespeed",
         label: "PageSpeed",
-        href: "/pagespeed",
+        href: "/app/pagespeed",
         icon: Zap,
       },
       {
         id: "keywords",
         label: "Keywords",
-        href: "/keywords",
+        href: "/app/keywords",
         icon: Key,
+      },
+    ],
+  },
+  {
+    id: "leads",
+    label: "Leads",
+    items: [
+      {
+        id: "leads-all",
+        label: "All Leads",
+        href: "/app/leads",
+        icon: Users,
+      },
+    ],
+  },
+  {
+    id: "social-media",
+    label: "Social Media",
+    items: [
+      {
+        id: "social-media-overview",
+        label: "Overview",
+        href: "/app/social",
+        icon: Share2,
+      },
+    ],
+  },
+  {
+    id: "google-visibility",
+    label: "Google Visibility",
+    items: [
+      {
+        id: "google-visibility-overview",
+        label: "Overview",
+        href: "/app/google-visibility",
+        icon: LayoutDashboard,
+      },
+      {
+        id: "google-visibility-business-profile",
+        label: "Business Profile",
+        href: "/app/google-visibility/business-profile",
+        icon: Building,
+      },
+      {
+        id: "google-visibility-search-console",
+        label: "Search Console",
+        href: "/app/google-visibility/search-console",
+        icon: Search,
+      },
+      {
+        id: "google-visibility-analytics",
+        label: "Analytics",
+        href: "/app/google-visibility/analytics",
+        icon: BarChart3,
+      },
+      {
+        id: "google-visibility-google-ads",
+        label: "Google Ads",
+        href: "/app/google-visibility/google-ads",
+        icon: Megaphone,
       },
     ],
   },
@@ -91,27 +158,45 @@ export const sidebarSections = [
     label: "AI Intelligence",
     items: [
       {
-        id: "ai-search-audit",
-        label: "AI Search Audit",
-        href: "/ai-search-audit",
+        id: "aiso",
+        label: "AISO Hub",
+        href: "/app/aiso",
         icon: BrainCircuit,
       },
       {
         id: "aeo-hub",
         label: "AEO Hub",
-        href: "/aeo-hub",
+        href: "/app/aeo-hub",
         icon: MessageSquareQuote,
       },
       {
-        id: "ai-accessibility",
-        label: "AI Accessibility",
-        href: "/ai-accessibility",
-        icon: ShieldCheck,
+        id: "geo-hub",
+        label: "GEO Hub",
+        href: "/app/geo-hub",
+        icon: Globe,
       },
+    ],
+  },
+  {
+    id: "wordpress-management",
+    label: "WordPress",
+    items: [
+      {
+        id: "wordpress-management-dashboard",
+        label: "WordPress Management",
+        href: "/app/wordpress",
+        icon: Server,
+      },
+    ],
+  },
+  {
+    id: "report",
+    label: "Report",
+    items: [
       {
         id: "ai-video",
         label: "AI Video Report",
-        href: "/ai-video",
+        href: "/app/ai-video",
         icon: Video,
       },
     ],
@@ -123,19 +208,19 @@ export const sidebarSections = [
       {
         id: "history-logs",
         label: "Optimization Center",
-        href: "/history-logs",
+        href: "/app/history-logs",
         icon: History,
       },
       {
         id: "audit-analytics",
         label: "Audit Analytics",
-        href: "/analytics",
+        href: "/app/analytics",
         icon: BarChart3,
       },
       {
         id: "audit-comparison",
         label: "Audit Comparison",
-        href: "/comparison",
+        href: "/app/comparison",
         icon: Cpu,
       },
     ],
@@ -146,7 +231,7 @@ export const bottomNavItems = [
   {
     id: "settings",
     label: "Settings",
-    href: "/settings",
+    href: "/app/settings",
     icon: Settings,
   },
   {

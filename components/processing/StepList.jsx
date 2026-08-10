@@ -1,38 +1,42 @@
-const StepList = ({ steps, done, active, jobStatus, getStepStatus }) => {
+// Stage status model: pending | running | completed | failed.
+// Every row's status comes independently from getStepStatus(index) — there is
+// no single "active step" concept, so any number of rows can render as
+// "running" (or "completed") at once, matching parallel backend execution.
+const StepList = ({ steps, jobStatus, getStepStatus }) => {
   const getStepIcon = (stepIndex) => {
     const status = getStepStatus ? getStepStatus(stepIndex) : 'pending';
     const step = steps[stepIndex];
-    
+
     if (status === 'completed') return "✓";
     if (status === 'failed') return "✗";
-    if (status === 'processing') return "⟳";
+    if (status === 'running') return "⟳";
     return step.icon;
   };
-  
+
   const getStepClassName = (stepIndex) => {
     const status = getStepStatus ? getStepStatus(stepIndex) : 'pending';
-    
+
     if (status === 'completed') return "done";
     if (status === 'failed') return "failed";
-    if (status === 'processing') return "active";
+    if (status === 'running') return "active";
     return "pending";
   };
-  
+
   const getStepLabelColor = (stepIndex) => {
     const status = getStepStatus ? getStepStatus(stepIndex) : 'pending';
-    
+
     if (status === 'completed') return "var(--text)";
     if (status === 'failed') return "var(--destructive)";
-    if (status === 'processing') return "var(--cyan)";
+    if (status === 'running') return "var(--cyan)";
     return "var(--text3)";
   };
-  
+
   const getStepBadge = (stepIndex) => {
     const status = getStepStatus ? getStepStatus(stepIndex) : 'pending';
-    
+
     if (status === 'completed') return <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 600 }}>Done</span>;
     if (status === 'failed') return <span style={{ fontSize: 11, color: "var(--destructive)", fontWeight: 600 }}>Failed</span>;
-    if (status === 'processing') return <span style={{ fontSize: 11, color: "var(--cyan)", fontWeight: 600 }}>Running...</span>;
+    if (status === 'running') return <span style={{ fontSize: 11, color: "var(--cyan)", fontWeight: 600 }}>Running...</span>;
     return null;
   };
 

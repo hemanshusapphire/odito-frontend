@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import API_BASE_URL from "@/lib/apiConfig";
 
 /**
  * Safe polling hook with cleanup and abort control
@@ -81,64 +80,4 @@ export const usePolling = (endpoint, options = {}) => {
       }
     }
   }, [pollFunction, interval, maxAttempts, condition, onError])
-}
-
-/**
- * Poll for user profile updates (credits, subscription)
- * @param {Function} onSuccess - Callback when profile changes
- * @param {Function} onError - Error callback
- */
-export function useProfilePolling(onSuccess, onError) {
-  const previousProfileRef = useRef(null)
-
-  return usePolling(
-    async (attempt) => {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        throw new Error('No auth token found')
-      }
-
-      const apiUrl = API_BASE_URL;
-      
-      const response = await fetch(`${apiUrl}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Profile fetch failed: ${response.status}`)
-      }
-
-      const { data: profile } = await response.json()
-
-      // Check if profile has changed
-      if (previousProfileRef.current) {
-        const hasChanged = 
-          previousProfileRef.current.credits !== profile.credits ||
-          previousProfileRef.current.subscription.plan !== profile.subscription.plan ||
-          previousProfileRef.current.subscription.status !== profile.subscription.status
-
-        if (hasChanged && onSuccess) {
-          onSuccess(profile, previousProfileRef.current)
-        }
-      }
-
-      previousProfileRef.current = profile
-      return profile
-    },
-    {
-      interval: 2000,
-      maxAttempts: 30,
-      condition: (result) => {
-        // Stop polling if we detect a change
-        if (previousProfileRef.current) {
-          return previousProfileRef.current.credits !== result.credits ||
-                 previousProfileRef.current.subscription.plan !== result.subscription.plan
-        }
-        return false
-      },
-      onError
-    }
-  )
 }

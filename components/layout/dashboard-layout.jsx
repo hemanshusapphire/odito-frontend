@@ -1,18 +1,25 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import { ElevenSidebar } from "@/components/sidebar/ElevenSidebar"
+import WordPressSidebar from "@/components/wordpress/WordPressSidebar"
 import { SiteHeader } from "@/components/site-header"
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 
-export function DashboardLayout({ 
-  children, 
+export function DashboardLayout({
+  children,
   user,
   headerProps = {},
-  showHeader = true 
+  showHeader = true
 }) {
   const { user: authUser, isLoading } = useAuth()
   const { isSwitchingProject } = useProject()
+  const pathname = usePathname()
+  // WordPress Management is a self-contained module with its own sidebar,
+  // deliberately independent from the Audit sidebar - see
+  // components/wordpress/WordPressSidebar.jsx.
+  const isWordPressModule = pathname?.startsWith('/app/wordpress')
   
   // Use auth user if no user prop provided (preferred approach)
   const currentUser = user || authUser
@@ -46,7 +53,7 @@ export function DashboardLayout({
       )}
 
       <div className="flex min-h-screen w-full">
-        <ElevenSidebar user={currentUser} />
+        {isWordPressModule ? <WordPressSidebar /> : <ElevenSidebar user={currentUser} />}
 
         <div className="flex flex-1 flex-col min-w-0">
           {showHeader && <SiteHeader user={currentUser} {...headerProps} />}

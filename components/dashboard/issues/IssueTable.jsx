@@ -38,7 +38,7 @@ const IssueRow = memo(function IssueRow({ iss, index, isSelected, onSelect }) {
         background: isSelected ? "rgba(124,58,237,0.08)" : ""
       }}
     >
-      <td style={{ fontWeight: 500, maxWidth: 220 }}>{iss.issue_message}</td>
+      <td style={{ fontWeight: 500, maxWidth: 220 }}>{iss.title || iss.issue_message}</td>
       <td><SevBadge sev={iss.severity} /></td>
       <td style={{ color: "var(--text2)" }}>{iss.pages_affected}</td>
       <td>

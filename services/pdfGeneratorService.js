@@ -20,6 +20,28 @@ import ActionPlanPage from '../pdf/src/components/sections/Page28ActionPlan';
 import AuditMethodologyPage from '../pdf/src/components/sections/Page29Methodology';
 import AboutOditoPage from '../pdf/src/components/sections/Page30About';
 
+// Homepage Audit PDF pages — separate product, own component set, own
+// design (dark theme, own A4 dimensions). Reuses this same
+// PDFRenderer/html2canvas/jsPDF pipeline, not Full Audit's business logic.
+import apiService from '../lib/apiService';
+import homepageAuditTheme from '../pdf/src/homepage-audit/theme';
+import Page1CoverScoreOverview from '../pdf/src/homepage-audit/pages/Page1CoverScoreOverview';
+import Page2ScoreBreakdown from '../pdf/src/homepage-audit/pages/Page2ScoreBreakdown';
+import Page3OnPageSeo from '../pdf/src/homepage-audit/pages/Page3OnPageSeo';
+import Page4TechnicalSeo from '../pdf/src/homepage-audit/pages/Page4TechnicalSeo';
+import Page5SecurityAudit from '../pdf/src/homepage-audit/pages/Page5SecurityAudit';
+import Page6AiVisibilityGeo from '../pdf/src/homepage-audit/pages/Page6AiVisibilityGeo';
+import Page7Performance from '../pdf/src/homepage-audit/pages/Page7Performance';
+import Page8Accessibility from '../pdf/src/homepage-audit/pages/Page8Accessibility';
+import Page9SocialProfiles from '../pdf/src/homepage-audit/pages/Page9SocialProfiles';
+import Page10LocalBusiness from '../pdf/src/homepage-audit/pages/Page10LocalBusiness';
+import Page11AuditBenefits from '../pdf/src/homepage-audit/pages/Page11AuditBenefits';
+import Page12FinalCta from '../pdf/src/homepage-audit/pages/Page12FinalCta';
+
+// componentMap indices reserved for these pages in utils/pdfRenderer.js —
+// must stay in this exact order (see the comment there).
+const HOMEPAGE_AUDIT_PDF_START_INDEX = 30;
+
 /**
  * Reusable PDF Generator Service
  * Extracted from useExportPDF hook for API usage
@@ -115,6 +137,88 @@ class PDFGeneratorService {
       throw error;
     } finally {
       // Clean up renderer
+      if (this.renderer) {
+        this.renderer.cleanup();
+        this.renderer = null;
+      }
+    }
+  }
+
+  /**
+   * Generate the 8-page Homepage Audit PDF report for a given auditId.
+   * Same pipeline as generatePDF() (PDFRenderer -> html2canvas -> jsPDF,
+   * entirely client-side, no backend/Puppeteer involvement) — the only
+   * differences are: (1) a single upfront data fetch instead of each page
+   * fetching its own slice, since the Homepage Audit PDF contract already
+   * returns everything in one response; (2) capture size/background come
+   * from the Homepage Audit theme (its own A4 dimensions, dark background)
+   * via renderComponent()'s new options parameter, rather than Full
+   * Audit's hardcoded 960x1280 white default.
+   *
+   * @param {string} auditId - HomepageAudit _id
+   * @param {function} [onProgress] - Progress callback (0-100)
+   * @returns {Promise<{success: boolean, blob: Blob, pages: number}>}
+   */
+  async generateHomepageAuditPDF(auditId, onProgress = null) {
+    if (!auditId) {
+      throw new Error('Invalid auditId');
+    }
+
+    this.renderer = new PDFRenderer();
+    this.renderer.initialize();
+
+    try {
+      const response = await apiService.getHomepageAuditPdfData(auditId);
+      if (!response?.success || !response?.data) {
+        throw new Error(response?.message || 'Failed to load Homepage Audit PDF data');
+      }
+      const pdfData = response.data;
+
+      const pages = [
+        { component: <Page1CoverScoreOverview pdfData={pdfData} /> },
+        { component: <Page2ScoreBreakdown pdfData={pdfData} /> },
+        { component: <Page3OnPageSeo pdfData={pdfData} /> },
+        { component: <Page4TechnicalSeo pdfData={pdfData} /> },
+        { component: <Page5SecurityAudit pdfData={pdfData} /> },
+        { component: <Page6AiVisibilityGeo pdfData={pdfData} /> },
+        { component: <Page7Performance pdfData={pdfData} /> },
+        { component: <Page8Accessibility pdfData={pdfData} /> },
+        { component: <Page9SocialProfiles pdfData={pdfData} /> },
+        { component: <Page10LocalBusiness pdfData={pdfData} /> },
+        { component: <Page11AuditBenefits /> },
+        { component: <Page12FinalCta /> },
+      ];
+
+      const captureOptions = {
+        width: homepageAuditTheme.page.width,
+        height: homepageAuditTheme.page.height,
+        backgroundColor: homepageAuditTheme.color.background,
+      };
+
+      for (let i = 0; i < pages.length; i++) {
+        const progress = Math.round(((i + 1) / pages.length) * 100);
+        if (onProgress) onProgress(progress);
+
+        const canvas = await this.renderer.renderComponent(
+          pages[i].component,
+          HOMEPAGE_AUDIT_PDF_START_INDEX + i,
+          pages.length,
+          captureOptions
+        );
+
+        this.renderer.addCanvasToPDF(canvas, i === 0);
+      }
+
+      const pdfBlob = this.renderer.getBlob();
+
+      return {
+        success: true,
+        blob: pdfBlob,
+        pages: pages.length,
+      };
+    } catch (error) {
+      throw error;
+    } finally {
       if (this.renderer) {
         this.renderer.cleanup();
         this.renderer = null;

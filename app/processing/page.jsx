@@ -31,7 +31,7 @@ export default function ProcessingPage() {
   }
 
   const handleProcessingDone = () => {
-    router.push('/dashboard');
+    router.push('/app/dashboard');
   };
 
   return <ProcessingScreen onDone={handleProcessingDone} />;

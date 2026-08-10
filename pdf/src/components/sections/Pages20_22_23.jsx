@@ -268,15 +268,7 @@ export function AIContentReadinessPage({ projectId }) {
     );
   }
 
-  // Transform API data to component format (IDENTICAL to Dashboard)
-  const signals = [
-    { label: 'Schema Coverage', pct: data?.signals?.schemaCoverage || 0, color: '#F59E0B', sub: `${data?.signals?.schemaCoverage || 0}% — Schema markup coverage` },
-    { label: 'FAQ Schema Optimization', pct: data?.signals?.faqOptimization || 0, color: '#00D4FF', sub: `${data?.signals?.faqOptimization || 0}% — FAQ schema implementation` },
-    { label: 'Conversational Content', pct: data?.signals?.conversationalScore || 0, color: '#4F6EF7', sub: `${data?.signals?.conversationalScore || 0}% — AI-friendly content score` },
-    { label: 'AI Snippet Probability', pct: data?.signals?.aiSnippetProbability || 0, color: '#10B981', sub: `${data?.signals?.aiSnippetProbability || 0}% — Snippet extraction likelihood` },
-    { label: 'AI Citation Rate', pct: data?.signals?.aiCitationRate || 0, color: '#10B981', sub: `${data?.signals?.aiCitationRate || 0}% — AI platform citation rate` },
-    { label: 'Knowledge Graph', pct: data?.signals?.knowledgeGraph || 0, color: '#7B5CF0', sub: `${data?.signals?.knowledgeGraph || 0}% — Named entity coverage` },
-  ];
+  const signals = [];
 
   const checklist = data?.checklist?.map(item => [
     item.title || 'Unknown Issue',

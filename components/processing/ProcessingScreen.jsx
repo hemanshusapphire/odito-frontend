@@ -5,42 +5,71 @@ import { useRouter } from 'next/navigation';
 import StepList from './StepList';
 import apiService from '@/lib/apiService';
 
+// Derive a stage's status purely from its own job-type bucket. No shared
+// "current step" concept — every stage is independent.
+//
+// A stage's bucket can represent either a single job (most stages) or N
+// sibling chunk jobs sharing one JobGroup (PAGE_SCRAPING, HEADLESS_ACCESSIBILITY
+// in a full audit). Either way, the stage is NOT done just because
+// `completed > 0` — that's only true once every job in the bucket has
+// reached a terminal state (nothing left pending or processing). For a
+// single-job stage this is equivalent to the old completed>0 check (there's
+// only one job, so once it's terminal, pending/processing are already 0);
+// for a chunked stage it correctly waits for every chunk.
+//
+// Failure semantics match the backend JobGroup states: if every resolved
+// job/chunk failed (completed===0), the stage truly failed. If some
+// succeeded and some failed (partial), the stage is treated as completed —
+// matching the backend's 'partial' JobGroup status, which still lets the
+// pipeline continue rather than stopping the audit.
+function deriveStatusFromJobData(jobData) {
+  if (!jobData) return 'pending';
+
+  const pending = jobData.pending || 0;
+  const processing = jobData.processing || 0;
+  const completed = jobData.completed || 0;
+  const failed = jobData.failed || 0;
+
+  if (pending > 0 || processing > 0) return 'running';
+  if (completed === 0 && failed === 0) return 'pending';
+  if (failed > 0 && completed === 0) return 'failed';
+  return 'completed';
+}
+
+// True stage failure only: every job/chunk in the bucket resolved and NONE
+// succeeded. A partially-successful chunked stage (some completed, some
+// failed) is not a stage failure — see deriveStatusFromJobData above.
+function isStageFullyFailed(jobData) {
+  if (!jobData) return false;
+  const pending = jobData.pending || 0;
+  const processing = jobData.processing || 0;
+  const completed = jobData.completed || 0;
+  const failed = jobData.failed || 0;
+
+  if (pending > 0 || processing > 0) return false;
+  return failed > 0 && completed === 0;
+}
+
 const ProcessingScreen = ({ projectId, onDone }) => {
   const router = useRouter();
-  
+
   // Complete backend pipeline stages with icons and display names
   const steps = [
-    { label: "Discover Links", icon: "�", key: 'LINK_DISCOVERY' },
+    { label: "Discover Links", icon: "🔗", key: 'LINK_DISCOVERY' },
     { label: "Technical Domain", icon: "⚙️", key: 'TECHNICAL_DOMAIN' },
     { label: "Crawl Pages", icon: "🕷", key: 'PAGE_SCRAPING' },
     { label: "Accessibility", icon: "♿", key: 'HEADLESS_ACCESSIBILITY' },
-    { label: "Crawl Graph", icon: "�️", key: 'CRAWL_GRAPH' },
+    { label: "Crawl Graph", icon: "🗺️", key: 'CRAWL_GRAPH' },
     { label: "Mobile Performance", icon: "📱", key: 'PERFORMANCE_MOBILE' },
-    { label: "Desktop Performance", icon: "�", key: 'PERFORMANCE_DESKTOP' },
+    { label: "Desktop Performance", icon: "💻", key: 'PERFORMANCE_DESKTOP' },
     { label: "Page Analysis", icon: "📊", key: 'PAGE_ANALYSIS' },
     { label: "SEO Scoring", icon: "🎯", key: 'SEO_SCORING' },
     { label: "AI Visibility", icon: "🧠", key: 'AI_VISIBILITY' },
-    { label: "AI Visibility Scoring", icon: "✨", key: 'AI_VISIBILITY_SCORING' } 
   ];
 
   const [jobStatus, setJobStatus] = useState(null);
   const [error, setError] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
-
-  // Map backend job types to step indices
-  const jobStepMap = {
-    'LINK_DISCOVERY': 0,
-    'TECHNICAL_DOMAIN': 1,
-    'PAGE_SCRAPING': 2,
-    'PAGE_ANALYSIS': 3,
-    'SEO_SCORING': 4,
-    'PERFORMANCE_MOBILE': 5,
-    'PERFORMANCE_DESKTOP': 6,
-    'HEADLESS_ACCESSIBILITY': 7,
-    'CRAWL_GRAPH': 8,
-    'AI_VISIBILITY': 9,
-    'AI_VISIBILITY_SCORING': 10
-  };
 
   useEffect(() => {
     if (!projectId) {
@@ -53,48 +82,47 @@ const ProcessingScreen = ({ projectId, onDone }) => {
       try {
         const response = await apiService.getAuditStatus(projectId);
         if (response.success) {
+          // URL Selection gate: URL_QUALIFICATION has completed and the
+          // pipeline is parked waiting for the user to review/approve
+          // discovered URLs — no PAGE_SCRAPING/HEADLESS_ACCESSIBILITY job
+          // exists yet, so the job-bucket polling below would otherwise sit
+          // frozen forever. Redirect instead of rendering the spinner.
+          if (response.crawl_status === 'awaiting_url_selection') {
+            router.push(`/projects/${projectId}/url-selection`);
+            return;
+          }
+
           setJobStatus(response.data);
 
-          // Calculate completed and active steps from backend job status
-          const completedSteps = [];
-          const failedSteps = [];
-          let currentActiveStep = -1; // -1 means no active step
+          const hasFailedJobs = Object.values(response.data).some(isStageFullyFailed);
 
-          Object.entries(response.data).forEach(([jobType, status]) => {
-            const stepIndex = jobStepMap[jobType];
-            if (stepIndex !== undefined) {
-              if (status.completed > 0) {
-                completedSteps.push(stepIndex);
-              }
-              if (status.failed > 0) {
-                failedSteps.push(stepIndex);
-              }
-              if (status.processing > 0) {
-                currentActiveStep = Math.max(currentActiveStep, stepIndex);
-              }
-            }
-          });
-
-          // Check if all jobs are completed (no pending or processing jobs)
-          const allJobsCompleted = Object.values(response.data).every(
-            status => status.completed > 0 || status.failed > 0 || status.pending === 0
-          );
-
-          // Check if any job failed
-          const hasFailedJobs = Object.values(response.data).some(
-            status => status.failed > 0
-          );
+          // Audit completion is a single, canonical signal owned by the
+          // backend: SeoProject.crawl_status only becomes 'completed' once
+          // chainingEngine's _finalizeAuditCompletion() has verified every
+          // required terminal job type (SEO_SCORING AND AI_VISIBILITY, not
+          // either alone) has actually resolved for this run — see
+          // AuditHistoryService.allTerminalsResolved(). The frontend does not
+          // reconstruct pipeline state to make this decision; it just reads
+          // the backend's answer.
+          const auditComplete = response.crawl_status === 'completed';
 
           if (hasFailedJobs) {
             setError('One or more jobs failed during the audit');
-          } else if (allJobsCompleted && completedSteps.length > 0) {
+          } else if (auditComplete) {
             setIsCompleted(true);
             setTimeout(onDone, 1000);
+          } else {
+            // Clear any error a previous poll set (e.g. a transient job
+            // failure that later self-recovered) — error state must reflect
+            // the current poll, not the worst historical one, otherwise a
+            // single transient failure permanently poisons the screen even
+            // while the audit goes on to complete successfully.
+            setError(null);
           }
         }
       } catch (err) {
         console.error('Error polling job status:', err);
-        setError('Failed to check job status');
+        setError(err.message || 'Failed to check job status');
       }
     };
 
@@ -105,63 +133,61 @@ const ProcessingScreen = ({ projectId, onDone }) => {
     return () => clearInterval(interval);
   }, [projectId, onDone]);
 
-  // Calculate progress based on pipeline stage completion (not job counts)
-  // Each stage counts as 1 unit regardless of how many jobs it spawns
-  const calculateProgress = () => {
-    if (!jobStatus) return 0;
-
-    const totalStages = steps.length;
-    let completedStages = 0;
-
-    steps.forEach((step) => {
-      const stageData = jobStatus[step.key.toLowerCase()];
-      if (stageData && (stageData.completed > 0 || stageData.failed > 0)) {
-        completedStages++;
-      }
-    });
-
-    return totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
-  };
-
-  const progress = calculateProgress();
-
-  // Get step status from backend job data
+  // Independent per-stage status model: pending | running | completed | failed.
+  // Every stage derives its own status from its own backend job-type bucket —
+  // there is no shared "current active step" scalar, and any number of stages
+  // can be `running` (or `completed`) at the same time. This matches the
+  // pipeline's actual execution: LINK_DISCOVERY, TECHNICAL_DOMAIN and
+  // DOMAIN_PERFORMANCE all run concurrently from audit start.
   const getStepStatus = (stepIndex) => {
     if (!jobStatus) return 'pending';
 
     const step = steps[stepIndex];
     const jobData = jobStatus[step.key.toLowerCase()];
 
-    if (!jobData) return 'pending';
+    // DOMAIN_PERFORMANCE is a standalone job seeded at audit start — it is
+    // not part of the CRAWL_GRAPH -> PERFORMANCE_MOBILE/PERFORMANCE_DESKTOP
+    // chain and has no row of its own in `steps`. While it's processing, it
+    // gives early "Running" feedback on the Mobile/Desktop Performance rows,
+    // before their own per-page jobs even exist yet. Only its *processing*
+    // signal is borrowed, never `completed` — DOMAIN_PERFORMANCE finishing
+    // does not mean per-page performance analysis is done.
+    if (step.key === 'PERFORMANCE_MOBILE' || step.key === 'PERFORMANCE_DESKTOP') {
+      const ownStatus = deriveStatusFromJobData(jobData);
+      if (ownStatus === 'pending' && jobStatus['domain_performance']?.processing > 0) {
+        return 'running';
+      }
+      return ownStatus;
+    }
 
-    if (jobData.failed > 0) return 'failed';
-    if (jobData.completed > 0) return 'completed';
-    if (jobData.processing > 0) return 'processing';
-    if (jobData.pending > 0) return 'pending';
-
-    return 'pending';
+    return deriveStatusFromJobData(jobData);
   };
 
-  // Get completed steps array for StepList
   const completedSteps = steps
     .map((_, index) => index)
     .filter(index => getStepStatus(index) === 'completed');
 
-  // Get current active step
-  const activeStep = steps
+  const runningSteps = steps
     .map((_, index) => index)
-    .find(index => getStepStatus(index) === 'processing') ?? -1;
+    .filter(index => getStepStatus(index) === 'running');
 
-  // Auto-redirect when audit completes
-  useEffect(() => {
-    if (progress === 100 && completedSteps.length === steps.length) {
-      const timer = setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500); // Wait 1.5 seconds before redirect
+  // Calculate progress based on pipeline stage completion (not job counts)
+  // Each stage counts as 1 unit regardless of how many jobs it spawns
+  const calculateProgress = () => {
+    if (!jobStatus) return 0;
+    const totalStages = steps.length;
+    return totalStages > 0 ? Math.round((completedSteps.length / totalStages) * 100) : 0;
+  };
 
-      return () => clearTimeout(timer);
-    }
-  }, [progress, completedSteps.length, steps.length, router]);
+  const progress = calculateProgress();
+
+  // Navigation away from this screen happens ONLY from the single
+  // `auditComplete` check inside pollJobStatus above (driven by the
+  // backend's canonical crawl_status field) — see the `onDone` call there.
+  // There is intentionally no second, independently-computed "are all steps
+  // done" redirect here: this component's own per-step status derivation
+  // (getStepStatus/completedSteps, used for the progress bar) is a display
+  // concern only and must never itself decide when to navigate away.
 
   if (error) {
     return (
@@ -217,13 +243,13 @@ const ProcessingScreen = ({ projectId, onDone }) => {
           </div>
           <div style={{ fontSize: 13, color: "var(--text3)" }}>
             {jobStatus
-              ? `Checking progress... ${completedSteps.length}/${steps.length} stages completed`
+              ? `${completedSteps.length}/${steps.length} stages completed${runningSteps.length > 0 ? ` · ${runningSteps.length} running` : ''}`
               : 'Initializing audit...'
             }
           </div>
         </div>
 
-        <StepList steps={steps} done={completedSteps} active={activeStep} jobStatus={jobStatus} getStepStatus={getStepStatus} />
+        <StepList steps={steps} jobStatus={jobStatus} getStepStatus={getStepStatus} />
       </div>
     </div>
   );

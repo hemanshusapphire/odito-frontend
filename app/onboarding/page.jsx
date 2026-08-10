@@ -8,15 +8,9 @@ import Hero from '@/components/landing/Hero';
 import ARIAChat from '@/components/onboarding/ARIAChat';
 import TrustBar from '@/components/landing/TrustBar';
 
-function getTotalCredits(user) {
-  if (!user?.credits) return 0;
-  if (typeof user.credits === 'number') return user.credits;
-  return (user.credits.permanent || 0) + (user.credits.monthly || 0);
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -25,12 +19,14 @@ export default function OnboardingPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Redirect to pricing if user has no credits
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user && getTotalCredits(user) <= 0) {
-      router.push('/pricing');
-    }
-  }, [isLoading, isAuthenticated, user, router]);
+  // NOTE (Phase 15.5): this used to also redirect to /pricing on mount when
+  // getRemainingCredits(user) <= 0, using AuthContext's user snapshot — a
+  // value that's only refreshed on auth events, not live. Two problems:
+  // it fired on stale data, and /pricing has no working upgrade path for
+  // an authenticated user (dead end #2, on top of the one this phase
+  // fixes). The credit check now happens inside ARIAChat itself, right
+  // before project creation, using a fresh subscription fetch — with an
+  // inline Upgrade CTA instead of a redirect. See ARIAChat.jsx.
 
   // Show loading state while checking authentication
   if (isLoading) {

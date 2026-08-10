@@ -19,13 +19,13 @@ const badgeVariants = cva(
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
         success:
-          "bg-emerald-900/30 text-emerald-300 border-emerald-700/50 shadow-sm [a&]:hover:bg-emerald-900/40",
+          "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/50 shadow-sm [a&]:hover:bg-emerald-200 dark:[a&]:hover:bg-emerald-900/40",
         warning:
-          "bg-amber-900/30 text-amber-300 border-amber-700/50 shadow-sm [a&]:hover:bg-amber-900/40",
+          "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/50 shadow-sm [a&]:hover:bg-amber-200 dark:[a&]:hover:bg-amber-900/40",
         critical:
-          "bg-red-900/30 text-red-300 border-red-700/50 shadow-sm [a&]:hover:bg-red-900/40",
+          "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50 shadow-sm [a&]:hover:bg-red-200 dark:[a&]:hover:bg-red-900/40",
         info:
-          "bg-cyan-900/30 text-cyan-300 border-cyan-700/50 shadow-sm [a&]:hover:bg-cyan-900/40",
+          "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700/50 shadow-sm [a&]:hover:bg-cyan-200 dark:[a&]:hover:bg-cyan-900/40",
       },
     },
     defaultVariants: {

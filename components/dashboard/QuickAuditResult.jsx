@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import s from "./QuickAuditResult.module.css";
 import HeroSection from "./quick-audit/HeroSection";
 import HomepageVideoSection from "./quick-audit/HomepageVideoSection";
+import ExportPdfButton from "./quick-audit/ExportPdfButton";
 // import RecommendationsSection from "./quick-audit/RecommendationsSection"; // HIDDEN FOR NOW
 import OnPageSeoSection from "./quick-audit/OnPageSeoSection";
 import TechnicalSection from "./quick-audit/TechnicalSection";
@@ -39,9 +40,12 @@ export default function QuickAuditResult({ data, businessContext }) {
     <div ref={resultRef} className={s.wrap}>
 
 
-      {/* Audit Title */}
-      <div className={s.auditTitle}>
-        Audit Results for <span>{data.page_info?.url || data.url || 'Unknown URL'}</span>
+      {/* Audit Title + Export PDF */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className={s.auditTitle} style={{ marginBottom: 0 }}>
+          Audit Results for <span>{data.page_info?.url || data.url || 'Unknown URL'}</span>
+        </div>
+        <ExportPdfButton auditId={data._audit_id} />
       </div>
 
       {/* Hero Section */}

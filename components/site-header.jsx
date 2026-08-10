@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator"
 import { usePathname, useRouter } from "next/navigation"
 import { IconDownload, IconLogout } from "@tabler/icons-react"
 import { Menu, Plus, User, Settings, CreditCard } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { useExportPDF } from "@/hooks/useExportPDF"
 import { useProject } from "@/contexts/ProjectContext"
 import { useAuth } from "@/contexts/AuthContext"
@@ -21,12 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CreditLimitDialog } from "@/components/dashboard/CreditLimitDialog"
-
-function getTotalCredits(user) {
-  if (!user?.credits) return 0;
-  if (typeof user.credits === "number") return user.credits;
-  return (user.credits.permanent || 0) + (user.credits.monthly || 0);
-}
+import { getRemainingCredits, getRemainingPages } from "@/lib/subscription"
 
 export function SiteHeader({ user, onLogout }) {
   const pathname = usePathname()
@@ -40,13 +35,13 @@ export function SiteHeader({ user, onLogout }) {
 
   const getPageTitle = () => {
     if (pathname === "/") return "Dashboard"
-    if (pathname === "/dashboard") return "Dashboard"
+    if (pathname === "/app/dashboard") return "Dashboard"
     if (pathname === "/projects") return "Projects"
-    if (pathname === "/analytics") return "Analytics"
-    if (pathname === "/onpage") return "On-Page Issues"
-    if (pathname === "/technicalchecks") return "Technical Checks"
-    if (pathname === "/pagespeed") return "PageSpeed Insights"
-    if (pathname === "/keywords") return "Keywords"
+    if (pathname === "/app/analytics") return "Analytics"
+    if (pathname === "/app/onpage") return "On-Page Issues"
+    if (pathname === "/app/technicalchecks") return "Technical Checks"
+    if (pathname === "/app/pagespeed") return "PageSpeed Insights"
+    if (pathname === "/app/keywords") return "Keywords"
     if (pathname === "/off-page-links") return "Off-Page & Links"
     return "Dashboard"
   }
@@ -105,7 +100,7 @@ export function SiteHeader({ user, onLogout }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  if (getTotalCredits(user) <= 0) {
+                  if (getRemainingCredits(user) <= 0) {
                     setShowCreditDialog(true);
                   } else {
                     router.push("/onboarding");
@@ -156,8 +151,9 @@ export function SiteHeader({ user, onLogout }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="cursor-pointer outline-none">
+                  <button className="cursor-pointer outline-none" aria-label="Open account menu">
                     <Avatar className="h-12 w-12 rounded-full hover:opacity-80 transition-opacity border border-border">
+                      <AvatarImage src={user.avatar || undefined} alt="" />
                       <AvatarFallback className="rounded-full text-base font-semibold bg-accent/40 text-foreground">
                         {`${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -168,6 +164,7 @@ export function SiteHeader({ user, onLogout }) {
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-3 px-2.5 py-2.5">
                       <Avatar className="h-14 w-14 rounded-full border border-border">
+                        <AvatarImage src={user.avatar || undefined} alt="" />
                         <AvatarFallback className="rounded-full text-lg font-bold bg-accent/40 text-foreground">
                           {`${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || 'U'}
                         </AvatarFallback>
@@ -183,10 +180,14 @@ export function SiteHeader({ user, onLogout }) {
                     </div>
                   </DropdownMenuLabel>
 
-                  <div className="px-2 py-1.5">
+                  <div className="px-2 py-1.5 space-y-1.5">
                     <div className="flex items-center justify-between px-3.5 py-2.5 text-sm bg-muted border border-border/40 rounded-lg">
-                      <span className="text-muted-foreground font-medium">Credits</span>
-                      <span className="font-bold text-primary font-mono">{user?.credits || 0}</span>
+                      <span className="text-muted-foreground font-medium">Credits Remaining</span>
+                      <span className="font-bold text-primary font-mono">{getRemainingCredits(user)}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3.5 py-2.5 text-sm bg-muted border border-border/40 rounded-lg">
+                      <span className="text-muted-foreground font-medium">Pages Remaining</span>
+                      <span className="font-bold text-primary font-mono">{getRemainingPages(user)}</span>
                     </div>
                   </div>
 
@@ -197,12 +198,18 @@ export function SiteHeader({ user, onLogout }) {
                     Profile
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem className="flex items-center gap-3 py-2.5 px-3.5 rounded-lg text-base text-foreground/90 hover:text-foreground cursor-pointer transition-colors focus:bg-accent/40 focus:text-foreground">
+                  <DropdownMenuItem
+                    onClick={() => router.push("/app/settings")}
+                    className="flex items-center gap-3 py-2.5 px-3.5 rounded-lg text-base text-foreground/90 hover:text-foreground cursor-pointer transition-colors focus:bg-accent/40 focus:text-foreground"
+                  >
                     <Settings size={18} className="text-muted-foreground" />
                     Settings
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem className="flex items-center gap-3 py-2.5 px-3.5 rounded-lg text-base text-foreground/90 hover:text-foreground cursor-pointer transition-colors focus:bg-accent/40 focus:text-foreground">
+                  <DropdownMenuItem
+                    onClick={() => router.push("/app/settings/subscription")}
+                    className="flex items-center gap-3 py-2.5 px-3.5 rounded-lg text-base text-foreground/90 hover:text-foreground cursor-pointer transition-colors focus:bg-accent/40 focus:text-foreground"
+                  >
                     <CreditCard size={18} className="text-muted-foreground" />
                     Billing
                   </DropdownMenuItem>
