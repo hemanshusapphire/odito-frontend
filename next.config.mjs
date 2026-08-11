@@ -38,6 +38,20 @@ const nextConfig = {
   // 6. Strict mode surfaces effect/lifecycle bugs in development.
   reactStrictMode: true,
 
+  // 6a. next-auth's parseUrl() does `new URL(process.env.NEXTAUTH_URL ?? defaultUrl)`
+  //     at module-load time (node_modules/next-auth/utils/parse-url.js) - `??`
+  //     only guards null/undefined, not an empty string. If NEXTAUTH_URL (or
+  //     NEXTAUTH_URL_INTERNAL/VERCEL_URL) is defined-but-empty on a build host,
+  //     `new URL("")` throws "Invalid URL" and aborts `next build` the moment
+  //     SessionProvider (AuthContext.jsx, wraps the whole app in layout.js) is
+  //     pulled into any statically-prerendered route. This inlines a guaranteed
+  //     non-empty fallback so the build can never crash on host env hygiene,
+  //     independent of whatever that host's actual NEXTAUTH_URL is set to.
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://odito.ai',
+    NEXTAUTH_URL_INTERNAL: process.env.NEXTAUTH_URL_INTERNAL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://odito.ai',
+  },
+
   // 7. Disable Next.js 15 ISR/Static dev indicator (lightning bolt icon in dev mode).
   devIndicators: {
     appIsrStatus: false,
