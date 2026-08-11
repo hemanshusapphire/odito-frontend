@@ -254,6 +254,12 @@ function RunningState() {
 // ---------------------------------------------------------------------------
 export default function PageSpeedPageContent() {
   const [device, setDevice] = useState("mobile")
+  // Desktop and Mobile are independent results - if the device we default to
+  // (mobile) has no data but the other one does, auto-select the one that
+  // actually has data ONCE on first load, so a partial_success scan doesn't
+  // strand the user on a dead-end "no data" message for the missing device.
+  // Guarded so it never fights a manual tab click after that.
+  const autoSelectedRef = useRef(false)
   const queryClient = useQueryClient()
   const { activeProjectId, isLoading: projectLoading } = useProject()
 
@@ -263,6 +269,14 @@ export default function PageSpeedPageContent() {
 
   const pagespeedData = pagespeedResponse?.data || pagespeedResponse
   const statusData    = statusResponse?.data
+
+  useEffect(() => {
+    if (autoSelectedRef.current || !pagespeedData) return
+    autoSelectedRef.current = true
+    if (device === 'mobile' && !pagespeedData.mobile && pagespeedData.desktop) {
+      setDevice('desktop')
+    }
+  }, [pagespeedData, device])
 
   // ── WebSocket: listen for real-time pagespeed events ──────────────────────
   useEffect(() => {
@@ -317,16 +331,19 @@ export default function PageSpeedPageContent() {
   }
 
   // ── State 4 — Completed (show data) ───────────────────────────────────────
+  // currentDeviceData can be null for the CURRENTLY SELECTED tab even though
+  // hasData is true overall (e.g. partial_success: desktop completed, mobile
+  // failed). That must only affect this device's content panel below - never
+  // hide the header/tabs/rescan button or the OTHER device's valid data.
   const currentDeviceData = pagespeedData[device]
-  if (!currentDeviceData) {
-    return (
-      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>
-        No {device} data available
-      </div>
-    )
-  }
 
-  const score       = Math.round(currentDeviceData.performance_score || 0)
+  const deviceStatusField = device === 'mobile' ? statusData?.mobile_status : statusData?.desktop_status
+  const deviceErrorField  = device === 'mobile' ? statusData?.mobile_error  : statusData?.desktop_error
+  const deviceUnavailableMessage = deviceStatusField === 'failed'
+    ? `${device === 'mobile' ? 'Mobile' : 'Desktop'} scan failed${deviceErrorField ? `: ${deviceErrorField}` : ''}`
+    : `No ${device} data available`
+
+  const score       = currentDeviceData ? Math.round(currentDeviceData.performance_score || 0) : 0
   const scoreColors = getScoreColor(score)
 
   const formatMetricValue = (label, rawValue, displayValue) => {
@@ -346,19 +363,20 @@ export default function PageSpeedPageContent() {
     }
   }
 
-  const metrics = [
+  const metrics = currentDeviceData ? [
     { label: "LCP",         value: formatMetricValue("LCP",         currentDeviceData.lcp?.value,         currentDeviceData.lcp?.display_value),         status: getMetricStatus('lcp',         currentDeviceData.lcp?.value,         currentDeviceData.lcp?.unit),         rawValue: currentDeviceData.lcp?.value },
     { label: "CLS",         value: formatMetricValue("CLS",         currentDeviceData.cls?.value,         currentDeviceData.cls?.display_value),         status: getMetricStatus('cls',         currentDeviceData.cls?.value,         currentDeviceData.cls?.unit),         rawValue: currentDeviceData.cls?.value },
     { label: "FCP",         value: formatMetricValue("FCP",         currentDeviceData.fcp?.value,         currentDeviceData.fcp?.display_value),         status: getMetricStatus('fcp',         currentDeviceData.fcp?.value,         currentDeviceData.fcp?.unit),         rawValue: currentDeviceData.fcp?.value },
     { label: "TBT",         value: formatMetricValue("TBT",         currentDeviceData.tbt?.value,         currentDeviceData.tbt?.display_value),         status: getMetricStatus('tbt',         currentDeviceData.tbt?.value,         currentDeviceData.tbt?.unit),         rawValue: currentDeviceData.tbt?.value },
     { label: "Speed Index", value: formatMetricValue("Speed Index", currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.display_value), status: getMetricStatus('speed_index', currentDeviceData.speed_index?.value, currentDeviceData.speed_index?.unit), rawValue: currentDeviceData.speed_index?.value },
     { label: "TTFB",        value: formatMetricValue("TTFB",        currentDeviceData.ttfb?.value,        currentDeviceData.ttfb?.display_value),        status: getMetricStatus('ttfb',        currentDeviceData.ttfb?.value,        currentDeviceData.ttfb?.unit),        rawValue: currentDeviceData.ttfb?.value },
-  ]
+  ] : []
 
   const availableMetrics = metrics.filter(m => m.label === 'TTFB' || m.status !== 'missing')
-  const trafficImpactMessage = getTrafficImpactMessage(currentDeviceData.lcp?.value, device)
+  const trafficImpactMessage = currentDeviceData ? getTrafficImpactMessage(currentDeviceData.lcp?.value, device) : ''
 
   const getPassedAudits = () => {
+    if (!currentDeviceData) return []
     const passed = []
     currentDeviceData.diagnostics?.forEach(d => { if (d.score >= 0.9) passed.push(d.title) })
     currentDeviceData.opportunities?.forEach(o => { if (o.score >= 0.9) passed.push(o.title) })
@@ -404,6 +422,15 @@ export default function PageSpeedPageContent() {
         </div>
       )}
 
+      {!currentDeviceData ? (
+        <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>{deviceStatusField === 'failed' ? '❌' : '📊'}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: deviceStatusField === 'failed' ? 'var(--red)' : 'var(--text3)' }}>
+            {deviceUnavailableMessage}
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="two-col">
         <div>
           <div className="score-card" style={{ marginBottom: 16, "--grad": scoreColors.status === 'good' ? "linear-gradient(90deg,#10ffa0,#00e5ff)" : scoreColors.status === 'needs_improvement' ? "linear-gradient(90deg,#ffbb33,#ff8c1a)" : "linear-gradient(90deg,#ff4560,#ff1744)" }}>
@@ -529,6 +556,8 @@ export default function PageSpeedPageContent() {
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   )
 }
