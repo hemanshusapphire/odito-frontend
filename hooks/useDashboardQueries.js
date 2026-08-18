@@ -534,6 +534,36 @@ export function useTaskSummary(projectId) {
 }
 
 /**
+ * Single task detail — powers the Optimization Center's View Details modal.
+ * Returns { ...task, attemptCount, latestAttempt, hasOlderAttempts,
+ * historyAvailable }. Only fires when the modal is actually open (pass
+ * `enabled: false` while closed) so opening/closing never triggers a fetch
+ * by itself and the table's own list query is untouched.
+ */
+export function useTaskDetail(taskId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.tasks.detail(taskId),
+    queryFn: () => apiService.getTaskById(taskId),
+    enabled: !!taskId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+  })
+}
+
+/**
+ * Older fixHistory attempts (excludes the latest, already on useTaskDetail).
+ * Lazy by design — only enabled once the user asks to see earlier attempts,
+ * so a task with a long history never pays for it until requested.
+ */
+export function useTaskHistory(taskId, { enabled = false, limit, before } = {}) {
+  return useQuery({
+    queryKey: queryKeys.tasks.history(taskId),
+    queryFn: () => apiService.getTaskHistory(taskId, { limit, before }),
+    enabled: !!taskId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+  })
+}
+
+/**
  * Delete a task (soft delete). Optimistically removes the row from all cached
  * task lists and refreshes the summary counts.
  *
@@ -1592,5 +1622,157 @@ export function useBillingHistory(page = 1) {
     queryKey: queryKeys.subscription.history(page),
     queryFn: () => apiService.getBillingHistory(page),
     staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== WORDPRESS CONNECTION (Phase 2) ====================
+// Connect/status/verify/disconnect for the real WordPress connection layer
+// (odito_backend/src/modules/external_integration/) — distinct from the
+// mock /app/wordpress dashboard, which has no backend and isn't queried
+// through React Query at all.
+
+/** Connection status for this project's WordPress site, if any. */
+export function useWordPressStatus(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.status(projectId),
+    queryFn: () => apiService.getWordPressStatus(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Connects a WordPress site (Application Password) to this project. */
+export function useConnectWordPress(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (credentials) => apiService.connectWordPress(projectId, credentials),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
+    },
+  })
+}
+
+/** Re-verifies the existing connection against the live WordPress site. */
+export function useVerifyWordPressConnection(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.verifyWordPressConnection(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
+    },
+  })
+}
+
+/** Removes the stored connection — never modifies anything on the WordPress site itself. */
+export function useDisconnectWordPress(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.disconnectWordPress(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.pluginStatus(projectId) })
+    },
+  })
+}
+
+// ==================== WORDPRESS PLUGIN (Phase 3A) ====================
+// Pairing, plugin connection status, and detected forms — structure only,
+// no submission capture (Phase 3B).
+
+/** Generates a one-time pairing token to paste into the WordPress plugin's settings page. */
+export function useGenerateWordPressPairingToken(projectId) {
+  return useMutation({
+    mutationFn: () => apiService.generateWordPressPairingToken(projectId),
+  })
+}
+
+/** Plugin pairing/heartbeat/sync status for this project. */
+export function useWordPressPluginStatus(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.pluginStatus(projectId),
+    queryFn: () => apiService.getWordPressPluginStatus(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Forms the plugin has detected and synced for this project. */
+export function useWordPressForms(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.forms(projectId),
+    queryFn: () => apiService.getWordPressForms(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== LEADS (Phase 3B) ====================
+// Real backend (odito_backend/src/modules/lead/) — replaces the
+// frontend-only mock previously in frontend/lib/leadsDummyData.js. See
+// hooks/useLeadRealtimeSync.js for the Socket.IO `lead:created` listener
+// (kept separate, matching useGoogleAdsSyncProgress.js's precedent).
+
+/** Paginated, filterable, searchable lead list for the active project. */
+export function useLeads(projectId, params = {}, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.leads.list({ projectId, ...params }),
+    queryFn: () => apiService.getLeads(projectId, params),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData, // keep prior page visible while the next page/filter loads
+  })
+}
+
+/** Status-board counts (total/newToday/new/contacted/qualified/follow_up/won/lost). */
+export function useLeadStats(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.leads.stats(projectId),
+    queryFn: () => apiService.getLeadStats(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Single lead — used by the detail drawer for the freshest copy of whichever lead is open. */
+export function useLead(leadId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.leads.detail(leadId),
+    queryFn: () => apiService.getLead(leadId),
+    enabled: !!leadId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+export function useCreateLead(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload) => apiService.createLead(projectId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.all(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.stats(projectId) })
+    },
+  })
+}
+
+export function useUpdateLead(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ leadId, updates }) => apiService.updateLead(leadId, updates),
+    onSuccess: (_data, { leadId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.all(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.stats(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.detail(leadId) })
+    },
+  })
+}
+
+export function useDeleteLead(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (leadId) => apiService.deleteLead(leadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.all(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.stats(projectId) })
+    },
   })
 }

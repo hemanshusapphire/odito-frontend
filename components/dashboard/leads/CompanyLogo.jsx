@@ -1,6 +1,6 @@
 "use client"
 
-import { initials, hashColor } from '@/lib/leadsDummyData'
+import { initials, hashColor } from '@/lib/leadsConstants'
 
 /** Deterministic-color initials tile standing in for a company logo. */
 export default function CompanyLogo({ company, size = 32 }) {

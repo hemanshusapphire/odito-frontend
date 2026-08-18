@@ -1,29 +1,24 @@
 "use client"
 
-import { useMemo } from 'react'
-import { Building2, Plus, CheckCircle2, CalendarClock, Trophy, XCircle } from 'lucide-react'
-import { TODAY_ISO } from '@/lib/leadsDummyData'
+import { Building2, Plus, CheckCircle2, Trophy, XCircle, PhoneCall } from 'lucide-react'
 
 const STAT_DEFS = [
   { key: 'total', label: 'Total Leads', icon: Building2, tint: '#7C6CF6' },
   { key: 'newToday', label: 'New Today', icon: Plus, tint: '#5B8DEF' },
+  { key: 'follow_up', label: 'Follow Up', icon: PhoneCall, tint: '#F0B429' },
   { key: 'qualified', label: 'Qualified', icon: CheckCircle2, tint: '#34D399' },
-  { key: 'followUpsDue', label: 'Follow-ups Due', icon: CalendarClock, tint: '#F0B429' },
   { key: 'won', label: 'Won', icon: Trophy, tint: '#34D399' },
   { key: 'lost', label: 'Lost', icon: XCircle, tint: '#F1665F' },
 ]
 
-/** Six pipeline-at-a-glance tiles, computed live from the current `leads` array. */
-export default function LeadsStatsGrid({ leads }) {
-  const values = useMemo(() => ({
-    total: leads.length,
-    newToday: leads.filter((l) => l.created === TODAY_ISO).length,
-    qualified: leads.filter((l) => l.status === 'Qualified').length,
-    followUpsDue: leads.filter((l) => l.tasks.some((t) => !t.done)).length,
-    won: leads.filter((l) => l.status === 'Won').length,
-    lost: leads.filter((l) => l.status === 'Lost').length,
-  }), [leads])
-
+/**
+ * Six pipeline-at-a-glance tiles — real MongoDB aggregation
+ * (GET /api/leads/stats, see leadService.getLeadStats), not computed
+ * client-side from a locally-held array. `stats` is the response's `data`
+ * object: { total, newToday, new, contacted, qualified, follow_up, won, lost }.
+ * `null` while loading renders a skeleton dash rather than a misleading 0.
+ */
+export default function LeadsStatsGrid({ stats }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {STAT_DEFS.map((s) => {
@@ -39,7 +34,9 @@ export default function LeadsStatsGrid({ leads }) {
                 <Icon className="h-3.5 w-3.5" />
               </span>
             </div>
-            <div className="text-2xl font-bold text-foreground tabular-nums font-mono">{values[s.key]}</div>
+            <div className="text-2xl font-bold text-foreground tabular-nums font-mono">
+              {stats ? (stats[s.key] ?? 0) : '—'}
+            </div>
           </div>
         )
       })}

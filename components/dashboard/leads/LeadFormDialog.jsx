@@ -5,20 +5,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { X } from 'lucide-react'
-import { SOURCES, STATUSES, PRIORITIES, TAGS, USERS } from '@/lib/leadsDummyData'
+import { Loader2 } from 'lucide-react'
+import { STATUSES, PRIORITIES, STATUS_LABELS, PRIORITY_LABELS } from '@/lib/leadsConstants'
 
-const EMPTY_FORM = { name: '', company: '', email: '', phone: '', source: SOURCES[0], assignedTo: USERS[0].name, status: 'New', priority: 'Medium', tags: [] }
+const EMPTY_FORM = { name: '', company: '', email: '', phone: '', message: '', status: 'new', priority: 'medium' }
 
 function toFormState(lead) {
   if (!lead) return EMPTY_FORM
-  return { name: lead.name, company: lead.company, email: lead.email, phone: lead.phone, source: lead.source, assignedTo: lead.assignedTo, status: lead.status, priority: lead.priority, tags: lead.tags }
+  return {
+    name: lead.name || '',
+    company: lead.company || '',
+    email: lead.email || '',
+    phone: lead.phone || '',
+    message: lead.message || '',
+    status: lead.status || 'new',
+    priority: lead.priority || 'medium',
+  }
 }
 
-/** Add/Edit lead form - `lead` null means "Add", otherwise "Edit". */
-export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
+/**
+ * Add/Edit lead form — `lead` null means "Add", otherwise "Edit". Tags and
+ * a source/assignee picker from the original mock were dropped: the real
+ * Lead schema has no tags field, and assignment is handled by the
+ * dedicated Assign action (AssignLeadDialog), not folded into this form —
+ * see the Phase 3B report for why.
+ */
+export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit, isSubmitting }) {
   const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => {
@@ -29,16 +43,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  function toggleTag(tag) {
-    setForm((prev) => ({
-      ...prev,
-      tags: prev.tags.includes(tag) ? prev.tags.filter((t) => t !== tag) : [...prev.tags, tag],
-    }))
-  }
-
   function handleSubmit(e) {
     e.preventDefault()
-    if (!form.name.trim() || !form.email.trim()) return
+    if (!form.name.trim()) return
     onSubmit(form)
   }
 
@@ -49,7 +56,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Lead' : 'Add Lead'}</DialogTitle>
-          <DialogDescription>{isEdit ? `Update details for ${lead.name}.` : 'Add a new lead to your pipeline.'}</DialogDescription>
+          <DialogDescription>{isEdit ? `Update details for ${lead.name || 'this lead'}.` : 'Add a new lead to your pipeline.'}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -60,14 +67,14 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lead-company">Company</Label>
-              <Input id="lead-company" value={form.company} onChange={(e) => set('company', e.target.value)} required />
+              <Input id="lead-company" value={form.company} onChange={(e) => set('company', e.target.value)} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lead-email">Email</Label>
-              <Input id="lead-email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+              <Input id="lead-email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lead-phone">Phone</Label>
@@ -75,21 +82,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>Source</Label>
-              <Select value={form.source} onValueChange={(v) => set('source', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Assigned To</Label>
-              <Select value={form.assignedTo} onValueChange={(v) => set('assignedTo', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{USERS.map((u) => <SelectItem key={u.name} value={u.name}>{u.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="lead-message">Message</Label>
+            <Textarea id="lead-message" value={form.message} onChange={(e) => set('message', e.target.value)} rows={3} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -97,38 +92,24 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSubmit }) {
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => set('status', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Priority</Label>
               <Select value={form.priority} onValueChange={(v) => set('priority', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                <SelectContent>{PRIORITIES.map((p) => <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {TAGS.map((tag) => {
-                const active = form.tags.includes(tag)
-                return (
-                  <button key={tag} type="button" onClick={() => toggleTag(tag)}>
-                    <Badge variant={active ? 'default' : 'outline'} className="gap-1 cursor-pointer">
-                      {tag}
-                      {active && <X className="h-2.5 w-2.5" />}
-                    </Badge>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">{isEdit ? 'Save Changes' : 'Add Lead'}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button type="submit" disabled={isSubmitting} className="gap-1.5">
+              {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isEdit ? 'Save Changes' : 'Add Lead'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

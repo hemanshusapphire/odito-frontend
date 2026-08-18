@@ -6,27 +6,33 @@ import { Checkbox } from '@/components/ui/checkbox'
 import LeadRow from './LeadRow'
 import LeadsEmptyState from './LeadsEmptyState'
 
+// `sortable` only set on columns the backend actually supports sorting by
+// (leadService.js SORTABLE_FIELDS) — company/email/source/assignedTo have
+// no server-side sort implementation, so marking them sortable would
+// silently no-op (the backend falls back to createdAt for an unknown sort
+// key) rather than doing what the header implies.
 const COLUMNS = [
   { key: 'name', label: 'Lead Name', sortable: true },
-  { key: 'company', label: 'Company', sortable: true },
-  { key: 'email', label: 'Email', sortable: true },
+  { key: 'company', label: 'Company' },
+  { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Phone' },
-  { key: 'source', label: 'Source', sortable: true },
-  { key: 'assignedTo', label: 'Assigned To', sortable: true },
+  { key: 'source', label: 'Source' },
+  { key: 'assignedTo', label: 'Assigned To' },
   { key: 'status', label: 'Status', sortable: true },
   { key: 'priority', label: 'Priority', sortable: true },
-  { key: 'lastContact', label: 'Last Contact', sortable: true },
-  { key: 'created', label: 'Created Date', sortable: true },
+  { key: 'lastContactAt', label: 'Last Contact', sortable: true },
+  { key: 'createdAt', label: 'Created Date', sortable: true },
 ]
 
 /**
- * Table shell: sortable header + selectable rows + empty state. Sorting/
- * selection/pagination state all live in the parent page - this component
- * only renders whatever `leads` (the already filtered+sorted+paginated
- * page slice) it's given.
+ * Table shell: sortable header + selectable rows + empty/loading state.
+ * Sorting/selection/pagination/filtering state all live in the parent
+ * page and drive a real server-side query — this component only renders
+ * whichever page of results it's given (`leads` is already the current
+ * page from the API, not a client-side slice of a larger in-memory array).
  */
 export default function LeadsTable({
-  leads, allLeadsCount, selectedIds, sortKey, sortDir, onSort,
+  leads, isLoading, allLeadsCount, selectedIds, sortKey, sortDir, onSort,
   onToggleSelect, onToggleSelectAll, onOpenDrawer, onEdit, onAssign, onAddNote,
   onScheduleFollowup, onMarkQualified, onDelete, onAddLead, onClearFilters,
 }) {
@@ -34,6 +40,16 @@ export default function LeadsTable({
   const selectedOnPage = pageIds.filter((id) => selectedIds.has(id)).length
   const allSelected = pageIds.length > 0 && selectedOnPage === pageIds.length
   const someSelected = selectedOnPage > 0 && selectedOnPage < pageIds.length
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-3" aria-busy="true" aria-label="Loading leads">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-10 w-full rounded-md bg-muted/60 animate-pulse" />
+        ))}
+      </div>
+    )
+  }
 
   if (leads.length === 0) {
     return <LeadsEmptyState noLeadsAtAll={allLeadsCount === 0} onAddLead={onAddLead} onClearFilters={onClearFilters} />

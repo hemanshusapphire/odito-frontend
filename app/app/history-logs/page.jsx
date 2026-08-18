@@ -13,7 +13,9 @@ import VerifyUrlModal from '@/app/onpage/components/VerifyUrlModal'
 import { CheckSquare, Search, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import BulkVerifyConfirmDialog from './components/BulkVerifyConfirmDialog'
 import { buildBulkModalProps } from './bulkModalProps'
-import { getCheckDIYRoute, getIssueDetailsRoute, isOnPageCategory } from './taskRouting'
+import { getCheckDIYRoute, isOnPageCategory } from './taskRouting'
+import { TaskStatusBadge, SourceBadge } from './statusMeta'
+import OptimizationDetailsModal from './components/OptimizationDetailsModal'
 
 // A row is selectable for Bulk URL Verification only when it's a Content/
 // on-page issue (Phase 1 scope — see the architectural inspection) AND has
@@ -209,53 +211,6 @@ function formatDate(dateStr) {
   })
 }
 
-const ORIGIN_LABELS = {
-  ai_fix:    '✦ AI Fix',
-  diy_guide: '🛠 DIY',
-  auditiq:   '🤝 AuditIQ',
-  manual:    '✎ Manual',
-}
-
-function SourceBadge({ origin }) {
-  const label = ORIGIN_LABELS[origin] || origin || '—'
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center',
-      padding: '2px 8px', borderRadius: 20,
-      fontSize: 10, fontWeight: 600,
-      background: 'var(--s2)', color: 'var(--t2)',
-      border: '1px solid var(--b)', whiteSpace: 'nowrap',
-    }}>
-      {label}
-    </span>
-  )
-}
-
-function StatusBadge({ status }) {
-  let bg = 'rgba(255,255,255,0.05)', border = 'rgba(255,255,255,0.1)', color = 'var(--t3)', label = status
-
-  switch (status) {
-    case 'task_created':
-      bg = 'rgba(0,223,255,0.08)'; border = 'rgba(0,223,255,0.2)'; color = '#00dfff'; label = '📋 Pending'; break
-    case 'implemented':
-      bg = 'rgba(157,78,221,0.08)'; border = 'rgba(157,78,221,0.2)'; color = '#b580ff'; label = '⏳ Implemented'; break
-    case 'verified_fixed':
-      bg = 'rgba(0,245,160,0.08)'; border = 'rgba(0,245,160,0.2)'; color = '#00f5a0'; label = '✅ Verified'; break
-    case 'reopened':
-      bg = 'rgba(255,56,96,0.08)'; border = 'rgba(255,56,96,0.2)'; color = '#ff6080'; label = '⚠️ Reopened'; break
-  }
-
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-      background: bg, color, border: `1px solid ${border}`,
-    }}>
-      {label}
-    </span>
-  )
-}
-
 function TruncatedUrl({ url }) {
   const [expanded, setExpanded] = useState(false)
   const short = url.length > 55 ? url.slice(0, 55) + '…' : url
@@ -282,6 +237,7 @@ export default function OptimizationCenterPage() {
   const [filterStatus, setFilterStatus]       = useState('')
   const [confirmTask, setConfirmTask]         = useState(null)   // task object awaiting deletion
   const [toast, setToast]                     = useState(null)   // { message, type }
+  const [detailsTaskId, setDetailsTaskId]     = useState(null)   // taskId shown in the View Details modal
 
   // Bulk URL Verification selection — belongs only to this table (no
   // Redux/global store). Keyed by task._id (not pageUrl) so two different
@@ -602,8 +558,8 @@ export default function OptimizationCenterPage() {
           {/* Header */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '36px 140px 1.4fr 1.4fr 90px 95px 95px 95px 95px 130px',
-            minWidth: 1106, padding: '11px 18px',
+            gridTemplateColumns: '36px 140px 1.4fr 1.4fr 90px 95px 95px 95px 95px 190px',
+            minWidth: 1166, padding: '11px 18px',
             borderBottom: '1px solid var(--b)', background: 'var(--s2)', gap: 10,
             alignItems: 'center',
           }}>
@@ -654,8 +610,8 @@ export default function OptimizationCenterPage() {
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '36px 140px 1.4fr 1.4fr 90px 95px 95px 95px 95px 130px',
-                    minWidth: 1106, padding: '13px 18px',
+                    gridTemplateColumns: '36px 140px 1.4fr 1.4fr 90px 95px 95px 95px 95px 190px',
+                    minWidth: 1166, padding: '13px 18px',
                     borderBottom: i < tasks.length - 1 ? '1px solid var(--b)' : 'none',
                     alignItems: 'center', gap: 10,
                   }}
@@ -670,7 +626,7 @@ export default function OptimizationCenterPage() {
                     aria-label={`Select ${task.pageUrl} for verification`}
                   />
 
-                  <div><StatusBadge status={task.status} /></div>
+                  <div><TaskStatusBadge status={task.status} /></div>
 
                   <div style={{ paddingRight: 8, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -694,55 +650,63 @@ export default function OptimizationCenterPage() {
 
                   {/* Actions — always the next available USER OPERATION, never
                       a restatement of the STATUS badge already shown in the
-                      first column. task_created -> Check DIY (nothing to
-                      verify yet); implemented/reopened on Content/on-page
-                      rows -> no row action, use "Verify Selected" in the
-                      toolbar; verified_fixed -> optional View Details. A row
-                      currently part of an in-flight batch always shows
-                      "Verifying…" regardless of its persisted status.
-                      Accessibility/AI-visibility reopened rows are outside
-                      Bulk URL Verification's Phase 1 scope (isOnPageCategory)
-                      and have no other way to re-verify, so they keep the
-                      existing Check DIY fallback — never re-offered to
-                      already-implemented on-page rows, which DO have Verify
-                      Selected available. */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      first column, PLUS an always-available View Details for
+                      any task that has at least one fix attempt (opens the
+                      Before/Fix Applied/After modal — read-only, no
+                      navigation). task_created -> Check DIY only (nothing
+                      implemented yet, nothing to view); implemented/reopened
+                      on Content/on-page rows -> View Details + "Verify
+                      Selected" in the toolbar for the actual re-verify
+                      action. A row currently part of an in-flight batch
+                      always shows "Verifying…" regardless of persisted
+                      status. Accessibility/AI-visibility reopened rows are
+                      outside Bulk URL Verification's Phase 1 scope
+                      (isOnPageCategory) and have no other way to re-verify,
+                      so they keep the existing Check DIY fallback alongside
+                      View Details. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {isTaskVerifying(task, progress) ? (
                       <span style={{ fontSize: 11, color: 'var(--vi)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                         <span style={{ width: 10, height: 10, border: '2px solid var(--vi)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
                         Verifying…
                       </span>
-                    ) : task.status === 'task_created' || (task.status === 'reopened' && !isOnPageCategory(task)) ? (
-                      <button
-                        onClick={() => router.push(getCheckDIYRoute(task))}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-                          cursor: 'pointer', border: '1px solid rgba(119,48,237,0.3)',
-                          background: 'rgba(119,48,237,0.08)', color: '#b580ff',
-                          transition: 'all 0.15s', whiteSpace: 'nowrap',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(119,48,237,0.16)'; e.currentTarget.style.borderColor = 'rgba(119,48,237,0.5)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(119,48,237,0.08)'; e.currentTarget.style.borderColor = 'rgba(119,48,237,0.3)' }}
-                      >
-                        🛠 Check DIY
-                      </button>
-                    ) : task.status === 'verified_fixed' ? (
-                      <button
-                        onClick={() => router.push(getIssueDetailsRoute(task))}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-                          cursor: 'pointer', border: '1px solid var(--b)',
-                          background: 'transparent', color: 'var(--t3)',
-                          transition: 'all 0.15s', whiteSpace: 'nowrap',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--t2)'; e.currentTarget.style.borderColor = 'var(--t3)' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--t3)'; e.currentTarget.style.borderColor = 'var(--b)' }}
-                      >
-                        View Details
-                      </button>
-                    ) : null}
+                    ) : (
+                      <>
+                        {(task.status === 'task_created' || (task.status === 'reopened' && !isOnPageCategory(task))) && (
+                          <button
+                            onClick={() => router.push(getCheckDIYRoute(task))}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600,
+                              cursor: 'pointer', border: '1px solid rgba(119,48,237,0.3)',
+                              background: 'rgba(119,48,237,0.08)', color: '#b580ff',
+                              transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(119,48,237,0.16)'; e.currentTarget.style.borderColor = 'rgba(119,48,237,0.5)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(119,48,237,0.08)'; e.currentTarget.style.borderColor = 'rgba(119,48,237,0.3)' }}
+                          >
+                            🛠 Check DIY
+                          </button>
+                        )}
+
+                        {task.status !== 'task_created' && (
+                          <button
+                            onClick={() => setDetailsTaskId(task._id)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600,
+                              cursor: 'pointer', border: '1px solid var(--b)',
+                              background: 'transparent', color: 'var(--t3)',
+                              transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--t2)'; e.currentTarget.style.borderColor = 'var(--t3)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--t3)'; e.currentTarget.style.borderColor = 'var(--b)' }}
+                          >
+                            View Details
+                          </button>
+                        )}
+                      </>
+                    )}
 
                     {task.status === 'task_created' && (
                       <DeleteButton task={task} onDelete={setConfirmTask} />
@@ -798,6 +762,14 @@ export default function OptimizationCenterPage() {
         open={isBatchActive}
         onOpenChange={(nextOpen) => { if (!nextOpen) handleViewDetails() }}
         bulk={bulkModalProps}
+      />
+
+      {/* View Details — read-only, no navigation; preserves table filters/
+          search/scroll/pagination since it's just local modal state. */}
+      <OptimizationDetailsModal
+        taskId={detailsTaskId}
+        open={!!detailsTaskId}
+        onOpenChange={(nextOpen) => { if (!nextOpen) setDetailsTaskId(null) }}
       />
 
       {/* Delete Confirmation Dialog */}

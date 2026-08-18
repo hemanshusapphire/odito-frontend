@@ -5,20 +5,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { TODAY_ISO } from '@/lib/leadsDummyData'
 
+/**
+ * Sets Lead.nextFollowUpAt — a single date, not a multi-item task
+ * checklist. The original mock's free-text "task description" field had
+ * no backing schema field (Lead has one nextFollowUpAt Date, not a list of
+ * checklist items) and was dropped rather than collected and silently
+ * discarded — see the Phase 3B report.
+ */
 export default function ScheduleFollowupDialog({ open, onOpenChange, leadName, onSubmit }) {
-  const [due, setDue] = useState(TODAY_ISO)
-  const [text, setText] = useState('Follow up')
+  const [due, setDue] = useState('')
 
   function handleOpenChange(next) {
-    if (!next) { setDue(TODAY_ISO); setText('Follow up') }
+    if (!next) setDue('')
     onOpenChange(next)
   }
 
   function handleSubmit() {
     if (!due) return
-    onSubmit({ text: text.trim() || 'Follow up', due })
+    onSubmit({ due })
   }
 
   return (
@@ -26,18 +31,12 @@ export default function ScheduleFollowupDialog({ open, onOpenChange, leadName, o
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Schedule Follow-up</DialogTitle>
-          <DialogDescription>{leadName ? `Set a follow-up task for ${leadName}.` : 'Set a follow-up task.'}</DialogDescription>
+          <DialogDescription>{leadName ? `Set a follow-up date for ${leadName}.` : 'Set a follow-up date.'}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="followup-text">Task</Label>
-            <Input id="followup-text" value={text} onChange={(e) => setText(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="followup-date">Due date</Label>
-            <Input id="followup-date" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="followup-date">Follow-up date</Label>
+          <Input id="followup-date" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         </div>
 
         <DialogFooter>

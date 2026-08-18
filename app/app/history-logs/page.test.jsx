@@ -30,6 +30,13 @@ vi.mock('@/hooks/useDashboardQueries', () => ({
   }),
   useTaskSummary: () => ({ data: { data: mockSummary } }),
   useDeleteTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  // OptimizationDetailsModal (View Details) is always mounted by page.jsx,
+  // just closed (open=false) — its hooks still execute unconditionally
+  // every render, so they need a stub here even though no test in this
+  // file opens the modal. Real behavior is covered by
+  // OptimizationDetailsModal.test.jsx instead.
+  useTaskDetail: () => ({ data: null, isLoading: false, isError: false, error: null, refetch: vi.fn() }),
+  useTaskHistory: () => ({ data: null, isLoading: false, isError: false }),
 }))
 
 vi.mock('@/lib/apiService', () => ({
@@ -361,21 +368,41 @@ describe('Optimization Center — STATUS vs ACTION workflow consistency', () => 
     expect(checkboxFor('/a').disabled).toBe(true)
   })
 
-  it('an Implemented row is selectable, shows no "Pending Crawl" text, and has no per-row action', () => {
+  it('an Implemented row is selectable, shows no "Pending Crawl"/Check DIY text, and offers View Details (Phase 2)', () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a', status: 'implemented' })]
     render()
 
     expect(container.textContent).not.toContain('Pending Crawl')
     expect(container.textContent).not.toContain('Check DIY')
+    expect(container.textContent).toContain('View Details')
     expect(checkboxFor('/a').disabled).toBe(false)
   })
 
-  it('a Reopened Content/on-page row no longer shows Check DIY and remains selectable', () => {
+  it('a Reopened Content/on-page row no longer shows Check DIY, remains selectable, and offers View Details (Phase 2)', () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a', issueCategory: 'Content', status: 'reopened' })]
     render()
 
     expect(container.textContent).not.toContain('Check DIY')
+    expect(container.textContent).toContain('View Details')
     expect(checkboxFor('/a').disabled).toBe(false)
+  })
+
+  it('a Pending (task_created) row has no View Details action — nothing has been implemented yet', () => {
+    mockTasks = [makeTask({ _id: 't1', pageUrl: '/a', status: 'task_created' })]
+    render()
+
+    expect(container.textContent).not.toContain('View Details')
+  })
+
+  it('clicking View Details opens the details modal without navigating (router.push not called for it)', () => {
+    mockTasks = [makeTask({ _id: 't1', pageUrl: '/a', status: 'verified_fixed' })]
+    render()
+
+    const viewDetailsBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'View Details')
+    act(() => { viewDetailsBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+
+    // The mocked Dialog renders a [data-testid="dialog"] wrapper only when open.
+    expect(container.querySelector('[data-testid="dialog"]')).toBeTruthy()
   })
 
   it('a Reopened Accessibility row (outside Bulk Verification scope) keeps the Check DIY fallback', () => {

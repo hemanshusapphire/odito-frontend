@@ -7,21 +7,21 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Eye, Pencil, UserPlus, StickyNote, CalendarClock, CheckCircle2, Trash2, MoreVertical } from 'lucide-react'
+import { Eye, Pencil, UserPlus, StickyNote, CalendarClock, CheckCircle2, Trash2, MoreVertical, UserCheck } from 'lucide-react'
 import LeadAvatar from './LeadAvatar'
 import CompanyLogo from './CompanyLogo'
 import LeadStatusBadge from './LeadStatusBadge'
 import LeadPriorityLabel from './LeadPriorityLabel'
-import { fmtDate, relDate } from '@/lib/leadsDummyData'
+import { fmtDate, relDate, SOURCE_LABELS } from '@/lib/leadsConstants'
 
-const PRIORITY_BORDER = { High: 'border-l-destructive', Medium: 'border-l-amber-500', Low: 'border-l-muted-foreground/30' }
+const PRIORITY_BORDER = { high: 'border-l-destructive', medium: 'border-l-amber-500', low: 'border-l-muted-foreground/30' }
 
 export default function LeadRow({
   lead, selected, onToggleSelect, onOpenDrawer, onEdit, onAssign, onAddNote, onScheduleFollowup, onMarkQualified, onDelete,
 }) {
   return (
     <TableRow
-      className={`cursor-pointer border-l-[3px] ${PRIORITY_BORDER[lead.priority]}`}
+      className={`cursor-pointer border-l-[3px] ${PRIORITY_BORDER[lead.priority] || PRIORITY_BORDER.medium}`}
       onClick={() => onOpenDrawer(lead)}
     >
       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -32,37 +32,47 @@ export default function LeadRow({
         <div className="flex items-center gap-2.5">
           <LeadAvatar name={lead.name} />
           <div className="min-w-0">
-            <div className="font-medium truncate">{lead.name}</div>
-            <div className="text-muted-foreground text-[11px] font-mono">{lead.id}</div>
+            <div className="font-medium truncate">{lead.name || 'Unnamed lead'}</div>
+            <div className="text-muted-foreground text-[11px] font-mono">{lead.id?.slice(-8)}</div>
           </div>
         </div>
       </TableCell>
 
       <TableCell>
-        <div className="flex items-center gap-2">
-          <CompanyLogo company={lead.company} size={26} />
-          <span className="text-muted-foreground truncate max-w-40">{lead.company}</span>
-        </div>
+        {lead.company ? (
+          <div className="flex items-center gap-2">
+            <CompanyLogo company={lead.company} size={26} />
+            <span className="text-muted-foreground truncate max-w-40">{lead.company}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground/60">—</span>
+        )}
       </TableCell>
 
-      <TableCell className="text-muted-foreground font-mono text-xs">{lead.email}</TableCell>
-      <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">{lead.phone}</TableCell>
+      <TableCell className="text-muted-foreground font-mono text-xs">{lead.email || '—'}</TableCell>
+      <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">{lead.phone || '—'}</TableCell>
 
       <TableCell>
-        <Badge variant="outline" className="whitespace-nowrap font-normal">{lead.source}</Badge>
+        <Badge variant="outline" className="whitespace-nowrap font-normal">
+          {SOURCE_LABELS[lead.source] || lead.source || 'Manual'}
+        </Badge>
       </TableCell>
 
       <TableCell>
-        <div className="flex items-center gap-2">
-          <LeadAvatar name={lead.assignedTo} size={22} />
-          <span className="text-muted-foreground text-xs whitespace-nowrap">{lead.assignedTo.split(' ')[0]}</span>
-        </div>
+        {lead.assignedTo ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-xs whitespace-nowrap">
+            <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
+            Assigned
+          </div>
+        ) : (
+          <span className="text-muted-foreground/60 text-xs">Unassigned</span>
+        )}
       </TableCell>
 
       <TableCell><LeadStatusBadge status={lead.status} /></TableCell>
       <TableCell><LeadPriorityLabel priority={lead.priority} /></TableCell>
-      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{relDate(lead.lastContact)}</TableCell>
-      <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono">{fmtDate(lead.created)}</TableCell>
+      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{relDate(lead.lastContactAt)}</TableCell>
+      <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono">{fmtDate(lead.createdAt)}</TableCell>
 
       <TableCell onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>

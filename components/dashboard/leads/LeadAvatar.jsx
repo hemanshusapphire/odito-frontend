@@ -1,10 +1,10 @@
 "use client"
 
-import { initials, userColor } from '@/lib/leadsDummyData'
+import { initials, hashColor } from '@/lib/leadsConstants'
 
-/** Initials avatar, tinted per-person (assignees) using the fixed USERS palette. */
+/** Initials avatar, deterministically tinted by name. */
 export default function LeadAvatar({ name, size = 30 }) {
-  const c = userColor(name)
+  const c = hashColor(name)
   return (
     <div
       className="rounded-full flex items-center justify-center font-semibold shrink-0"
