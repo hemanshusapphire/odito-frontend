@@ -6,6 +6,7 @@ import SecurityCard from "@/components/settings/profile/SecurityCard"
 import AccountInformationCard from "@/components/settings/profile/AccountInformationCard"
 import SubscriptionSummaryCard from "@/components/settings/profile/SubscriptionSummaryCard"
 import ConnectedAccountsCard from "@/components/settings/profile/ConnectedAccountsCard"
+import SocialMediaAccountsCard from "@/components/settings/profile/SocialMediaAccountsCard"
 import DangerZoneCard from "@/components/settings/profile/DangerZoneCard"
 
 /**
@@ -13,9 +14,10 @@ import DangerZoneCard from "@/components/settings/profile/DangerZoneCard"
  * the section components themselves); no page-level fetch, no useProfile()
  * hook, no second source of truth.
  *
- * All six sections are now present — Personal Information, Security,
- * Account Information, Subscription Summary, Connected Accounts, and
- * Danger Zone (Phase 5, this page's final section).
+ * Seven sections: Personal Information, Security, Account Information,
+ * Subscription Summary, Connected Accounts, Social Media Accounts (a
+ * second entry point into the same Meta OAuth flow /app/social uses — see
+ * SocialMediaAccountsCard's own header comment), and Danger Zone.
  */
 export default function ProfilePageContent() {
   return (
@@ -33,6 +35,7 @@ export default function ProfilePageContent() {
         <AccountInformationCard />
         <SubscriptionSummaryCard />
         <ConnectedAccountsCard />
+        <SocialMediaAccountsCard />
         <DangerZoneCard />
       </div>
     </div>

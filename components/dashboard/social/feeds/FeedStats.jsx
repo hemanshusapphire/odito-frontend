@@ -1,25 +1,26 @@
 "use client"
 
-import { useMemo } from 'react'
-import { Layers, TrendingUp, TrendingDown } from 'lucide-react'
-import { FEED_PLATFORMS, FEED_TRENDS } from '@/lib/socialFeedsDummyData'
+import { Layers } from 'lucide-react'
+import { FEED_PLATFORMS } from '@/lib/socialFeedsDummyData'
 
 /**
- * "All Feeds" + one tile per platform, each showing a live post count for
- * the current (unfiltered) post set, a small dummy trend, and doubling as
- * a quick platform filter - clicking a tile sets FeedFilters' platform
- * value the same as picking it from the dropdown would.
+ * "All Feeds" + one tile per platform. Counts come straight from the
+ * backend's real `summary` (GET /api/social/feeds — see
+ * socialFeedService.js), never computed client-side from the current
+ * post page, so they always reflect the FULL project total regardless of
+ * which page/filter is active. Facebook/Instagram are real synced
+ * counts; X/LinkedIn/TikTok are real zeros (not integrated yet), never a
+ * fabricated trend or number — no dummy week-over-week trend is shown
+ * anymore for that same reason. Doubles as a quick platform filter,
+ * clicking a tile sets FeedFilters' platform value the same as picking
+ * it from the dropdown would.
  */
-export default function FeedStats({ posts, activePlatform, onSelectPlatform }) {
-  const counts = useMemo(() => {
-    const byPlatform = {}
-    for (const p of posts) byPlatform[p.platform] = (byPlatform[p.platform] || 0) + 1
-    return byPlatform
-  }, [posts])
+export default function FeedStats({ summary, activePlatform, onSelectPlatform }) {
+  const counts = summary || { all: 0, facebook: 0, instagram: 0, x: 0, linkedin: 0, tiktok: 0 }
 
   const tiles = [
-    { id: 'all', name: 'All Feeds', icon: Layers, color: 'var(--primary)', count: posts.length, trend: null },
-    ...FEED_PLATFORMS.map((p) => ({ ...p, count: counts[p.id] || 0, trend: FEED_TRENDS[p.id] })),
+    { id: 'all', name: 'All Feeds', icon: Layers, color: 'var(--primary)', count: counts.all },
+    ...FEED_PLATFORMS.map((p) => ({ ...p, count: counts[p.id] || 0 })),
   ]
 
   return (
@@ -27,7 +28,6 @@ export default function FeedStats({ posts, activePlatform, onSelectPlatform }) {
       {tiles.map((tile) => {
         const Icon = tile.icon
         const active = activePlatform === tile.id
-        const up = tile.trend?.startsWith('+')
         return (
           <button
             key={tile.id}
@@ -40,12 +40,6 @@ export default function FeedStats({ posts, activePlatform, onSelectPlatform }) {
               <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${tile.color}18`, color: tile.color }}>
                 <Icon className="h-4 w-4" />
               </span>
-              {tile.trend && (
-                <span className={`text-[11px] font-semibold flex items-center gap-0.5 ${up ? 'text-emerald-500' : 'text-destructive'}`}>
-                  {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {tile.trend}
-                </span>
-              )}
             </div>
             <div className="text-xl font-bold tabular-nums font-mono">{tile.count}</div>
             <div className="text-xs text-muted-foreground truncate">{tile.name}</div>

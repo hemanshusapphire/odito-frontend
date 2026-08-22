@@ -3,19 +3,21 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, UploadCloud, FileText, CalendarClock, Clock3 } from 'lucide-react'
-import { PLATFORMS } from '@/lib/socialMediaDummyData'
-import { postCounts, scheduledTodayCount, INITIAL_PLANNER_TASKS } from '@/lib/publishingDummyData'
+import { Plus, UploadCloud, FileText, CalendarClock } from 'lucide-react'
 
-/** Right-side Quick Actions + Platform Status panel for the Publishing tab. */
-export default function QuickActions({ onCreatePost, onGoToTab }) {
-  const counts = postCounts()
-  const pendingApproval = INITIAL_PLANNER_TASKS.filter((t) => t.status === 'Planned').length
-
+/**
+ * Right-side Quick Actions + Platform Status panel for the Publishing
+ * tab. `counts` (drafts/scheduledToday) and `platformStatus` come from
+ * app/app/social/publishing/page.jsx, sourced from the real
+ * useSocialPublishing/useSocialAccountsStatus queries — never computed
+ * from a static array here. Pending Approval is gone entirely: no
+ * approval workflow exists in Odito, so a fabricated "6" would be exactly
+ * the kind of made-up metric this phase removes.
+ */
+export default function QuickActions({ onCreatePost, onGoToTab, counts, platformStatus, onReconnectForPublishing }) {
   const stats = [
-    { key: 'drafts', label: 'Drafts', value: counts.Draft, icon: FileText, onClick: () => onGoToTab('posts') },
-    { key: 'scheduledToday', label: 'Scheduled Today', value: scheduledTodayCount(), icon: CalendarClock, onClick: () => onGoToTab('schedule') },
-    { key: 'pendingApproval', label: 'Pending Approval', value: pendingApproval, icon: Clock3, onClick: () => onGoToTab('planner') },
+    { key: 'drafts', label: 'Drafts', value: counts?.drafts ?? 0, icon: FileText, onClick: () => onGoToTab('posts') },
+    { key: 'scheduledToday', label: 'Scheduled Today', value: counts?.scheduledToday ?? 0, icon: CalendarClock, onClick: () => onGoToTab('schedule') },
   ]
 
   return (
@@ -58,17 +60,41 @@ export default function QuickActions({ onCreatePost, onGoToTab }) {
       <Card className="p-4">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">Platform Status</h4>
         <div className="flex flex-col gap-2">
-          {PLATFORMS.map((p) => {
+          {(platformStatus || []).map((p) => {
             const Icon = p.icon
+            // Connected does not necessarily mean publish-ready — a
+            // Page/account authorized before pages_manage_posts/
+            // instagram_content_publish existed can read (analytics,
+            // overview) but cannot actually post. Surfacing this
+            // distinction (rather than a misleading plain "Connected")
+            // is what tells a real user why Publish Now/Schedule keeps
+            // failing even though the platform shows as connected.
+            const needsPublishingReconnect = p.connected && p.publishingReady === false
             return (
-              <div key={p.id} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2">
-                  <Icon className="h-3.5 w-3.5" style={{ color: p.brandColor }} />
-                  {p.name}
-                </span>
-                <Badge variant={p.connected ? 'success' : 'secondary'} className="text-[10px]">
-                  {p.connected ? 'Connected' : 'Not Connected'}
-                </Badge>
+              <div key={p.id} className="flex flex-col gap-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" style={{ color: p.brandColor }} />
+                    {p.name}
+                  </span>
+                  <Badge variant={p.connected ? (needsPublishingReconnect ? 'warning' : 'success') : 'secondary'} className="text-[10px]">
+                    {p.connected ? (needsPublishingReconnect ? 'Read Only' : 'Connected') : 'Not Connected'}
+                  </Badge>
+                </div>
+                {needsPublishingReconnect && (
+                  <div className="pl-5.5 flex flex-col gap-1">
+                    <p className="text-[10.5px] text-muted-foreground leading-snug">
+                      Connected for analytics/read access, but publishing permission is required.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={onReconnectForPublishing}
+                      className="self-start text-[10.5px] font-medium text-primary hover:underline"
+                    >
+                      Reconnect for Publishing
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}

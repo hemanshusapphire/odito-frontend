@@ -1706,6 +1706,366 @@ export function useWordPressForms(projectId, { enabled = true } = {}) {
   })
 }
 
+// ==================== META — FACEBOOK PAGE CONNECTION (Phase 2) ====================
+// Mirrors useGoogleAdsAccounts/useSelectGoogleAdsAccount's own "list, then
+// select one" shape above — same two-step connect pattern, different
+// provider. Inline query keys (no queryKeys.meta.* namespace exists yet;
+// following usePageSpeedRescan's own precedent of an inline key for a
+// narrowly-scoped feature rather than growing the shared registry for it).
+
+/** Facebook Pages available to whatever Meta account just completed OAuth consent — never includes a token. */
+export function useMetaPages(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['meta', 'pages', projectId],
+    queryFn: () => apiService.getMetaPages(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: 0, // the pending connection is single-use and short-lived; never serve a stale list
+    retry: false,
+  })
+}
+
+/**
+ * Persists the chosen Page as a real SocialAccount. Deliberately does NOT
+ * invalidate/refetch ['meta','pages', projectId] on success — the
+ * PendingMetaConnection backing that list is deleted server-side the
+ * moment selection succeeds (by design, see selectMetaPage's controller),
+ * so refetching it here would only produce a guaranteed, harmless-but-
+ * noisy 409 while the success state is still showing.
+ *
+ * DOES invalidate the real connection-status query (below) — this is what
+ * keeps the backend, not transient React state, as the source of truth:
+ * a later refresh re-fetches ['social','accounts','status', projectId]
+ * from MongoDB rather than trusting whatever this mutation's response said.
+ *
+ * Also invalidates the Switch Account list and the Facebook overview
+ * (prefix match — this reaches every ['social','facebook','overview',
+ * projectId, <accountId>] entry regardless of which Page's data is
+ * cached). This closes a gap from when the Switch Account feature added
+ * those two queries without updating this mutation: connecting a Page
+ * while a DIFFERENT Page was already active previously left both caches
+ * showing the old Page until something else happened to refetch them.
+ */
+export function useSelectMetaPage(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (pageId) => apiService.selectMetaPage(projectId, pageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social', 'accounts', 'status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'facebook', 'accounts', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'facebook', 'overview', projectId] })
+      // The backend automatically runs Instagram discovery for the
+      // newly-selected Page as part of this same call (see
+      // metaOAuthController.js's selectMetaPage) — Instagram's own
+      // overview data is entirely derived from whichever Page is active,
+      // so it must be invalidated here too.
+      queryClient.invalidateQueries({ queryKey: ['social', 'instagram', 'overview', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'feeds', projectId] })
+    },
+  })
+}
+
+/**
+ * Phase 3 — re-runs Facebook -> Instagram discovery on its own, for the
+ * "Retry" action after selectMetaPage's own discovery attempt failed.
+ * Takes no token of any kind; the backend re-derives the Page token from
+ * the already-persisted, encrypted Facebook SocialAccount.
+ */
+export function useRetryMetaInstagramDiscovery(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (pageId) => apiService.retryMetaInstagramDiscovery(projectId, pageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social', 'accounts', 'status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'instagram', 'overview', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'feeds', projectId] })
+    },
+  })
+}
+
+/**
+ * Real Facebook/Instagram connection status, sourced from MongoDB — the
+ * missing piece whose absence was the actual root cause of "Connected"
+ * reverting to "Not Connected" on refresh. Call this on every /app/social
+ * page load, not just once right after a successful connect.
+ */
+export function useSocialAccountsStatus(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'accounts', 'status', projectId],
+    queryFn: () => apiService.getSocialAccountsStatus(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Real Facebook Page data — profile, recent posts, and whatever Page
+ * Insights metrics Meta actually supports for this Page/API version (live
+ * investigation found the classic impressions/new-fans metric names are
+ * deprecated; see facebookOverviewService.js's own comment). Never mock
+ * data — a metric Meta can't provide comes back null with a reason, not a
+ * fake number. Only meaningfully enabled once the Facebook connection
+ * status query itself reports connected — no point fetching Page data for
+ * a project with no connected Page.
+ */
+// `activeSocialAccountId` is part of the query key (not a request
+// parameter — the backend always derives "active" from MongoDB itself,
+// the single source of truth) purely so React Query never serves data for
+// the PREVIOUSLY active Page under the NEWLY active Page's identity, and
+// so switching accounts naturally lands on a fresh cache entry instead of
+// an in-flight/soon-to-be-stale one. Deliberately NOT enabled until
+// activeSocialAccountId is known (see useFacebookAccounts below) — this
+// serializes the two fetches (accounts list, then overview) instead of
+// firing overview once with an unknown key and again moments later with
+// the real one, which would otherwise cause an avoidable extra
+// request/flicker on first load.
+export function useFacebookOverview(projectId, activeSocialAccountId, range = 'month', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'facebook', 'overview', projectId, activeSocialAccountId, range],
+    queryFn: () => apiService.getFacebookOverview(projectId, range),
+    enabled: !!projectId && !!activeSocialAccountId && enabled,
+    staleTime: staleTimes.STANDARD,
+    // Switching Day/Week/Month changes the query key (a real backend
+    // refetch, not a client-side slice) — keeps the previous range's KPIs
+    // on screen instead of flashing back to the dummy baseline while the
+    // new range loads; PlatformChart's own `loading` state (isFetching)
+    // still shows a spinner over the chart itself during that gap.
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+/**
+ * Real Instagram Business account data — profile/post count, engagements,
+ * followers gained, likes, and a real comments-vs-likes chart (see
+ * instagramOverviewService.js). No Switch-Account dimension in the query
+ * key: Instagram account switching is out of scope (same as the backend),
+ * so there is only ever one active Instagram row per project to key on —
+ * `projectId` alone is the correct, sufficient cache scope here, unlike
+ * Facebook's key which also needs activeSocialAccountId.
+ */
+/**
+ * `activeSocialAccountId` is the ACTIVE FACEBOOK Page's Mongo _id (the
+ * same value useFacebookOverview already keys on) — not a separate
+ * Instagram-specific id. Instagram has no independent "active account" of
+ * its own in this architecture: an Instagram Business Account is only
+ * ever discovered/linked through a specific Facebook Page (see the
+ * backend's metaInstagramService.js), so which Instagram data this query
+ * resolves to is entirely DETERMINED by which Facebook Page is active.
+ * Including it here (exactly like useFacebookOverview does) means
+ * switching Pages always produces a distinct cache entry for the new
+ * Page's Instagram data, instead of silently reusing/showing whatever was
+ * cached under the previous Page.
+ */
+export function useInstagramOverview(projectId, activeSocialAccountId, range = 'month', { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'instagram', 'overview', projectId, activeSocialAccountId, range],
+    queryFn: () => apiService.getInstagramOverview(projectId, range),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+/**
+ * Switch Account feature — every currently-connected Facebook Page for
+ * the project, safe metadata only. Enabled only once the project is known
+ * to have at least one connected Page (see the page component).
+ */
+export function useFacebookAccounts(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'facebook', 'accounts', projectId],
+    queryFn: () => apiService.getFacebookAccounts(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Switches which already-connected Page is active — NOT an OAuth call.
+ * Invalidates the accounts list (so the new active flag shows up), the
+ * connection-status query (accountName may have changed), and every
+ * Facebook overview cache entry for this project (old key AND new key —
+ * a broad prefix invalidation is simplest and correct here since exactly
+ * which key is "new" isn't known until this resolves).
+ */
+export function useSwitchFacebookAccount(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (socialAccountId) => apiService.switchFacebookAccount(projectId, socialAccountId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social', 'facebook', 'accounts', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'accounts', 'status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'facebook', 'overview', projectId] })
+      // Which Instagram account this project's Overview resolves to is
+      // entirely derived from whichever Facebook Page is active (see
+      // instagramOverviewService.js) — a Facebook Page switch can change
+      // that just as much as it changes Facebook's own data, so this must
+      // be invalidated here too, not just on some separate Instagram-only
+      // action (there isn't one).
+      queryClient.invalidateQueries({ queryKey: ['social', 'instagram', 'overview', projectId] })
+      // Feeds now defaults to the active account(s) too (see
+      // socialFeedService.js) — a Page switch changes what it resolves to
+      // just as much as Overview.
+      queryClient.invalidateQueries({ queryKey: ['social', 'feeds', projectId] })
+    },
+  })
+}
+
+/**
+ * Disconnects the project's active Facebook/Instagram connection. Both
+ * /app/social and Settings -> Profile call this same mutation and both
+ * invalidate the same ['social','accounts','status', projectId] query
+ * useSocialAccountsStatus reads — that's the whole mechanism keeping the
+ * two pages synchronized without a hard refresh (Section 7's explicit
+ * requirement). Also invalidates the Facebook overview query so stale
+ * metrics don't linger after a disconnect.
+ */
+export function useDisconnectSocialAccount(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (platform) => apiService.disconnectSocialAccount(projectId, platform),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social', 'accounts', 'status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['social', 'facebook', 'overview', projectId] })
+    },
+  })
+}
+
+// ==================== SOCIAL FEEDS (real Facebook + Instagram posts) =====
+// Replaces the frontend-only lib/socialFeedsDummyData.js mock. Reads only
+// from MongoDB via GET /api/social/feeds (never calls Meta directly — see
+// socialFeedService.js); syncing from Meta is a separate, explicit action
+// (useSyncSocialFeeds, the Feeds page Refresh button), matching Phase 14's
+// "background sync, not a Meta call on every page load".
+
+/**
+ * `filters` may include platform/status/search/from/to/sort/page/limit/
+ * allAccounts — all become part of the query key so each distinct filter
+ * combination gets its own cache entry, and `placeholderData` keeps the
+ * previous page's posts on screen while a new filter/page loads instead
+ * of flashing a loading state (same pattern useLeads already uses for the
+ * same reason).
+ *
+ * `activeSocialAccountId` is the active Facebook Page's Mongo _id (the
+ * SAME value useFacebookOverview/useInstagramOverview already key on) —
+ * appended to the query key ONLY, never sent as a request param (the
+ * backend resolves which account(s) to scope to entirely server-side, see
+ * socialFeedService.js). Its only job here is cache identity: without it,
+ * switching Pages would keep this query's key unchanged (same `filters`
+ * object) and Feeds would keep showing the previous Page's posts until
+ * something else happened to trigger a refetch.
+ */
+export function useSocialFeeds(projectId, filters = {}, activeSocialAccountId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'feeds', projectId, filters, activeSocialAccountId],
+    queryFn: () => apiService.getSocialFeeds(projectId, filters),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+/**
+ * Feeds page Refresh — runs a real backend sync (Meta calls happen
+ * server-side only) and invalidates every ['social','feeds', projectId, ...]
+ * cache entry regardless of filters, so whatever filter/page the user is
+ * currently viewing refetches with the newly-synced posts.
+ */
+export function useSyncSocialFeeds(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncSocialFeeds(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social', 'feeds', projectId] })
+    },
+  })
+}
+
+// ==================== SOCIAL PUBLISHING (real drafts/scheduling/publishing) ====
+// Replaces the frontend-only lib/publishingDummyData.js mock. The backend
+// is the sole source of truth — no second client-side data store. Uses
+// the SAME connection status useSocialAccountsStatus already reads
+// (Phase 16's "useSocialConnectionStatus()" — this repo already has that
+// hook, no need for a duplicate under a new name).
+
+/**
+ * `filters` may include platform/status/search/from/to/sort/page/limit.
+ * The response also carries real `counts` (drafts, scheduledToday) —
+ * Pending Approval is deliberately absent, there is no approval workflow
+ * (see the backend's socialPublishingService.js). `placeholderData` keeps
+ * the previous page/filter's posts on screen while a new one loads, same
+ * pattern as useSocialFeeds/useLeads.
+ */
+export function useSocialPublishing(projectId, filters = {}, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['social', 'publishing', projectId, filters],
+    queryFn: () => apiService.getSocialPublications(projectId, filters),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+function invalidatePublishing(queryClient, projectId) {
+  queryClient.invalidateQueries({ queryKey: ['social', 'publishing', projectId] })
+}
+
+/** Uploads one image/video for a social post; resolves to { url, type, mimeType, width, height, size }. */
+export function useUploadSocialMedia(projectId) {
+  return useMutation({
+    mutationFn: ({ file, onProgress }) => apiService.uploadSocialMedia(projectId, file, onProgress),
+  })
+}
+
+/** Creates a draft, a scheduled post, or immediately attempts a real publish (payload.publishNow). */
+export function useCreateSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload) => apiService.createSocialPublication(projectId, payload),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
+export function useUpdateSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ publicationId, updates }) => apiService.updateSocialPublication(projectId, publicationId, updates),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
+export function useDeleteSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (publicationId) => apiService.deleteSocialPublication(projectId, publicationId),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
+/** A real Meta publish attempt — may come back with the record moved to 'failed' rather than throwing (see apiService/controller). */
+export function usePublishSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (publicationId) => apiService.publishSocialPublication(projectId, publicationId),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
+export function useCancelSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (publicationId) => apiService.cancelSocialPublication(projectId, publicationId),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
+export function useScheduleSocialPost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ publicationId, scheduledAt, timezone }) => apiService.scheduleSocialPublication(projectId, publicationId, scheduledAt, timezone),
+    onSuccess: () => invalidatePublishing(queryClient, projectId),
+  })
+}
+
 // ==================== LEADS (Phase 3B) ====================
 // Real backend (odito_backend/src/modules/lead/) — replaces the
 // frontend-only mock previously in frontend/lib/leadsDummyData.js. See

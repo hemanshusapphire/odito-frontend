@@ -3,12 +3,17 @@
 import { useState } from 'react'
 import { UploadCloud } from 'lucide-react'
 
+// Matches mediaValidationService.js's real, server-enforced caps
+// (MAX_IMAGE_BYTES / MAX_VIDEO_BYTES) and allowed video type (MP4 only —
+// no video-decoding dependency exists in this stack to validate anything
+// else) — this text must never promise more than the backend will
+// actually accept.
 const LIMITS = {
-  image: { accept: 'image/*', maxFiles: 4, maxSizeMb: 5, helper: 'Images: up to 4 files, 5MB each' },
-  video: { accept: 'video/*', maxFiles: 1, maxSizeMb: 500, helper: 'Video: 1 file, up to 500MB' },
+  image: { accept: 'image/jpeg,image/png,image/webp', maxFiles: 4, maxSizeMb: 8, helper: 'Images: up to 4 files (JPG/PNG/WEBP), 8MB each' },
+  video: { accept: 'video/mp4', maxFiles: 1, maxSizeMb: 100, helper: 'Video: 1 MP4 file, up to 100MB' },
 }
 
-/** Drag-and-drop (+ click-to-browse) media zone - no upload pipeline, just local file selection. */
+/** Drag-and-drop (+ click-to-browse) media zone — selected files are uploaded to a real, public URL by MediaUploader.jsx. */
 export default function UploadDropzone({ mode, onFilesSelected }) {
   const [dragging, setDragging] = useState(false)
   const limits = LIMITS[mode]

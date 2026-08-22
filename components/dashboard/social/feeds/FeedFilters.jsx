@@ -1,11 +1,13 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { FEED_PLATFORMS, STATUSES, SORT_OPTIONS } from '@/lib/socialFeedsDummyData'
+import { FEED_PLATFORMS, SORT_OPTIONS } from '@/lib/socialFeedsDummyData'
 
 const ALL = '__all__'
+const SEARCH_DEBOUNCE_MS = 400
 
 function FilterSelect({ label, value, options, onChange, className }) {
   return (
@@ -23,16 +25,39 @@ function FilterSelect({ label, value, options, onChange, className }) {
   )
 }
 
-/** Search + platform/status/date-range filters + sort, above the feed grid. */
+/**
+ * Search + platform/date-range filters + sort, above the feed grid. Each
+ * filter change becomes a real GET /api/social/feeds request (server-side
+ * filtering now, not a client-side array filter over mock data) — search
+ * is debounced locally so typing doesn't fire a request per keystroke;
+ * every other filter commits immediately, matching a Select/date input's
+ * natural one-change-per-interaction behavior.
+ */
 export default function FeedFilters({ filters, onFilterChange }) {
+  const [searchInput, setSearchInput] = useState(filters.search)
+
+  // Keep the local input in sync if the parent's filter is reset
+  // elsewhere (e.g. a future "Clear filters" action) without fighting the
+  // debounce for normal typing.
+  useEffect(() => {
+    setSearchInput(filters.search)
+  }, [filters.search])
+
+  useEffect(() => {
+    if (searchInput === filters.search) return
+    const timer = setTimeout(() => onFilterChange('search', searchInput), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput])
+
   return (
     <div className="rounded-xl border bg-card shadow-sm p-4">
       <div className="flex flex-col xl:flex-row xl:items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search posts..."
             className="pl-9 h-9 text-sm"
           />
@@ -45,7 +70,6 @@ export default function FeedFilters({ filters, onFilterChange }) {
             options={FEED_PLATFORMS.map((p) => ({ value: p.id, label: p.name }))}
             onChange={(v) => onFilterChange('platform', v)}
           />
-          <FilterSelect label="Status" value={filters.status} options={STATUSES} onChange={(v) => onFilterChange('status', v)} />
 
           <div className="flex items-center gap-1.5 bg-muted/40 border rounded-lg px-2.5 py-1.5">
             <Input

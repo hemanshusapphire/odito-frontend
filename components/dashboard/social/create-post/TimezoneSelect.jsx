@@ -2,15 +2,9 @@
 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { TIMEZONES } from '@/lib/timezones'
 
-export const TIMEZONES = [
-  { value: 'America/New_York', label: '(UTC -5:00) Eastern Standard Time' },
-  { value: 'America/Chicago', label: '(UTC -6:00) Central Standard Time' },
-  { value: 'America/Denver', label: '(UTC -7:00) Mountain Standard Time' },
-  { value: 'America/Los_Angeles', label: '(UTC -8:00) Pacific Standard Time' },
-  { value: 'Etc/UTC', label: '(UTC +0:00) Coordinated Universal Time' },
-  { value: 'Europe/London', label: '(UTC +0:00) London' },
-]
+export { TIMEZONES }
 
 export default function TimezoneSelect({ value, onChange }) {
   return (

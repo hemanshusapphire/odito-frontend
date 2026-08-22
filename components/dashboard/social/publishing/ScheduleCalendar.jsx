@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 import CalendarToolbar from './CalendarToolbar'
 import CalendarDay from './CalendarDay'
 import StatusBadge from './StatusBadge'
-import { PUBLISHING_POSTS, TODAY_ISO } from '@/lib/publishingDummyData'
 import { platformConfig } from '@/lib/socialFeedsDummyData'
+import { DateTime } from 'luxon'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -37,25 +37,31 @@ function buildWeekGrid(viewDate) {
 }
 
 /**
- * Month/Week/Day calendar for scheduled/published/draft/failed posts -
- * "Google Calendar-like but Odito-styled", per the reference. Posts come
- * from the static PUBLISHING_POSTS array (lib/publishingDummyData.js);
- * navigation and view switching are local component state only.
+ * Month/Week/Day calendar for real draft/scheduled/published/failed/
+ * cancelled SocialPublication records (see app/app/social/publishing/
+ * page.jsx's useSocialPublishing). A post's calendar day is
+ * scheduledAt for anything not yet published, publishedAt for anything
+ * that is — matching Phase 5's explicit "use scheduledAt for scheduled
+ * posts, publishedAt for published posts". A draft with neither date set
+ * simply doesn't appear on the calendar (it has no date to appear on);
+ * it's still visible in the Posts tab.
  */
-export default function ScheduleCalendar({ onCompose }) {
+export default function ScheduleCalendar({ posts, isLoading, onCompose }) {
   const [view, setView] = useState('month')
-  const [viewDate, setViewDate] = useState(() => new Date(TODAY_ISO + 'T00:00:00'))
+  const [viewDate, setViewDate] = useState(() => new Date())
 
   const postsByDay = useMemo(() => {
     const map = {}
-    for (const post of PUBLISHING_POSTS) {
-      const key = post.scheduledAt.slice(0, 10)
+    for (const post of posts || []) {
+      const dateValue = post.scheduledAt || post.publishedAt
+      if (!dateValue) continue
+      const key = new Date(dateValue).toISOString().slice(0, 10)
       if (!map[key]) map[key] = []
       map[key].push(post)
     }
-    for (const key in map) map[key].sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
+    for (const key in map) map[key].sort((a, b) => new Date(a.scheduledAt || a.publishedAt) - new Date(b.scheduledAt || b.publishedAt))
     return map
-  }, [])
+  }, [posts])
 
   function shift(amount) {
     setViewDate((prev) => {
@@ -67,7 +73,7 @@ export default function ScheduleCalendar({ onCompose }) {
     })
   }
 
-  const todayKey = TODAY_ISO
+  const todayKey = toDateKey(new Date())
 
   return (
     <Card className="p-5 flex flex-col gap-4">
@@ -76,11 +82,16 @@ export default function ScheduleCalendar({ onCompose }) {
         view={view}
         onPrev={() => shift(-1)}
         onNext={() => shift(1)}
-        onToday={() => setViewDate(new Date(TODAY_ISO + 'T00:00:00'))}
+        onToday={() => setViewDate(new Date())}
         onViewChange={setView}
       />
 
-      {view === 'day' ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Loading your posts…</span>
+        </div>
+      ) : view === 'day' ? (
         <DayAgenda date={viewDate} posts={postsByDay[toDateKey(viewDate)] || []} onCompose={onCompose} />
       ) : (
         <div className="rounded-xl border overflow-hidden">
@@ -112,7 +123,7 @@ export default function ScheduleCalendar({ onCompose }) {
 }
 
 function DayAgenda({ date, posts, onCompose }) {
-  const isPast = toDateKey(date) < TODAY_ISO
+  const isPast = toDateKey(date) < toDateKey(new Date())
 
   return (
     <div className="rounded-xl border divide-y">
@@ -130,15 +141,26 @@ function DayAgenda({ date, posts, onCompose }) {
         posts.map((post) => {
           const platform = platformConfig(post.platform)
           const Icon = platform.icon
+          const displayDate = post.scheduledAt || post.publishedAt
+          // A stored scheduledAt is an absolute UTC instant; when it also
+          // carries the IANA zone the user picked, show the time back in
+          // THAT zone (matching what they actually chose) instead of the
+          // viewer's own browser zone. publishedAt has no such "chosen
+          // zone" concept, so it always displays in the viewer's local time.
+          const displayTime = displayDate
+            ? (post.scheduledAt && post.timezone
+              ? DateTime.fromJSDate(new Date(displayDate)).setZone(post.timezone).toFormat('h:mm a')
+              : new Date(displayDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
+            : null
           return (
             <div key={post.id} className="flex items-center gap-3 px-4 py-3">
               <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">
-                {new Date(post.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {displayTime || '—'}
               </span>
               <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${platform.color}18`, color: platform.color }}>
                 <Icon className="h-4 w-4" />
               </span>
-              <span className="text-sm font-medium truncate flex-1">{post.title}</span>
+              <span className="text-sm font-medium truncate flex-1">{post.content?.trim() || '(No text)'}</span>
               <StatusBadge status={post.status} />
             </div>
           )

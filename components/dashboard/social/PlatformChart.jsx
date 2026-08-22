@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from 'react'
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -98,34 +97,61 @@ function renderChart(chart, data, gradientId) {
  * platform is disconnected, the chart still renders (dimmed) behind a
  * centered ConnectionStateCard - matches the reference's own behaviour of
  * showing stale/cached-looking data under the connect prompt.
+ *
+ * `period`/`onPeriodChange` are controlled by the parent page (not local
+ * state here) because for Facebook/Instagram, changing the period must
+ * trigger a real refetch against a different backend date window — this
+ * component only renders whatever data it's given for the current period,
+ * it never owns the fetch. `loading` shows the existing spinner state
+ * while that refetch for the newly-selected period is in flight, so a
+ * period switch never silently keeps showing the previous period's data.
  */
-export default function PlatformChart({ chart, connected, icon, tint, platformName, connectMessage, onConnect }) {
-  const [period, setPeriod] = useState('month')
+export default function PlatformChart({ chart, connected, icon, tint, platformName, connectMessage, onConnect, emptyMessage, period = 'month', onPeriodChange = () => {}, loading = false, rangeLabel }) {
   const data = chart.series[period]
   const gradientId = `social-${platformName.toLowerCase()}-${period}`
+  // Connected, but Meta genuinely has nothing to show for this metric
+  // (e.g. no supported insights metric exists for this Page/API version)
+  // — an honest "unavailable" state, never a fabricated flat/fake chart.
+  const isEmpty = connected && emptyMessage && (!data || data.length === 0)
 
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h4 className="text-sm font-semibold">{chart.title}</h4>
         <div className="flex items-center gap-3">
-          <Tabs value={period} onValueChange={setPeriod}>
+          <Tabs value={period} onValueChange={onPeriodChange}>
             <TabsList className="h-8">
               {PERIODS.map((p) => (
-                <TabsTrigger key={p.value} value={p.value} className="text-xs px-2.5 h-6">{p.label}</TabsTrigger>
+                <TabsTrigger key={p.value} value={p.value} disabled={loading} className="text-xs px-2.5 h-6">{p.label}</TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
-          <span className="text-[11px] text-muted-foreground whitespace-nowrap hidden sm:inline">{periodRangeLabel(period)}</span>
+          {/* While a range switch is loading, `rangeLabel` (if present) still
+              reflects the PREVIOUS range's backend-echoed since/until via
+              placeholderData — showing it here would be exactly the "stale
+              data presented as the new range" the selector must avoid, so
+              this falls back to a real, live-computed label for the
+              newly-selected period until the fresher one arrives. */}
+          <span className="text-[11px] text-muted-foreground whitespace-nowrap hidden sm:inline">{!loading && rangeLabel ? rangeLabel : periodRangeLabel(period)}</span>
         </div>
       </div>
 
       <div className="relative h-64">
-        <div className={connected ? '' : 'opacity-30 pointer-events-none blur-[1px]'} style={{ height: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart(chart, data, gradientId)}
-          </ResponsiveContainer>
-        </div>
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="h-6 w-6 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+          </div>
+        ) : isEmpty ? (
+          <div className="flex h-full items-center justify-center text-center px-6">
+            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          </div>
+        ) : (
+          <div className={connected ? '' : 'opacity-30 pointer-events-none blur-[1px]'} style={{ height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {renderChart(chart, data, gradientId)}
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {!connected && (
           <ConnectionStateCard

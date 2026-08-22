@@ -1,17 +1,26 @@
 "use client"
 
 import { platformConfig } from '@/lib/socialFeedsDummyData'
-import { STATUS_STYLE } from '@/lib/publishingDummyData'
+import { STATUS_STYLE } from './StatusBadge'
 
 function formatTime(iso) {
+  if (!iso) return null
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-/** One scheduled/published/draft/failed post chip inside a calendar day cell, with a hover preview. */
+/**
+ * One scheduled/published/draft/failed post chip inside a calendar day
+ * cell, with a hover preview. `post.content` is a real SocialPublication
+ * (see app/app/social/publishing/page.jsx) — there is no `author` field
+ * on that model (no team/assignment concept exists yet), so the preview
+ * shows the post's time instead.
+ */
 export default function ScheduleCard({ post }) {
   const platform = platformConfig(post.platform)
   const Icon = platform.icon
   const dot = STATUS_STYLE[post.status]?.dot || '#94A3B8'
+  const displayText = post.content?.trim() || '(No text)'
+  const time = formatTime(post.scheduledAt || post.publishedAt)
 
   return (
     <div className="relative group/card">
@@ -22,7 +31,7 @@ export default function ScheduleCard({ post }) {
       >
         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
         <Icon className="h-3 w-3 shrink-0" />
-        <span className="truncate">{post.title}</span>
+        <span className="truncate">{displayText}</span>
       </button>
 
       <div className="pointer-events-none absolute left-0 top-full z-20 mt-1 w-56 rounded-lg border bg-popover shadow-lg p-3 text-xs opacity-0 scale-95 origin-top transition-all group-hover/card:opacity-100 group-hover/card:scale-100 group-hover/card:pointer-events-auto">
@@ -30,10 +39,10 @@ export default function ScheduleCard({ post }) {
           <Icon className="h-3.5 w-3.5" style={{ color: platform.color }} />
           {platform.name}
         </div>
-        <p className="text-popover-foreground/90 mb-1.5 line-clamp-2">{post.title}</p>
+        <p className="text-popover-foreground/90 mb-1.5 line-clamp-2">{displayText}</p>
         <div className="flex items-center justify-between text-muted-foreground">
-          <span>{formatTime(post.scheduledAt)}</span>
-          <span className="font-medium">{post.author}</span>
+          {time && <span>{time}</span>}
+          <span className="font-medium capitalize">{post.status}</span>
         </div>
       </div>
     </div>
