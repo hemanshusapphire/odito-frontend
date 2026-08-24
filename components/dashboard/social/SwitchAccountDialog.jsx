@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Loader2, AlertCircle, CheckCircle2, Facebook } from 'lucide-react'
 import { useFacebookAccounts, useSwitchFacebookAccount } from '@/hooks/useDashboardQueries'
+import { normalizeImageUrl } from '@/lib/security/sanitize'
 
 /**
  * Lets the user pick which already-connected Facebook Page is active,
@@ -134,7 +135,7 @@ export default function SwitchAccountDialog({ open, onOpenChange, projectId, onS
 
                     <div className="relative mt-1">
                       <Avatar size="lg" className="h-14 w-14">
-                        <AvatarImage src={account.picture || undefined} alt={account.name || 'Page'} />
+                        <AvatarImage src={normalizeImageUrl(account.picture) || undefined} alt={account.name || 'Page'} />
                         <AvatarFallback className="text-base">{(account.name || '?').charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-card bg-[#1877F2]">

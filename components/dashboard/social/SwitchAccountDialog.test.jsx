@@ -6,6 +6,21 @@ import SwitchAccountDialog from './SwitchAccountDialog'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
+// Radix's real AvatarImage never mounts an <img> in jsdom (there is no
+// real network to "load" against), so the existing tests below never
+// depended on it and only ever assert on text content. The picture-
+// normalization tests further down DO need to inspect a real `src`
+// attribute, so only AvatarImage is swapped for a minimal stand-in here —
+// Avatar/AvatarFallback stay the real components, unchanged. Same
+// technique already used in FacebookPageSelectorDialog.test.jsx.
+vi.mock('@/components/ui/avatar', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    AvatarImage: ({ src, alt }) => (src ? React.createElement('img', { src, alt }) : null),
+  }
+})
+
 let accountsResult
 let switchMutate
 let switchState
@@ -130,5 +145,51 @@ describe('SwitchAccountDialog — modal-level "Currently connected" indicator', 
     render()
     expect(document.body.textContent).toContain('Failed to switch Facebook Page');
     expect(document.body.textContent).toContain('Nashik Property Deals')
+  })
+})
+
+// Regression coverage for the Meta Graph API occasionally returning an
+// account's `picture` as a Markdown-style link instead of a bare URL.
+describe('SwitchAccountDialog — picture normalization', () => {
+  function accountCard(name) {
+    return Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent.includes(name))
+  }
+
+  it('A. a normal image URL renders as a real <img> with that exact src', () => {
+    accountsResult.data.data.accounts[0].picture = 'https://example.com/a.jpg'
+    render()
+    const img = accountCard('The Baseball').querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toBe('https://example.com/a.jpg')
+  })
+
+  it('B. a Markdown-wrapped image URL is extracted and used as the <img> src', () => {
+    accountsResult.data.data.accounts[0].picture = '[https://example.com/a.jpg](https://example.com/a.jpg)'
+    render()
+    const img = accountCard('The Baseball').querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toBe('https://example.com/a.jpg')
+  })
+
+  it('C/D/E. missing, empty, and malformed pictures all fall back cleanly, never a broken <img>, never throwing', () => {
+    accountsResult.data.data.accounts[0].picture = null
+    accountsResult.data.data.accounts[1].picture = ''
+    accountsResult.data.data.accounts[2].picture = 'not a url at all'
+    expect(() => render()).not.toThrow()
+    expect(accountCard('The Baseball').querySelector('img')).toBeNull()
+    expect(accountCard('Nashik Property Deals').querySelector('img')).toBeNull()
+    expect(accountCard('Naxonify').querySelector('img')).toBeNull()
+  })
+
+  it('F/G/H. each connected account normalizes independently, including the active one', () => {
+    accountsResult.data.data.accounts[0].picture = 'https://example.com/a.jpg' // connected, not active
+    accountsResult.data.data.accounts[1].picture = '[https://example.com/active.jpg](https://example.com/active.jpg)' // active
+    accountsResult.data.data.accounts[2].picture = 'javascript:alert(1)' // connected, unsafe
+    render()
+    expect(accountCard('The Baseball').querySelector('img').getAttribute('src')).toBe('https://example.com/a.jpg')
+    const activeImg = accountCard('Nashik Property Deals').querySelector('img')
+    expect(activeImg.getAttribute('src')).toBe('https://example.com/active.jpg')
+    expect(accountCard('Nashik Property Deals').textContent).toContain('Active')
+    expect(accountCard('Naxonify').querySelector('img')).toBeNull()
   })
 })

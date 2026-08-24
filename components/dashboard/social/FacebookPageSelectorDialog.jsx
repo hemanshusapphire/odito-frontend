@@ -9,6 +9,7 @@ import {
   useMetaPages, useSelectMetaPage, useRetryMetaInstagramDiscovery,
   useFacebookAccounts, useSwitchFacebookAccount,
 } from '@/hooks/useDashboardQueries'
+import { normalizeImageUrl } from '@/lib/security/sanitize'
 
 // Instagram discovery failure reasons that mean "something went wrong, try
 // again" — NOT_CONNECTED is deliberately excluded: a Page genuinely having
@@ -60,11 +61,11 @@ export default function FacebookPageSelectorDialog({ open, onOpenChange, project
   // below never needs to know which endpoint the data came from.
   const pages = isConnectMode
     ? (pagesQuery.data?.data?.pages || []).map((p) => ({
-        id: p.id, name: p.name, category: p.category, picture: p.picture,
+        id: p.id, name: p.name, category: p.category, picture: normalizeImageUrl(p.picture),
         alreadyConnected: !!p.alreadyConnected, isActive: !!p.isActive,
       }))
     : (accountsQuery.data?.data?.accounts || []).map((a) => ({
-        id: a.id, name: a.name, category: null, picture: a.picture,
+        id: a.id, name: a.name, category: null, picture: normalizeImageUrl(a.picture),
         alreadyConnected: true, isActive: !!a.isActive,
       }))
 

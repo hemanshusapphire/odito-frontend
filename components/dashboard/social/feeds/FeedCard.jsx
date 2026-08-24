@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import PlatformBadge from './PlatformBadge'
 import FeedMedia from './FeedMedia'
 import FeedMetrics from './FeedMetrics'
+import { normalizeImageUrl } from '@/lib/security/sanitize'
 
 const STATUS_VARIANT = { published: 'success' }
 const STATUS_LABEL = { published: 'Published' }
@@ -51,16 +52,17 @@ export default function FeedCard({ post, platform }) {
   const date = formatDate(post.publishedAt)
   const time = formatTime(post.publishedAt)
   const displayName = post.accountName || (post.username ? `@${post.username}` : 'Unknown account')
+  const accountPictureUrl = normalizeImageUrl(post.accountPicture)
 
   return (
     <div className="rounded-2xl border bg-card shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative shrink-0">
-            {post.accountPicture && !avatarFailed ? (
+            {accountPictureUrl && !avatarFailed ? (
               // eslint-disable-next-line @next/next/no-img-element -- real, dynamic Meta CDN URL
               <img
-                src={post.accountPicture}
+                src={accountPictureUrl}
                 alt={displayName}
                 className="w-11 h-11 rounded-full object-cover"
                 onError={() => setAvatarFailed(true)}

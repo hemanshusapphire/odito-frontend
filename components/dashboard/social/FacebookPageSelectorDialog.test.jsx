@@ -6,6 +6,20 @@ import FacebookPageSelectorDialog from './FacebookPageSelectorDialog'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
+// Radix's real AvatarImage never mounts an <img> in jsdom (there is no
+// real network to "load" against), so the existing tests below never
+// depended on it and only ever assert on text content. The picture-
+// normalization tests further down DO need to inspect a real `src`
+// attribute, so only AvatarImage is swapped for a minimal stand-in here —
+// Avatar/AvatarFallback stay the real components, unchanged.
+vi.mock('@/components/ui/avatar', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    AvatarImage: ({ src, alt }) => (src ? React.createElement('img', { src, alt }) : null),
+  }
+})
+
 let pagesResult
 let accountsResult
 let selectMutate
@@ -241,6 +255,58 @@ describe('FacebookPageSelectorDialog — switch mode', () => {
     expect(document.body.textContent).toContain('Failed to switch to that Page. Please try again.')
     expect(pageCard('Nashik Property Deals').textContent).toContain('Active')
     expect(pageCard('The Baseball').textContent).not.toContain('Active')
+  })
+})
+
+// Regression coverage for the Meta Graph API occasionally returning a
+// Page's `picture` as a Markdown-style link (`[url](url)`) instead of a
+// bare URL — see lib/security/sanitize.js's normalizeImageUrl, which this
+// component now runs every discovered Page/account through before it ever
+// reaches an <img>/<AvatarImage> src.
+describe('FacebookPageSelectorDialog — picture URL normalization', () => {
+  it('connect mode: a Markdown-wrapped picture renders as a plain <img src>, never the raw bracketed string', () => {
+    pagesResult.data.data.pages[0].picture = '[https://example.com/a.jpg](https://example.com/a.jpg)'
+    render({ mode: 'connect' })
+    const img = pageCard('Brand New Page').querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toBe('https://example.com/a.jpg')
+  })
+
+  it('connect mode: a missing/malformed picture renders the fallback initial, never a broken <img>', () => {
+    pagesResult.data.data.pages[0].picture = 'not a url'
+    render({ mode: 'connect' })
+    expect(pageCard('Brand New Page').querySelector('img')).toBeNull()
+    expect(pageCard('Brand New Page').textContent).toContain('B') // AvatarFallback initial
+  })
+
+  it('connect mode: an unsafe scheme is never passed through as an image source', () => {
+    pagesResult.data.data.pages[0].picture = 'javascript:alert(1)'
+    render({ mode: 'connect' })
+    expect(pageCard('Brand New Page').querySelector('img')).toBeNull()
+  })
+
+  it('switch mode: a Markdown-wrapped account picture is also normalized', () => {
+    accountsResult.data.data.accounts[0].picture = '[https://example.com/b.jpg](https://example.com/b.jpg)'
+    render({ mode: 'switch' })
+    const img = pageCard('The Baseball').querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toBe('https://example.com/b.jpg')
+  })
+
+  it('renders every page normally (no crash) across a mixed batch: normal URL, Markdown URL, missing, empty, and malformed pictures', () => {
+    pagesResult.data.data.pages = [
+      { id: 'p1', name: 'Normal', category: 'Business', picture: 'https://example.com/normal.jpg', alreadyConnected: false, isActive: false },
+      { id: 'p2', name: 'Markdown', category: 'Business', picture: '[https://example.com/md.jpg](https://example.com/md.jpg)', alreadyConnected: false, isActive: false },
+      { id: 'p3', name: 'Missing', category: 'Business', picture: null, alreadyConnected: false, isActive: false },
+      { id: 'p4', name: 'Empty', category: 'Business', picture: '', alreadyConnected: false, isActive: false },
+      { id: 'p5', name: 'Malformed', category: 'Business', picture: '::not a url::', alreadyConnected: false, isActive: false },
+    ]
+    expect(() => render({ mode: 'connect' })).not.toThrow()
+    expect(pageCard('Normal').querySelector('img').getAttribute('src')).toBe('https://example.com/normal.jpg')
+    expect(pageCard('Markdown').querySelector('img').getAttribute('src')).toBe('https://example.com/md.jpg')
+    expect(pageCard('Missing').querySelector('img')).toBeNull()
+    expect(pageCard('Empty').querySelector('img')).toBeNull()
+    expect(pageCard('Malformed').querySelector('img')).toBeNull()
   })
 })
 
