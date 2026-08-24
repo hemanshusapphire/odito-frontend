@@ -25,7 +25,7 @@ import { useProject } from "@/contexts/ProjectContext"
 import { useMetaOAuthRedirect } from "@/hooks/useMetaOAuthRedirect"
 import { useSocialAccountsStatus, useDisconnectSocialAccount } from "@/hooks/useDashboardQueries"
 import apiService from "@/lib/apiService"
-import MetaPageSelectionDialog from "@/components/dashboard/social/MetaPageSelectionDialog"
+import FacebookPageSelectorDialog from "@/components/dashboard/social/FacebookPageSelectorDialog"
 
 // Same local Toast pattern ConnectedAccountsCard.jsx already uses for its
 // own OAuth-redirect outcome.
@@ -317,11 +317,13 @@ export default function SocialMediaAccountsCard() {
         the same query key useSocialAccountsStatus reads above — so no
         manual invalidation is needed here; this card's status re-renders
         from that same shared cache entry automatically, exactly like
-        /app/social does.
+        /app/social does. This page has no "Switch Account" UI of its own,
+        so it only ever opens the unified dialog in mode="connect".
       */}
-      <MetaPageSelectionDialog
+      <FacebookPageSelectorDialog
         open={pageSelectDialogOpen}
         onOpenChange={setPageSelectDialogOpen}
+        mode="connect"
         projectId={activeProjectId}
         onConnected={() => setToast({ message: "Facebook Page connected successfully.", type: "success" })}
       />

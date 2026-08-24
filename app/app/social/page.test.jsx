@@ -12,7 +12,7 @@ vi.mock('@/contexts/ProjectContext', () => ({
 }))
 
 vi.mock('@/hooks/useMetaOAuthRedirect', () => ({
-  useMetaOAuthRedirect: () => {},
+  useMetaOAuthRedirect: (config) => { lastOAuthRedirectConfig = config },
   default: () => {},
 }))
 
@@ -58,8 +58,22 @@ vi.mock('@/components/dashboard/social/SocialPlatformSection', () => ({
 }))
 vi.mock('@/components/dashboard/social/CreatePostDialog', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/social/ConnectAccountDialog', () => ({ default: () => null }))
-vi.mock('@/components/dashboard/social/MetaPageSelectionDialog', () => ({ default: () => null }))
-vi.mock('@/components/dashboard/social/SwitchAccountDialog', () => ({ default: () => null }))
+// A marker element (not `() => null`) so tests can assert both that
+// exactly ONE instance is ever present in the tree (never two dialogs)
+// and which open/mode props the single instance received — without
+// depending on the real Dialog/Radix DOM structure this file otherwise
+// stubs out. Also stashes the raw props so a test can invoke the real
+// onOpenChange handler page.jsx wired up, exactly as the real dialog would.
+vi.mock('@/components/dashboard/social/FacebookPageSelectorDialog', () => ({
+  default: (props) => {
+    lastDialogProps = props
+    return React.createElement('div', {
+      'data-testid': 'mock-fb-page-selector',
+      'data-open': String(!!props.open),
+      'data-mode': props.mode,
+    })
+  },
+}))
 vi.mock('@/components/shared/ToastStack', () => ({ default: () => null }))
 
 // `let` bindings referenced inside the mock factory below — the factory
@@ -76,6 +90,8 @@ let overviewRefetch
 let instagramOverviewRefetch
 let lastFacebookOverviewArgs
 let lastInstagramOverviewArgs
+let lastOAuthRedirectConfig
+let lastDialogProps
 
 vi.mock('@/hooks/useDashboardQueries', () => ({
   useSocialAccountsStatus: () => statusResult,
@@ -670,5 +686,72 @@ describe('Disconnected state never leaks stale/dummy KPI or chart data behind th
     expect(card.getAttribute('data-connected')).toBe('false')
     expect(card.textContent).toContain('engagements=—')
     expect(card.textContent).not.toContain('engagements=16,932')
+  })
+})
+
+// Regression coverage for the Facebook Modal Unification: this page used
+// to mount two separately-designed Page-selection dialogs
+// (MetaPageSelectionDialog for the OAuth redirect, SwitchAccountDialog for
+// the header's "Switch Account" button). It now mounts exactly ONE
+// FacebookPageSelectorDialog instance whose `mode`/`open` follow whichever
+// of the two boolean states (pageSelectDialogOpen / switchDialogOpen) is
+// currently true. These prove there is still only ever one instance in
+// the tree, that each real trigger produces the correct mode, and that the
+// deterministic precedence rule (connect wins if both were somehow true)
+// never results in two dialogs rendering at once.
+describe('Facebook Page selector — single unified dialog, correct mode per real trigger', () => {
+  function dialogMarker() {
+    return container.querySelector('[data-testid="mock-fb-page-selector"]')
+  }
+
+  function switchAccountButton() {
+    return Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes('Switch Account'))
+  }
+
+  it('exactly one FacebookPageSelectorDialog instance is ever present in the tree, closed by default', () => {
+    render()
+    expect(container.querySelectorAll('[data-testid="mock-fb-page-selector"]').length).toBe(1)
+    expect(dialogMarker().dataset.open).toBe('false')
+  })
+
+  it('a real Meta OAuth redirect completing (useMetaOAuthRedirect\'s onConnected) opens the dialog in mode="connect"', () => {
+    render()
+    act(() => { lastOAuthRedirectConfig.onConnected() })
+    expect(container.querySelectorAll('[data-testid="mock-fb-page-selector"]').length).toBe(1)
+    expect(dialogMarker().dataset.open).toBe('true')
+    expect(dialogMarker().dataset.mode).toBe('connect')
+  })
+
+  it('clicking the header\'s real "Switch Account" button opens the SAME dialog in mode="switch"', () => {
+    render()
+    act(() => { switchAccountButton().click() })
+    expect(container.querySelectorAll('[data-testid="mock-fb-page-selector"]').length).toBe(1)
+    expect(dialogMarker().dataset.open).toBe('true')
+    expect(dialogMarker().dataset.mode).toBe('switch')
+  })
+
+  it('if both the OAuth-redirect state and the Switch Account state were somehow true at once, still only one dialog renders, deterministically in mode="connect"', () => {
+    render()
+    act(() => { switchAccountButton().click() })
+    act(() => { lastOAuthRedirectConfig.onConnected() })
+    expect(container.querySelectorAll('[data-testid="mock-fb-page-selector"]').length).toBe(1)
+    expect(dialogMarker().dataset.open).toBe('true')
+    expect(dialogMarker().dataset.mode).toBe('connect')
+  })
+
+  it('calling the real onOpenChange(false) page.jsx passed down actually closes the dialog (switchDialogOpen flips back to false, not left stuck true)', () => {
+    render()
+    act(() => { switchAccountButton().click() })
+    expect(dialogMarker().dataset.open).toBe('true')
+
+    act(() => { lastDialogProps.onOpenChange(false) })
+    expect(container.querySelectorAll('[data-testid="mock-fb-page-selector"]').length).toBe(1)
+    expect(dialogMarker().dataset.open).toBe('false')
+
+    // Reopening via the header button afterward still works — closing
+    // once didn't leave switchDialogOpen permanently stuck in either state.
+    act(() => { switchAccountButton().click() })
+    expect(dialogMarker().dataset.open).toBe('true')
+    expect(dialogMarker().dataset.mode).toBe('switch')
   })
 })

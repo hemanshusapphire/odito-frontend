@@ -7,8 +7,7 @@ import SocialTabs from '@/components/dashboard/social/SocialTabs'
 import SocialPlatformSection from '@/components/dashboard/social/SocialPlatformSection'
 import CreatePostDialog from '@/components/dashboard/social/CreatePostDialog'
 import ConnectAccountDialog from '@/components/dashboard/social/ConnectAccountDialog'
-import MetaPageSelectionDialog from '@/components/dashboard/social/MetaPageSelectionDialog'
-import SwitchAccountDialog from '@/components/dashboard/social/SwitchAccountDialog'
+import FacebookPageSelectorDialog from '@/components/dashboard/social/FacebookPageSelectorDialog'
 import ToastStack from '@/components/shared/ToastStack'
 import { useToastQueue } from '@/hooks/useToastQueue'
 import { useProject } from '@/contexts/ProjectContext'
@@ -32,7 +31,7 @@ const INSTAGRAM_ERROR_MESSAGES = {
 // Meta (Facebook + Instagram) is a real OAuth connection — both cards
 // share the same underlying Meta app grant, so both route through the
 // same /social/meta/start flow. Facebook becomes "connected" once a real
-// Page is selected and persisted (see MetaPageSelectionDialog below);
+// Page is selected and persisted (see FacebookPageSelectorDialog below);
 // Instagram becomes "connected" only if that Page has a linked Instagram
 // Business/Professional account (Phase 3 discovery) — both states are now
 // read from real, MongoDB-sourced status (see useSocialAccountsStatus
@@ -398,20 +397,27 @@ export default function SocialMediaOverviewPage() {
         onConnect={handleConnect}
       />
 
-      <MetaPageSelectionDialog
-        open={pageSelectDialogOpen}
-        onOpenChange={setPageSelectDialogOpen}
+      {/* ONE Facebook Page selector, in two modes, instead of two
+          separately-mounted dialogs — see FacebookPageSelectorDialog's own
+          docblock. pageSelectDialogOpen/switchDialogOpen are mutually
+          exclusive in every real usage above (OAuth redirect vs. the
+          explicit "Switch Account" button), so a single instance whose
+          mode/open follow whichever is currently true avoids mounting the
+          same kind of dialog twice. */}
+      <FacebookPageSelectorDialog
+        open={pageSelectDialogOpen || switchDialogOpen}
+        mode={pageSelectDialogOpen ? 'connect' : 'switch'}
+        onOpenChange={(next) => {
+          if (!next) {
+            setPageSelectDialogOpen(false)
+            setSwitchDialogOpen(false)
+          }
+        }}
         projectId={activeProjectId}
         onConnected={() => {
           setPlatforms((prev) => prev.map((p) => (p.id === META_PAGE_BACKED_PLATFORM_ID ? { ...p, connected: true } : p)))
           notify('Facebook Page connected successfully.', 'success')
         }}
-      />
-
-      <SwitchAccountDialog
-        open={switchDialogOpen}
-        onOpenChange={setSwitchDialogOpen}
-        projectId={activeProjectId}
         onSwitched={(account) => notify(`Switched to ${account?.name || 'that Page'}.`, 'success')}
         onConnectAnother={() => setConnectDialogOpen(true)}
       />
