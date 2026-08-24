@@ -1,11 +1,20 @@
 "use client"
 
+import { DateTime } from 'luxon'
 import { platformConfig } from '@/lib/socialFeedsDummyData'
 import { STATUS_STYLE } from './StatusBadge'
 
-function formatTime(iso) {
+// A stored scheduledAt is an absolute UTC instant; show it back in the
+// zone the user actually picked (matching DayAgenda's/PostsTable's own
+// logic) rather than the viewer's browser zone, which could show a
+// different hour than the one the user chose. publishedAt has no "chosen
+// zone" concept, so it falls back to the viewer's own timezone.
+function formatTime(iso, timezone) {
   if (!iso) return null
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const dt = timezone
+    ? DateTime.fromJSDate(new Date(iso)).setZone(timezone)
+    : DateTime.fromJSDate(new Date(iso))
+  return dt.isValid ? dt.toFormat('h:mm a') : null
 }
 
 /**
@@ -20,7 +29,7 @@ export default function ScheduleCard({ post }) {
   const Icon = platform.icon
   const dot = STATUS_STYLE[post.status]?.dot || '#94A3B8'
   const displayText = post.content?.trim() || '(No text)'
-  const time = formatTime(post.scheduledAt || post.publishedAt)
+  const time = formatTime(post.scheduledAt || post.publishedAt, post.scheduledAt ? post.timezone : null)
 
   return (
     <div className="relative group/card">

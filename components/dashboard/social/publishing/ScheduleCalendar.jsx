@@ -8,11 +8,22 @@ import CalendarDay from './CalendarDay'
 import StatusBadge from './StatusBadge'
 import { platformConfig } from '@/lib/socialFeedsDummyData'
 import { DateTime } from 'luxon'
+import { dateKeyInTimezone } from '@/lib/scheduleTime'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+// Grid cells (buildMonthGrid/buildWeekGrid below) are plain calendar days —
+// constructed via LOCAL Date arithmetic and labelled via date.getDate() in
+// CalendarDay.jsx — so they must be keyed the same way (Luxon's
+// DateTime.fromJSDate defaults to the local zone). Using toISOString()
+// here (UTC) used to key a LOCAL day against a UTC day: for any viewer
+// whose browser timezone has a non-zero UTC offset, the cell visually
+// labelled e.g. "26" could carry the key for a different real day than the
+// one a post bucketed via a UTC-based key would land on — exactly the
+// bug where a 9:00 AM IST post landed one cell over from where its own
+// "25" label said it should be.
 function toDateKey(date) {
-  return date.toISOString().slice(0, 10)
+  return DateTime.fromJSDate(date).toFormat('yyyy-LL-dd')
 }
 
 function buildMonthGrid(viewDate) {
@@ -55,7 +66,15 @@ export default function ScheduleCalendar({ posts, isLoading, onCompose }) {
     for (const post of posts || []) {
       const dateValue = post.scheduledAt || post.publishedAt
       if (!dateValue) continue
-      const key = new Date(dateValue).toISOString().slice(0, 10)
+      // A stored scheduledAt is an absolute UTC instant; bucket it by the
+      // calendar day it falls on IN THE ZONE THE USER SCHEDULED IT FOR
+      // (matching DayAgenda's/PostsTable's own display logic below), not
+      // the viewer's browser zone and not raw UTC. publishedAt has no
+      // "chosen zone" concept, so it falls back to the viewer's own
+      // timezone — same convention already established elsewhere in this
+      // file/PostsTable.jsx.
+      const key = dateKeyInTimezone(dateValue, post.scheduledAt ? post.timezone : null)
+      if (!key) continue
       if (!map[key]) map[key] = []
       map[key].push(post)
     }
