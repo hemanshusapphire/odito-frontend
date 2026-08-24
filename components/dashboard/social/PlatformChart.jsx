@@ -147,7 +147,15 @@ export default function PlatformChart({ chart, connected, icon, tint, platformNa
           </div>
         ) : (
           <div className={connected ? '' : 'opacity-30 pointer-events-none blur-[1px]'} style={{ height: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
+            {/* minHeight/minWidth give Recharts a concrete floor to use on
+                its first, pre-measurement paint (before its ResizeObserver
+                has reported a real size) — matches the `h-64` (256px) fixed
+                height on this chart's own ancestor above, so this is never
+                actually rendered smaller than that; it just stops Recharts
+                from measuring -1 and warning during that first frame. Still
+                fully responsive: once measured, it fills 100%/100% exactly
+                as before. */}
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
               {renderChart(chart, data, gradientId)}
             </ResponsiveContainer>
           </div>

@@ -2,7 +2,7 @@
 
 
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { SessionProvider, useSession, signOut } from 'next-auth/react';
 
@@ -217,7 +217,21 @@ export function AuthProvider({ children }) {
 
 
 
-  const checkProjectExistence = async () => {
+  // useCallback (keyed only on the actual dependency, `hasProjects`) is
+  // required here, not just style: AuthGuard.jsx's project-existence-check
+  // effect lists this function in its dependency array. Without a stable
+  // identity, ANY re-render of AuthProvider — including one where nothing
+  // it owns actually changed, e.g. the App Router simply handing it fresh
+  // `children` during a client-side navigation such as the router.replace()
+  // useMetaOAuthRedirect performs right after opening the Facebook Page
+  // selector — hands AuthGuard's effect a "new" function and makes it
+  // re-run. That effect synchronously flips `isCheckingProjects` true,
+  // which makes AuthGuard render its "Loading your space..." screen
+  // INSTEAD OF children — unmounting the entire protected page (and any
+  // dialog open in it, resetting its local state) for the ~1 render cycle
+  // that check takes, even though the check itself was already known
+  // (hasProjects === true) and genuinely needed no re-verification.
+  const checkProjectExistence = useCallback(async () => {
 
     // If hasProjects is true, we don't need to re-query
 
@@ -237,11 +251,11 @@ export function AuthProvider({ children }) {
 
       const projectExists = projects.length > 0;
 
-      
+
 
       setHasProjects(projectExists);
 
-      
+
 
       return projectExists;
 
@@ -253,7 +267,7 @@ export function AuthProvider({ children }) {
 
     }
 
-  };
+  }, [hasProjects]);
 
 
 

@@ -132,3 +132,51 @@ describe('AuthContext — Socket.IO connection lifecycle', () => {
     expect(socketService.disconnect).toHaveBeenCalled()
   })
 })
+
+// Regression coverage for the "Facebook Page selector closes itself ~1s
+// after opening" bug. Root cause: checkProjectExistence was a plain
+// function redefined on every AuthProvider render (not useCallback'd).
+// AuthGuard.jsx's project-existence-check effect lists it as a dependency,
+// so ANY re-render of AuthProvider — including one where none of its own
+// state changed, e.g. the Next.js App Router simply handing it a fresh
+// `children` tree during a client-side navigation (router.replace(),
+// exactly what useMetaOAuthRedirect calls right after opening the Facebook
+// selector to strip ?meta_connected=1 from the URL) — made that effect
+// re-run and briefly flip AuthGuard into its loading-screen branch,
+// unmounting the whole protected page (and any dialog open inside it).
+describe('AuthContext — checkProjectExistence identity stability (root cause of the Facebook selector self-closing bug)', () => {
+  it('keeps the same function reference across a re-render where nothing it owns changed (simulates the App Router handing AuthProvider fresh children)', async () => {
+    apiService.isAuthenticated.mockReturnValue(true)
+    apiService.getProfile.mockResolvedValue({ success: true, data: { _id: 'u1', hasProjects: true } })
+    apiService.getToken.mockReturnValue('stored-jwt')
+
+    render()
+    await flush()
+    const first = latestAuth.checkProjectExistence
+
+    // A fresh top-level render pass with an equivalent tree — the same
+    // shape a client-side navigation produces when AuthProvider (mounted
+    // once at the root layout) receives new routed `children`, without
+    // any of AuthProvider's own useState values changing.
+    act(() => {
+      root.render(React.createElement(AuthProvider, null, React.createElement(Probe)))
+    })
+    await flush()
+
+    expect(latestAuth.checkProjectExistence).toBe(first)
+  })
+
+  it('still changes identity when hasProjects itself genuinely changes (not over-memoized into permanent staleness)', async () => {
+    apiService.isAuthenticated.mockReturnValue(true)
+    apiService.getProfile.mockResolvedValue({ success: true, data: { _id: 'u1', hasProjects: false } })
+    apiService.getToken.mockReturnValue('stored-jwt')
+
+    render()
+    await flush()
+    const first = latestAuth.checkProjectExistence
+
+    await act(async () => { latestAuth.setHasProjects(true) })
+
+    expect(latestAuth.checkProjectExistence).not.toBe(first)
+  })
+})
