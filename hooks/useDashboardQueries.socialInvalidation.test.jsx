@@ -3,7 +3,7 @@ import React from 'react'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useSelectMetaPage, useSwitchFacebookAccount } from './useDashboardQueries'
+import { useSelectMetaPage, useSwitchFacebookAccount, useDeleteSocialPost } from './useDashboardQueries'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -11,6 +11,7 @@ vi.mock('@/lib/apiService', () => ({
   default: {
     selectMetaPage: vi.fn().mockResolvedValue({ data: { facebook: { connected: true } } }),
     switchFacebookAccount: vi.fn().mockResolvedValue({ data: { account: { id: 'acc-2', isActive: true } } }),
+    deleteSocialPublication: vi.fn().mockResolvedValue({ data: { deleted: true } }),
   },
 }))
 
@@ -23,6 +24,25 @@ function Harness({ projectId }) {
   const mutation = useSelectMetaPage(projectId)
   latestMutate = mutation.mutate
   return null
+}
+
+let latestDeleteMutate
+
+function DeleteHarness({ projectId }) {
+  const mutation = useDeleteSocialPost(projectId)
+  latestDeleteMutate = mutation.mutate
+  return null
+}
+
+function renderDelete(projectId) {
+  container = document.createElement('div')
+  document.body.appendChild(container)
+  root = createRoot(container)
+  act(() => {
+    root.render(
+      React.createElement(QueryClientProvider, { client: queryClient }, React.createElement(DeleteHarness, { projectId }))
+    )
+  })
 }
 
 let latestSwitchMutate
@@ -112,5 +132,42 @@ describe('useSwitchFacebookAccount — switching the active Page also invalidate
     expect(invalidatedKeys).toContainEqual(['social', 'accounts', 'status', 'proj-1'])
     expect(invalidatedKeys).toContainEqual(['social', 'facebook', 'overview', 'proj-1'])
     expect(invalidatedKeys).toContainEqual(['social', 'instagram', 'overview', 'proj-1'])
+  })
+})
+
+// Regression coverage for "Implement Published Social Post Deletion":
+// deleting a post (including a now-deletable published one) must
+// invalidate the ['social','publishing',projectId] prefix so the Posts
+// tab AND the Publishing calendar (which both build their own query key
+// on top of that same prefix, just with different trailing `filters`)
+// both drop the deleted post immediately, without needing two separate
+// invalidation calls.
+describe('useDeleteSocialPost — invalidates the publishing query prefix (Posts tab + Publishing calendar)', () => {
+  it('invalidates ["social","publishing",projectId] on a successful delete', async () => {
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    renderDelete('proj-1')
+
+    await act(async () => { latestDeleteMutate('pub-1'); await flushPromises() })
+
+    const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0].queryKey)
+    expect(invalidatedKeys).toContainEqual(['social', 'publishing', 'proj-1'])
+  })
+
+  it('that invalidation, by key-prefix matching, also covers a differently-filtered query built on the same prefix (e.g. the calendar\'s own filters)', async () => {
+    // Seed two cache entries sharing the ['social','publishing','proj-1']
+    // prefix but with different trailing `filters` objects — exactly how
+    // PostsTable.jsx's own filters and the Publishing calendar's
+    // { sort:'newest', page:1, limit:... } filters produce two distinct
+    // query keys today.
+    queryClient.setQueryData(['social', 'publishing', 'proj-1', { status: 'published' }], { data: { data: [{ id: 'pub-1' }] } })
+    queryClient.setQueryData(['social', 'publishing', 'proj-1', { sort: 'newest', page: 1, limit: 100 }], { data: { data: [{ id: 'pub-1' }] } })
+
+    renderDelete('proj-1')
+    await act(async () => { latestDeleteMutate('pub-1'); await flushPromises() })
+
+    const postsTableQuery = queryClient.getQueryState(['social', 'publishing', 'proj-1', { status: 'published' }])
+    const calendarQuery = queryClient.getQueryState(['social', 'publishing', 'proj-1', { sort: 'newest', page: 1, limit: 100 }])
+    expect(postsTableQuery.isInvalidated).toBe(true)
+    expect(calendarQuery.isInvalidated).toBe(true)
   })
 })

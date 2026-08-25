@@ -25,7 +25,13 @@ const PAGE_SIZE = 8
 const STATUS_OPTIONS = ['draft', 'scheduled', 'publishing', 'published', 'failed', 'cancelled']
 const PLATFORM_OPTIONS = [{ id: 'facebook', name: 'Facebook' }, { id: 'instagram', name: 'Instagram' }]
 const PUBLISHABLE_STATUSES = new Set(['draft', 'scheduled', 'failed'])
-const DELETABLE_STATUSES = new Set(['draft', 'scheduled', 'failed', 'cancelled'])
+// Matches the backend's own DELETABLE_STATUSES in socialPublishingService.js
+// — a published post's Odito record can now be deleted too (removes only
+// the SocialPublication document; the real Facebook/Instagram post is
+// untouched, since no code path here or on the backend ever reaches back
+// out to Meta to delete it). Only 'publishing' — the brief in-flight
+// window while an actual publish attempt is running — stays undeletable.
+const DELETABLE_STATUSES = new Set(['draft', 'scheduled', 'failed', 'cancelled', 'published'])
 // Matches the backend's own EDITABLE_STATUSES/CANCELLABLE_STATUSES in
 // socialPublishingService.js — a post already publishing/published/failed
 // can't be edited or cancelled there, so these menu items are hidden
