@@ -1987,6 +1987,33 @@ export function useSyncSocialFeeds(projectId) {
 // (Phase 16's "useSocialConnectionStatus()" — this repo already has that
 // hook, no need for a duplicate under a new name).
 
+// A publication's status can change entirely server-side, with no browser
+// action involved at all: socialSchedulerService.js's cron tick claims a
+// due 'scheduled' post and moves it through 'publishing' -> 'published'/
+// 'failed' on its own schedule, independent of whether anyone has this
+// page open. Without this, the Posts tab/Publishing calendar could keep
+// showing a stale "Scheduled" badge indefinitely after the real post
+// already went out — this app's global default is
+// `refetchOnWindowFocus: false` (queryClient.js), so neither tabbing back
+// nor anything else would ever pick that change up on its own.
+const SOCIAL_PUBLISHING_POLL_MS = 15000
+const PENDING_SCHEDULER_STATUSES = new Set(['scheduled', 'publishing'])
+
+/**
+ * True only while the currently-cached page of results contains at least
+ * one publication the background scheduler could still change on its own
+ * (scheduled, or already mid-claim as publishing). A page of only
+ * draft/published/failed/cancelled posts has nothing left for a
+ * background process to move, so polling stops rather than running
+ * forever on an inactive filter/page — same "only poll while something is
+ * actually in flight" convention this codebase already uses for batch
+ * verification progress.
+ */
+export function hasPendingSchedulerWork(query) {
+  const posts = query.state.data?.data?.data
+  return Array.isArray(posts) && posts.some((post) => PENDING_SCHEDULER_STATUSES.has(post.status))
+}
+
 /**
  * `filters` may include platform/status/search/from/to/sort/page/limit.
  * The response also carries real `counts` (drafts, scheduledToday) —
@@ -2002,6 +2029,12 @@ export function useSocialPublishing(projectId, filters = {}, { enabled = true } 
     enabled: !!projectId && enabled,
     staleTime: staleTimes.STANDARD,
     placeholderData: (previousData) => previousData,
+    // Conditional polling (only while something scheduler-owned is
+    // actually pending) + a scoped override of this app's global
+    // refetchOnWindowFocus:false, so switching back to this tab also
+    // picks up whatever the scheduler did while it was in the background.
+    refetchInterval: (query) => (hasPendingSchedulerWork(query) ? SOCIAL_PUBLISHING_POLL_MS : false),
+    refetchOnWindowFocus: true,
   })
 }
 
