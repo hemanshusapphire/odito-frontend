@@ -13,7 +13,6 @@ import {
   useAnalyticsEvents,
   useAnalyticsConversions,
   useAnalyticsRealtime,
-  useAnalyticsHealth,
   useAnalyticsActivity,
   useSyncAnalytics,
   useProjectBrandAsset,
@@ -25,7 +24,7 @@ import {
   formatPercent,
   formatDuration,
 } from '@/lib/analyticsChartConfig'
-import { buildAnalyticsKpisFromTrends, buildTodaySummaryFromTrends } from '@/lib/analyticsTrends'
+import { buildAnalyticsKpisFromTrends } from '@/lib/analyticsTrends'
 
 import AnalyticsHeader from '@/components/dashboard/google-visibility/analytics/AnalyticsHeader'
 import AnalyticsFilters from '@/components/dashboard/google-visibility/analytics/AnalyticsFilters'
@@ -44,8 +43,6 @@ import BrowserOSCard from '@/components/dashboard/google-visibility/analytics/Br
 import RealtimeUsersCard from '@/components/dashboard/google-visibility/analytics/RealtimeUsersCard'
 import EventsCard from '@/components/dashboard/google-visibility/analytics/EventsCard'
 import RecentActivityCard from '@/components/dashboard/google-visibility/analytics/RecentActivityCard'
-import TrafficHealthCard from '@/components/dashboard/google-visibility/analytics/TrafficHealthCard'
-import TodaySummaryCard from '@/components/dashboard/google-visibility/analytics/TodaySummaryCard'
 import AnalyticsLoadingState from '@/components/dashboard/google-visibility/analytics/AnalyticsLoadingState'
 import AnalyticsEmptyState from '@/components/dashboard/google-visibility/analytics/AnalyticsEmptyState'
 import AnalyticsErrorState from '@/components/dashboard/google-visibility/analytics/AnalyticsErrorState'
@@ -139,16 +136,12 @@ export default function GoogleAnalyticsPage() {
   const realtimeQuery = useAnalyticsRealtime(projectId, { enabled: selected })
   const realtime = realtimeQuery.data?.data
 
-  const healthQuery = useAnalyticsHealth(projectId, range, { enabled: selected })
-  const health = healthQuery.data?.data
-
   const activityQuery = useAnalyticsActivity(projectId, { enabled: selected })
   const activity = activityQuery.data?.data
 
   const rangeLabel = RANGE_LABELS[range]
 
   const kpis = useMemo(() => buildAnalyticsKpisFromTrends(trends), [trends])
-  const todayStats = useMemo(() => buildTodaySummaryFromTrends(trends), [trends])
 
   const trendSeriesConfig = useMemo(() => ([
     { key: 'users', label: 'Users', color: CATEGORICAL_COLORS[0] },
@@ -276,61 +269,54 @@ export default function GoogleAnalyticsPage() {
         selecting={selectMutation.isPending}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
-        <div className="space-y-6 min-w-0">
-          <AnalyticsFilters range={range} onRangeChange={setRange} />
+      <div className="space-y-6 min-w-0">
+        <AnalyticsFilters range={range} onRangeChange={setRange} />
 
-          <AnalyticsPropertyCard
-            brandAsset={brandAsset}
-            siteName={property?.propertyName}
-            siteUrl={property?.websiteUrl}
-            property={property}
+        <AnalyticsPropertyCard
+          brandAsset={brandAsset}
+          siteName={property?.propertyName}
+          siteUrl={property?.websiteUrl}
+          property={property}
+        />
+
+        <AnalyticsOverviewCards kpis={kpis} loading={trendsQuery.isLoading} />
+
+        <TrafficChartCard data={trends?.series || []} seriesConfig={trendSeriesConfig} loading={trendsQuery.isLoading} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <TrafficSourcesCard sources={sources} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
+          <TopChannelsCard channels={channels} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
+        </div>
+
+        <TopPagesCard pages={pages} rangeLabel={rangeLabel} loading={pagesQuery.isLoading} />
+
+        <AnalyticsStatRow title="Audience" stats={audienceStats} loading={trendsQuery.isLoading} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <TopCountriesCard countries={breakdowns?.countries || []} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
+          <DeviceBreakdownCard devices={breakdowns?.devices || []} loading={breakdownsQuery.isLoading} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <BrowserOSCard browsers={breakdowns?.browsers || []} operatingSystems={breakdowns?.operatingSystems || []} loading={breakdownsQuery.isLoading} />
+          <RealtimeUsersCard
+            activeUsers={realtime?.activeUsers}
+            topPages={realtime?.topPages || []}
+            topCountries={realtime?.topCountries || []}
+            deviceSplit={realtime?.deviceSplit || []}
+            loading={realtimeQuery.isLoading}
           />
-
-          <AnalyticsOverviewCards kpis={kpis} loading={trendsQuery.isLoading} />
-
-          <TrafficChartCard data={trends?.series || []} seriesConfig={trendSeriesConfig} loading={trendsQuery.isLoading} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <TrafficSourcesCard sources={sources} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
-            <TopChannelsCard channels={channels} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
-          </div>
-
-          <TopPagesCard pages={pages} rangeLabel={rangeLabel} loading={pagesQuery.isLoading} />
-
-          <AnalyticsStatRow title="Audience" stats={audienceStats} loading={trendsQuery.isLoading} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <TopCountriesCard countries={breakdowns?.countries || []} rangeLabel={rangeLabel} loading={breakdownsQuery.isLoading} />
-            <DeviceBreakdownCard devices={breakdowns?.devices || []} loading={breakdownsQuery.isLoading} />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <BrowserOSCard browsers={breakdowns?.browsers || []} operatingSystems={breakdowns?.operatingSystems || []} loading={breakdownsQuery.isLoading} />
-            <RealtimeUsersCard
-              activeUsers={realtime?.activeUsers}
-              topPages={realtime?.topPages || []}
-              topCountries={realtime?.topCountries || []}
-              deviceSplit={realtime?.deviceSplit || []}
-              loading={realtimeQuery.isLoading}
-            />
-          </div>
-
-          {conversionStats.length > 0 && <AnalyticsStatRow title="Conversions" stats={conversionStats} loading={conversionsQuery.isLoading} />}
-
-          <EventsCard events={events?.events || []} rangeLabel={rangeLabel} loading={eventsQuery.isLoading} />
-
-          {/* Full-width, standalone, last section - same placement Search
-              Console's RecentActivityCard uses (see
-              app/app/google-visibility/search-console/page.jsx), instead of
-              being squeezed into a 2-col grid alongside Events. */}
-          <RecentActivityCard activity={activity?.activity || []} />
         </div>
 
-        <div className="space-y-5 lg:sticky lg:top-6">
-          <TrafficHealthCard score={health?.score} status={health?.status} reasons={health?.reasons || []} />
-          <TodaySummaryCard stats={todayStats} />
-        </div>
+        {conversionStats.length > 0 && <AnalyticsStatRow title="Conversions" stats={conversionStats} loading={conversionsQuery.isLoading} />}
+
+        <EventsCard events={events?.events || []} rangeLabel={rangeLabel} loading={eventsQuery.isLoading} />
+
+        {/* Full-width, standalone, last section - same placement Search
+            Console's RecentActivityCard uses (see
+            app/app/google-visibility/search-console/page.jsx), instead of
+            being squeezed into a 2-col grid alongside Events. */}
+        <RecentActivityCard activity={activity?.activity || []} />
       </div>
     </div>
   )
