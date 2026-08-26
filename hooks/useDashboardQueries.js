@@ -2066,10 +2066,19 @@ export function useUpdateSocialPost(projectId) {
   })
 }
 
+// Accepts either a plain publicationId string (the common case — draft/
+// scheduled/failed/cancelled, or a published Facebook post, all of which
+// use the regular Delete action) or { publicationId, historyOnly } (a
+// published Instagram post's explicit "Remove from Odito history" action
+// — see DeletePostConfirmDialog.jsx). historyOnly is otherwise ignored by
+// the backend for every other case.
 export function useDeleteSocialPost(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (publicationId) => apiService.deleteSocialPublication(projectId, publicationId),
+    mutationFn: (arg) => {
+      const { publicationId, historyOnly = false } = typeof arg === 'string' ? { publicationId: arg } : (arg || {})
+      return apiService.deleteSocialPublication(projectId, publicationId, { historyOnly })
+    },
     onSuccess: () => invalidatePublishing(queryClient, projectId),
   })
 }

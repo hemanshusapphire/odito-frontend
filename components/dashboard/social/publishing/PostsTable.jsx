@@ -15,6 +15,7 @@ import FailureDetails, { NOT_RETRYABLE_CODES } from './FailureDetails'
 import FeedPagination from '../feeds/FeedPagination'
 import EditPostDialog from './EditPostDialog'
 import CancelPostConfirmDialog from './CancelPostConfirmDialog'
+import DeletePostConfirmDialog from './DeletePostConfirmDialog'
 import { platformConfig } from '@/lib/socialFeedsDummyData'
 import { useProject } from '@/contexts/ProjectContext'
 import { useSocialPublishing, useDeleteSocialPost, usePublishSocialPost, useUpdateSocialPost, useCancelSocialPost } from '@/hooks/useDashboardQueries'
@@ -65,6 +66,7 @@ export default function PostsTable({ notify }) {
 
   const [editingPost, setEditingPost] = useState(null)
   const [cancellingPost, setCancellingPost] = useState(null)
+  const [deletingPost, setDeletingPost] = useState(null)
 
   const filters = { search: search || undefined, platform: platform || undefined, status: status || undefined, sort: 'newest', page, limit: PAGE_SIZE }
   const query = useSocialPublishing(activeProjectId, filters)
@@ -95,11 +97,32 @@ export default function PostsTable({ notify }) {
     }
   }
 
-  async function handleDelete(post) {
+  // Opens the confirmation dialog rather than deleting immediately — a
+  // published Facebook post's Delete now attempts a REAL Meta DELETE
+  // first (see socialPublishingService.js's deletePublication), so the
+  // user must see and accept that explicitly, not just have it happen on
+  // a single click.
+  function handleDelete(post) {
+    setDeletingPost(post)
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingPost) return
+    // Only meaningful for a published Instagram post (the platform with
+    // no supported external-delete path at all) — DeletePostConfirmDialog
+    // itself decides whether to show the "Remove from Odito history"
+    // wording/action for exactly this case, so the request sent here must
+    // match what the user actually saw and confirmed.
+    const historyOnly = deletingPost.status === 'published' && deletingPost.platform === 'instagram'
     try {
-      await deleteMutation.mutateAsync(post.id)
-      notify?.('Post deleted', 'success')
+      await deleteMutation.mutateAsync({ publicationId: deletingPost.id, historyOnly })
+      notify?.(historyOnly ? 'Removed from Odito history.' : 'Post deleted', 'success')
+      setDeletingPost(null)
     } catch (err) {
+      // Deliberately does NOT close the dialog/clear deletingPost — a
+      // failed external deletion (e.g. Meta rejected the DELETE) must
+      // keep the post visible and the user informed, not silently
+      // disappear the confirmation as if something succeeded.
       notify?.(err?.message || 'Failed to delete this post.', 'error')
     }
   }
@@ -270,6 +293,14 @@ export default function PostsTable({ notify }) {
         onOpenChange={(next) => { if (!next) setCancellingPost(null) }}
         onConfirm={handleConfirmCancel}
         loading={cancelMutation.isPending}
+      />
+
+      <DeletePostConfirmDialog
+        post={deletingPost}
+        open={!!deletingPost}
+        onOpenChange={(next) => { if (!next) setDeletingPost(null) }}
+        onConfirm={handleConfirmDelete}
+        loading={deleteMutation.isPending}
       />
     </Card>
   )

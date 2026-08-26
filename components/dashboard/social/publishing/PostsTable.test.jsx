@@ -23,6 +23,11 @@ vi.mock('@/lib/apiService', () => ({
 // own) so the actual thing under test — which menu items PostsTable
 // renders, their `disabled`/`onClick` props — is exercised directly and
 // deterministically, without fighting jsdom's Pointer Events gap.
+// DeletePostConfirmDialog/CancelPostConfirmDialog are NOT mocked — they're
+// AlertDialogs whose `open` prop is fully controlled by PostsTable's own
+// React state (not Radix-internal pointer interaction to open), so they
+// render for real once that state flips, same as
+// CancelPostConfirmDialog.test.jsx's own convention.
 vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }) => React.createElement(React.Fragment, null, children),
   DropdownMenuTrigger: ({ children }) => children,
@@ -68,6 +73,10 @@ function deleteButton() {
   return Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Delete')
 }
 
+function dialogButton(text) {
+  return Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent.trim() === text)
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   deleteMutate = vi.fn().mockResolvedValue({ data: { deleted: true } })
@@ -85,11 +94,16 @@ afterEach(() => {
   root = null
 })
 
-// Regression coverage for "Implement Published Social Post Deletion": the
-// Delete menu item used to be permanently disabled for status:'published'
-// (DELETABLE_STATUSES excluded it) — it must now be enabled, and clicking
-// it must call the real delete mutation with that post's id.
-describe('PostsTable — Delete is enabled for a published post', () => {
+// Regression coverage for "Implement Published Social Post Deletion" +
+// "Implement Real External Social Post Deletion": the Delete menu item
+// used to be permanently disabled for status:'published' — it's now
+// enabled for both platforms, but clicking it opens a confirmation
+// (rather than deleting immediately), and the confirmation's wording/
+// action differs by platform because deleting actually does something
+// different for each: a real Meta DELETE for Facebook, versus an
+// Odito-only "Remove from Odito history" for Instagram (no Graph API
+// DELETE exists for IG Media).
+describe('PostsTable — Delete is enabled for a published post, and requires confirmation', () => {
   it('the Delete action is NOT disabled for a published post', () => {
     render()
     const btn = deleteButton()
@@ -102,10 +116,11 @@ describe('PostsTable — Delete is enabled for a published post', () => {
     expect(deleteButton().dataset.variant).toBe('destructive')
   })
 
-  it('clicking Delete on a published post calls the real delete mutation with its id', async () => {
+  it('clicking Delete does NOT call the mutation immediately — it opens a confirmation dialog first', () => {
     render()
-    await act(async () => { deleteButton().click() })
-    expect(deleteMutate).toHaveBeenCalledWith('pub-1')
+    act(() => { deleteButton().click() })
+    expect(deleteMutate).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('Delete this post?')
   })
 
   it('is still disabled for a post that is currently "publishing" (the one remaining undeletable status)', () => {
@@ -113,16 +128,67 @@ describe('PostsTable — Delete is enabled for a published post', () => {
     render()
     expect(deleteButton().disabled).toBe(true)
   })
+})
 
-  it('remains enabled and functional for the other already-deletable statuses (draft/scheduled/failed/cancelled)', async () => {
+describe('PostsTable — confirming Delete for a published FACEBOOK post', () => {
+  it('shows the explicit "delete from Facebook AND Odito" wording, and confirming calls the mutation with historyOnly:false', async () => {
+    render()
+    act(() => { deleteButton().click() })
+
+    expect(document.body.textContent).toContain('permanently delete the published post from Facebook')
+    expect(document.body.textContent).toContain('remove it from Odito')
+
+    await act(async () => { dialogButton('Delete Post').click() })
+    expect(deleteMutate).toHaveBeenCalledWith({ publicationId: 'pub-1', historyOnly: false })
+  })
+
+  it('a failed external deletion keeps the post visible (dialog/notify only — no optimistic removal)', async () => {
+    deleteMutate.mockRejectedValue(new Error('Meta denied this request — the Page connection may need to be reconnected. The post was NOT deleted.'))
+    const notify = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    act(() => { root.render(React.createElement(PostsTable, { notify })) })
+
+    act(() => { deleteButton().click() })
+    await act(async () => { dialogButton('Delete Post').click() })
+
+    expect(notify).toHaveBeenCalledWith('Meta denied this request — the Page connection may need to be reconnected. The post was NOT deleted.', 'error')
+    // The post is still in the (unchanged) query result the table renders
+    // from — nothing here ever optimistically removes it before the
+    // mutation actually succeeds.
+    expect(container.textContent).toContain('Grow your brand')
+  })
+})
+
+describe('PostsTable — confirming Delete for a published INSTAGRAM post (no external delete path exists)', () => {
+  it('shows "Remove from Odito history" — never a misleading "delete from Instagram" — and confirming sends historyOnly:true', async () => {
+    queryResult.data.data.data = [post({ platform: 'instagram', id: 'pub-ig-1' })]
+    render()
+    act(() => { deleteButton().click() })
+
+    expect(document.body.textContent).toContain('Remove from Odito history?')
+    expect(document.body.textContent).toContain('Instagram does not support deleting a published post through the API')
+    expect(document.body.textContent).toContain('the real Instagram post will remain untouched')
+    expect(document.body.textContent).not.toMatch(/permanently delete.*from Instagram/i)
+
+    await act(async () => { dialogButton('Remove from Odito History').click() })
+    expect(deleteMutate).toHaveBeenCalledWith({ publicationId: 'pub-ig-1', historyOnly: true })
+  })
+})
+
+describe('PostsTable — non-published statuses keep the simple, unchanged confirmation', () => {
+  it('draft/scheduled/failed/cancelled show the plain "removed from Odito" wording and send historyOnly:false', async () => {
     for (const status of ['draft', 'scheduled', 'failed', 'cancelled']) {
       deleteMutate.mockClear()
       queryResult.data.data.data = [post({ status, id: `pub-${status}` })]
       render()
       const btn = deleteButton()
       expect(btn.disabled).toBe(false)
-      await act(async () => { btn.click() })
-      expect(deleteMutate).toHaveBeenCalledWith(`pub-${status}`)
+      act(() => { btn.click() })
+      expect(document.body.textContent).toContain('permanently removed from Odito')
+      await act(async () => { dialogButton('Delete Post').click() })
+      expect(deleteMutate).toHaveBeenCalledWith({ publicationId: `pub-${status}`, historyOnly: false })
       act(() => { root.unmount() })
       container.remove()
     }

@@ -37,9 +37,6 @@ import AdPerformanceCard from '@/components/dashboard/google-visibility/google-a
 import OptimizationCenterGrid from '@/components/dashboard/google-visibility/google-ads/OptimizationCenterGrid'
 import CampaignHealthGrid from '@/components/dashboard/google-visibility/google-ads/CampaignHealthGrid'
 import RecentActivityCard from '@/components/dashboard/google-visibility/google-ads/RecentActivityCard'
-import OptimizationScoreCard from '@/components/dashboard/google-visibility/google-ads/OptimizationScoreCard'
-import TodaySummaryCard from '@/components/dashboard/google-visibility/google-ads/TodaySummaryCard'
-import QuickActionsCard from '@/components/dashboard/google-visibility/google-ads/QuickActionsCard'
 import { AlertTriangle } from 'lucide-react'
 import { GoogleAdsCurrencyProvider } from '@/contexts/GoogleAdsCurrencyContext'
 
@@ -377,54 +374,46 @@ export default function GoogleAdsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
-        <div className="flex flex-col gap-6 min-w-0">
-          <GoogleAdsDateRangeSelector value={dateRange} onChange={setDateRange} />
+      <div className="flex flex-col gap-6 min-w-0">
+        <GoogleAdsDateRangeSelector value={dateRange} onChange={setDateRange} />
 
-          <GoogleAdsKPIGrid
-            overview={overviewQuery.data?.data}
-            dailySeries={kpiTrendsQuery.data?.data?.series}
-            rangeDays={overviewQuery.data?.data?.range?.days}
-            status={overviewQuery.isLoading || kpiTrendsQuery.isLoading ? 'loading' : overviewQuery.isError ? 'error' : 'ready'}
-            onRetry={() => { overviewQuery.refetch(); kpiTrendsQuery.refetch() }}
-          />
+        <GoogleAdsKPIGrid
+          overview={overviewQuery.data?.data}
+          dailySeries={kpiTrendsQuery.data?.data?.series}
+          rangeDays={overviewQuery.data?.data?.range?.days}
+          status={overviewQuery.isLoading || kpiTrendsQuery.isLoading ? 'loading' : overviewQuery.isError ? 'error' : 'ready'}
+          onRetry={() => { overviewQuery.refetch(); kpiTrendsQuery.refetch() }}
+        />
 
-          <CampaignPerformanceTrendsCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
+        <CampaignPerformanceTrendsCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
 
-          <div id="google-ads-campaign-overview">
-            <CampaignOverviewTable projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
-          </div>
-
-          <KeywordPerformanceTable projectId={projectId} ready={hasCompletedBefore} />
-
-          <SearchTermsTable projectId={projectId} ready={hasCompletedBefore} />
-
-          <BudgetOverviewCard projectId={projectId} ready={hasCompletedBefore} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DevicePerformanceCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
-            <GeographicPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AudiencePerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-            <AdPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-          </div>
-
-          <div id="google-ads-optimization-center">
-            <OptimizationCenterGrid projectId={projectId} ready={hasCompletedBefore} />
-          </div>
-
-          <CampaignHealthGrid projectId={projectId} ready={hasCompletedBefore} />
-
-          <RecentActivityCard projectId={projectId} ready={hasCompletedBefore} />
+        <div id="google-ads-campaign-overview">
+          <CampaignOverviewTable projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
         </div>
 
-        <div className="flex flex-col gap-4 xl:sticky xl:top-6">
-          <OptimizationScoreCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
-          <TodaySummaryCard projectId={projectId} ready={hasCompletedBefore} />
-          <QuickActionsCard refreshing={refreshing} onRefresh={handleRefresh} />
+        <KeywordPerformanceTable projectId={projectId} ready={hasCompletedBefore} />
+
+        <SearchTermsTable projectId={projectId} ready={hasCompletedBefore} />
+
+        <BudgetOverviewCard projectId={projectId} ready={hasCompletedBefore} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DevicePerformanceCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
+          <GeographicPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
         </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AudiencePerformanceCard projectId={projectId} ready={hasCompletedBefore} />
+          <AdPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
+        </div>
+
+        <div id="google-ads-optimization-center">
+          <OptimizationCenterGrid projectId={projectId} ready={hasCompletedBefore} />
+        </div>
+
+        <CampaignHealthGrid projectId={projectId} ready={hasCompletedBefore} />
+
+        <RecentActivityCard projectId={projectId} ready={hasCompletedBefore} />
       </div>
     </div>
     </GoogleAdsCurrencyProvider>
