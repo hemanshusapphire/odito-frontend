@@ -6,13 +6,9 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useProject } from '@/contexts/ProjectContext'
 import { useTasks, useTaskSummary, useDeleteTask } from '@/hooks/useDashboardQueries'
-import apiService from '@/lib/apiService'
 import { useBulkVerificationController } from '@/hooks/useBulkVerificationController'
 import { BatchState } from '@/lib/verification/bulkBatchState'
-import VerifyUrlModal from '@/app/onpage/components/VerifyUrlModal'
 import { CheckSquare, Search, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
-import BulkVerifyConfirmDialog from './components/BulkVerifyConfirmDialog'
-import { buildBulkModalProps } from './bulkModalProps'
 import { getCheckDIYRoute, isOnPageCategory } from './taskRouting'
 import { TaskStatusBadge, SourceBadge } from './statusMeta'
 import OptimizationDetailsModal from './components/OptimizationDetailsModal'
@@ -245,8 +241,15 @@ export default function OptimizationCenterPage() {
   // Map<id, {_id, pageUrl}> (not just a Set of ids) so a task's URL is
   // still available even after paging away from the row that showed it.
   const [selectedTasks, setSelectedTasks] = useState(() => new Map())
-  const [resultCounts, setResultCounts] = useState(null)
-  const computedBatchIdRef = useRef(null)
+  // Ensures a single completed/failed batch is handled exactly once (toast +
+  // selection clear + controller reset) rather than on every re-render while
+  // the controller snapshot still reads terminal.
+  const handledBatchIdRef = useRef(null)
+  // True only when the current batch was kicked off by the user clicking
+  // "Verify Selected" this session — a batch resumed from sessionStorage
+  // after a page reload should not surface a "failed" toast if its id is
+  // already stale server-side.
+  const userStartedBatchRef = useRef(false)
 
   const projectId = activeProject?._id
   const controller = useBulkVerificationController({ projectId })
@@ -264,8 +267,8 @@ export default function OptimizationCenterPage() {
   // dangerous to submit for verification against the wrong project).
   useEffect(() => {
     setSelectedTasks(new Map())
-    setResultCounts(null)
-    computedBatchIdRef.current = null
+    handledBatchIdRef.current = null
+    userStartedBatchRef.current = false
     controller.reset()
     if (projectId) controller.prepare()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -340,79 +343,62 @@ export default function OptimizationCenterPage() {
     }
   }
 
-  const handleConfirmStart = useCallback(() => {
+  // A bulk batch is "in flight" from the click until the controller reports a
+  // terminal snapshot. This is the only thing that drives the inline button
+  // loading state — there is no confirmation step and no progress modal.
+  const isVerifying =
+    controller.state === BatchState.STARTING ||
+    controller.state === BatchState.RUNNING ||
+    controller.state === BatchState.COMPLETING
+
+  // "Verify Selected (N)" now starts verification immediately, through the
+  // exact same Verification Engine call the old confirmation dialog's
+  // "Verify" button made (controller.start(uniqueUrls)). confirm() → start()
+  // are the controller's existing pre-batch transitions
+  // (PREPARING → CONFIRMING → STARTING); both mutate a synchronous state ref,
+  // so nothing needs to render between them. No modal is mounted.
+  const handleVerifySelected = useCallback(() => {
+    if (isVerifying || selectedTasks.size === 0) return
     const uniqueUrls = [...new Set(Array.from(selectedTasks.values()).map((t) => t.pageUrl))]
+    if (uniqueUrls.length === 0) return
+    userStartedBatchRef.current = true
+    // Normal resting state between batches is PREPARING; guard the rare IDLE
+    // case (e.g. a transition rejected mid-teardown) so start() is never
+    // dropped by the state machine.
+    if (controller.state === BatchState.IDLE) controller.prepare()
+    controller.confirm()
     controller.start(uniqueUrls)
-  }, [controller, selectedTasks])
+  }, [controller, selectedTasks, isVerifying])
 
-  const handleConfirmDialogOpenChange = useCallback((nextOpen) => {
-    if (!nextOpen) controller.cancelConfirm()
-  }, [controller])
-
-  // Once the batch reaches a terminal state, look up each verified URL's
-  // task(s) by exact _id (apiService.getTaskById — already exists, no new
-  // endpoint) rather than re-reading the current filtered/paginated `tasks`
-  // page: the task list here is often filtered/paginated, so a fixed task
-  // that no longer matches the active filter would be invisible to a
-  // simple re-read, silently miscounting it. A URL counts as "fixed" only
-  // once every task selected for it has left task_created/reopened;
-  // otherwise it's "still failing". useBulkVerificationController's own
-  // invalidation already refreshes the visible table separately.
+  // Terminal-state handling for a bulk batch — no modal, no navigation, no
+  // reload. The task rows and the four summary cards refresh on their own:
+  // useBulkVerificationController fires a scoped React Query invalidation
+  // (this project's task list + summary + verification-history queries) the
+  // moment the batch reaches COMPLETED/FAILED. Here we only surface a
+  // non-blocking toast, clear the processed selection, and hand the
+  // controller back to its pre-batch state so the next click starts cleanly.
   useEffect(() => {
-    const progress = controller.progress
-    const isTerminal = progress?.state === BatchState.COMPLETED || progress?.state === BatchState.FAILED
-    if (!isTerminal || computedBatchIdRef.current === progress.batchId) return
-    computedBatchIdRef.current = progress.batchId
+    const p = controller.progress
+    const isTerminal = p?.state === BatchState.COMPLETED || p?.state === BatchState.FAILED
+    if (!isTerminal || handledBatchIdRef.current === p.batchId) return
+    handledBatchIdRef.current = p.batchId
 
-    const selectedEntries = Array.from(selectedTasks.values())
-
-    // Selection clears once a batch completes successfully — not on a fully
-    // failed batch, so the user can retry the same selection immediately.
-    if (progress.state === BatchState.COMPLETED) {
+    if (p.state === BatchState.COMPLETED) {
+      // Cleared only on a completed batch — a fully failed batch keeps the
+      // selection so the user can retry it as-is.
       setSelectedTasks(new Map())
+      const verified = p.completed ?? 0
+      const failedNote = p.failed ? ` (${p.failed} could not be checked)` : ''
+      showToast(`Verification complete — ${verified} URL${verified === 1 ? '' : 's'} re-checked${failedNote}`)
+    } else if (userStartedBatchRef.current) {
+      showToast('Verification failed. Please try again.', 'error')
     }
 
-    const taskIdsByUrl = new Map()
-    for (const entry of selectedEntries) {
-      if (!taskIdsByUrl.has(entry.pageUrl)) taskIdsByUrl.set(entry.pageUrl, [])
-      taskIdsByUrl.get(entry.pageUrl).push(entry._id)
-    }
-
-    let cancelled = false
-    ;(async () => {
-      let fixedCount = 0
-      let stillFailingCount = 0
-
-      for (const [url, urlState] of progress.urls) {
-        if (urlState.status !== 'completed') continue
-        const taskIds = taskIdsByUrl.get(url) || []
-        if (taskIds.length === 0) continue
-
-        const results = await Promise.all(
-          taskIds.map((id) => apiService.getTaskById(id).catch(() => null))
-        )
-        const stillOpen = results.some((r) => {
-          const status = r?.data?.status
-          return status === 'task_created' || status === 'reopened'
-        })
-        if (stillOpen) stillFailingCount++
-        else fixedCount++
-      }
-
-      if (!cancelled) setResultCounts({ fixedCount, stillFailingCount })
-    })()
-
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controller.progress])
-
-  const handleViewDetails = useCallback(() => {
+    userStartedBatchRef.current = false
     controller.reset()
     if (projectId) controller.prepare()
-  }, [controller, projectId])
-
-  const bulkModalProps = buildBulkModalProps(controller.progress, resultCounts, handleViewDetails, handleViewDetails)
-  const isBatchActive = Boolean(bulkModalProps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controller.progress])
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 8px' }}>
@@ -528,26 +514,44 @@ export default function OptimizationCenterPage() {
         )}
 
         {/* Bulk URL Verification toolbar — one action for every selected
-            row, no per-row Verify button and no drawer. */}
+            row. Clicking starts verification immediately (no confirmation
+            modal); the button itself is the loading indicator and the page
+            stays put while the existing Verification Engine runs. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>
             {selectedTasks.size} selected
           </span>
           <button
-            onClick={() => controller.confirm()}
-            disabled={selectedTasks.size === 0}
-            aria-label={selectedTasks.size === 0 ? 'Verify Selected' : `Verify Selected (${selectedTasks.size})`}
+            onClick={handleVerifySelected}
+            disabled={selectedTasks.size === 0 || isVerifying}
+            aria-busy={isVerifying}
+            aria-label={
+              isVerifying
+                ? 'Verifying selected URLs'
+                : selectedTasks.size === 0 ? 'Verify Selected' : `Verify Selected (${selectedTasks.size})`
+            }
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
               whiteSpace: 'nowrap',
-              cursor: selectedTasks.size === 0 ? 'not-allowed' : 'pointer',
-              opacity: selectedTasks.size === 0 ? 0.4 : 1,
+              cursor: (selectedTasks.size === 0 || isVerifying) ? 'not-allowed' : 'pointer',
+              opacity: (selectedTasks.size === 0 || isVerifying) ? 0.4 : 1,
               background: 'linear-gradient(135deg, #7730ed, #00e5ff)',
               border: 'none', color: '#fff',
             }}
           >
-            {selectedTasks.size === 0 ? 'Verify Selected' : `Verify Selected (${selectedTasks.size})`}
+            {isVerifying ? (
+              <>
+                <span style={{
+                  width: 12, height: 12, flexShrink: 0, display: 'inline-block',
+                  border: '2px solid #fff', borderTopColor: 'transparent',
+                  borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+                }} />
+                Verifying…
+              </>
+            ) : (
+              selectedTasks.size === 0 ? 'Verify Selected' : `Verify Selected (${selectedTasks.size})`
+            )}
           </button>
         </div>
       </div>
@@ -749,20 +753,6 @@ export default function OptimizationCenterPage() {
           </button>
         </div>
       )}
-
-      {/* Bulk URL Verification — table-driven, no drawer */}
-      <BulkVerifyConfirmDialog
-        open={controller.state === BatchState.CONFIRMING}
-        onOpenChange={handleConfirmDialogOpenChange}
-        selectedCount={selectedTasks.size}
-        onConfirm={handleConfirmStart}
-      />
-
-      <VerifyUrlModal
-        open={isBatchActive}
-        onOpenChange={(nextOpen) => { if (!nextOpen) handleViewDetails() }}
-        bulk={bulkModalProps}
-      />
 
       {/* View Details — read-only, no navigation; preserves table filters/
           search/scroll/pagination since it's just local modal state. */}

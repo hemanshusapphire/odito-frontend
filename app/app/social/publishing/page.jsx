@@ -15,7 +15,7 @@ import PublishingTabs from '@/components/dashboard/social/publishing/PublishingT
 import ScheduleCalendar from '@/components/dashboard/social/publishing/ScheduleCalendar'
 import PostsTable from '@/components/dashboard/social/publishing/PostsTable'
 import PostHistoryTable from '@/components/dashboard/social/publishing/PostHistoryTable'
-import BulkUploadCard from '@/components/dashboard/social/publishing/BulkUploadCard'
+import BulkUploadWizard from '@/components/dashboard/social/publishing/bulk-upload/BulkUploadWizard'
 import PostPlannerBoard from '@/components/dashboard/social/publishing/PostPlannerBoard'
 import QuickActions from '@/components/dashboard/social/publishing/QuickActions'
 
@@ -36,10 +36,11 @@ const CALENDAR_FETCH_LIMIT = 200
  * Scheduled Today/Pending Approval counts, fake Platform Status) is gone.
  * Schedule/Posts/Post History are real SocialPublication records
  * (see hooks/useDashboardQueries.js's useSocialPublishing and the
- * backend's socialPublishingService.js). Bulk Upload and Post Planner
- * have no real backing feature yet and show an honest "coming soon"
- * state instead of fabricated data (Phase 14/15's own explicit
- * allowance). Pending Approval is removed entirely — no approval
+ * backend's socialPublishingService.js). Bulk Upload is a real
+ * CSV/XLSX import wizard over the bulk-upload backend
+ * (validate → preview → import; see BulkUploadWizard + useBulkUpload.js).
+ * Post Planner still has no real backing feature yet and shows an honest
+ * "coming soon" state. Pending Approval is removed entirely — no approval
  * workflow exists in Odito.
  */
 export default function SocialPublishingPage() {
@@ -190,7 +191,7 @@ export default function SocialPublishingPage() {
             </TabsContent>
 
             <TabsContent value="bulk-upload" className="mt-0">
-              <BulkUploadCard />
+              <BulkUploadWizard notify={notify} onGoToTab={setActiveTab} />
             </TabsContent>
 
             <TabsContent value="planner" className="mt-0">

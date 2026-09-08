@@ -68,37 +68,17 @@ vi.mock('@/lib/socketService', () => ({
   },
 }))
 
-// Sheet-family primitives aren't used here anymore (drawer removed), but
-// VerifyUrlModal's Dialog and BulkVerifyConfirmDialog's AlertDialog are —
-// same jsdom limitation as every other Verification UI test file.
+// The bulk verification flow no longer mounts any modal (confirmation or
+// completion) — it runs inline with the "Verify Selected" button as its own
+// loading indicator. The Dialog mock is still needed for the unrelated
+// "View Details" (OptimizationDetailsModal) path, which every render mounts
+// closed.
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ open, children }) => (open ? React.createElement('div', { 'data-testid': 'dialog' }, children) : null),
   DialogContent: ({ children }) => React.createElement('div', null, children),
   DialogHeader: ({ children }) => React.createElement('div', null, children),
   DialogTitle: ({ children }) => React.createElement('h2', null, children),
   DialogDescription: ({ children }) => React.createElement('p', null, children),
-}))
-
-const AlertDialogOnOpenChangeContext = React.createContext(() => {})
-vi.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ open, onOpenChange, children }) =>
-    open
-      ? React.createElement(
-          AlertDialogOnOpenChangeContext.Provider,
-          { value: onOpenChange },
-          React.createElement('div', { 'data-testid': 'alert-dialog' }, children)
-        )
-      : null,
-  AlertDialogContent: ({ children }) => React.createElement('div', null, children),
-  AlertDialogHeader: ({ children }) => React.createElement('div', null, children),
-  AlertDialogTitle: ({ children }) => React.createElement('h2', null, children),
-  AlertDialogDescription: ({ children }) => React.createElement('div', null, children),
-  AlertDialogFooter: ({ children }) => React.createElement('div', null, children),
-  AlertDialogCancel: ({ children }) => {
-    const onOpenChange = React.useContext(AlertDialogOnOpenChangeContext)
-    return React.createElement('button', { onClick: () => onOpenChange(false) }, children)
-  },
-  AlertDialogAction: ({ children, onClick }) => React.createElement('button', { onClick }, children),
 }))
 
 function makeTask(overrides = {}) {
@@ -150,8 +130,15 @@ function checkboxFor(url) {
   return container.querySelector(`[aria-label="Select ${url} for verification"]`)
 }
 
+// The toolbar button — matches both the idle label ("Verify Selected…") and
+// the in-flight loading state ("Verifying…", aria-label "Verifying selected
+// URLs").
 function verifySelectedButton() {
-  return Array.from(container.querySelectorAll('button')).find((b) => b.textContent.startsWith('Verify Selected'))
+  return Array.from(container.querySelectorAll('button')).find(
+    (b) =>
+      b.textContent.startsWith('Verify Selected') ||
+      b.getAttribute('aria-label') === 'Verifying selected URLs'
+  )
 }
 
 beforeEach(() => {
@@ -166,6 +153,9 @@ afterEach(() => {
   if (container) container.remove()
   container = null
   root = null
+  // Toasts render through a portal onto document.body — clear any leftovers
+  // so a toast from one test can't be read by the next.
+  document.body.innerHTML = ''
 })
 
 describe('Optimization Center — table-based Bulk URL Verification', () => {
@@ -231,7 +221,7 @@ describe('Optimization Center — table-based Bulk URL Verification', () => {
     expect(verifySelectedButton().textContent).toBe('Verify Selected (1)')
   })
 
-  it('opens the confirmation dialog, then starts the batch through the existing Verification Engine on Verify', async () => {
+  it('starts verification immediately on click — no confirmation modal, no progress modal', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' }), makeTask({ _id: 't2', pageUrl: '/b' })]
     apiService.verifyUrl.mockResolvedValue({ success: true, data: { runId: 'run-1' } })
     render()
@@ -239,19 +229,34 @@ describe('Optimization Center — table-based Bulk URL Verification', () => {
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-
-    expect(container.querySelector('[data-testid="alert-dialog"]')).toBeTruthy()
-    expect(container.textContent).toContain('2')
-
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
+    // The existing Verification Engine call fired straight away, once per
+    // selected URL — no intermediate "Verify" confirmation click.
     expect(apiService.verifyUrl).toHaveBeenCalledWith('proj-1', '/a')
     expect(apiService.verifyUrl).toHaveBeenCalledWith('proj-1', '/b')
-    // Existing VerifyUrlModal reused, in bulk mode — no second/new modal.
-    expect(container.querySelector('[data-testid="dialog"]')).toBeTruthy()
-    expect(container.textContent).toContain('Verifying URLs')
+    // No modal of any kind.
+    expect(document.body.textContent).not.toContain('Verify Selected URLs')
+    expect(document.body.textContent).not.toContain('Verifying URLs')
+    expect(document.body.textContent).not.toContain('Verification Complete')
+    // The button itself is the loading indicator, and it's disabled.
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
+    expect(verifySelectedButton().disabled).toBe(true)
+  })
+
+  it('ignores a second click while a batch is already running (no duplicate requests)', async () => {
+    mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' })]
+    apiService.verifyUrl.mockResolvedValue({ success: true, data: { runId: 'run-1' } })
+    render()
+
+    act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await act(async () => { await flushPromises() })
+    // Button is disabled, but fire another click at it anyway.
+    act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await act(async () => { await flushPromises() })
+
+    expect(apiService.verifyUrl).toHaveBeenCalledTimes(1)
   })
 
   it('dedupes URLs when two selected rows share the same pageUrl (different issues, same page)', async () => {
@@ -267,15 +272,13 @@ describe('Optimization Center — table-based Bulk URL Verification', () => {
     expect(container.textContent).toContain('2 selected')
 
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     expect(apiService.verifyUrl).toHaveBeenCalledTimes(1)
     expect(apiService.verifyUrl).toHaveBeenCalledWith('proj-1', '/a')
   })
 
-  it('aggregates progress from one shared websocket subscription (existing controller reused)', async () => {
+  it('runs the batch through one shared websocket subscription (existing controller reused)', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' }), makeTask({ _id: 't2', pageUrl: '/b' })]
     apiService.verifyUrl.mockImplementation((pid, url) => Promise.resolve({ success: true, data: { runId: `run-${url}` } }))
     render()
@@ -283,35 +286,30 @@ describe('Optimization Center — table-based Bulk URL Verification', () => {
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     // Exactly one subscription for the whole batch, not one per URL.
     expect(socketService.onVerificationProgress).toHaveBeenCalledTimes(1)
-    expect(container.textContent).toContain('Running (2)')
+    // Every row in the batch shows the inline "Verifying…" action and its
+    // checkbox is frozen; the toolbar button is loading.
+    expect(container.textContent).toContain('Verifying…')
+    expect(checkboxFor('/a').disabled).toBe(true)
+    expect(checkboxFor('/b').disabled).toBe(true)
 
-    // Aggregation: completing /a moves it out of Running into Completed,
-    // while /b (no event yet) stays Running — proves per-URL Map updates,
-    // not a single shared status.
+    // One URL completing does not end the batch or drop the loading state.
     const onCompleted = lastHandler(socketService.onVerificationCompleted)
     act(() => { onCompleted({ pageUrl: '/a', runId: 'run-/a' }) })
     await act(async () => { await flushPromises() })
-
-    expect(container.textContent).toContain('Running (1)')
-    expect(container.textContent).toContain('Completed (1)')
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
   })
 
-  it('shows the completion summary and clears selection after a successful batch', async () => {
+  it('clears selection, toasts, and drops the loading state after a successful batch — no modal', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' })]
     apiService.verifyUrl.mockResolvedValue({ success: true, data: { runId: 'run-1' } })
-    apiService.getTaskById.mockResolvedValue({ success: true, data: { status: 'verified_fixed' } })
     render()
 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     const onCompleted = lastHandler(socketService.onVerificationCompleted)
@@ -319,42 +317,62 @@ describe('Optimization Center — table-based Bulk URL Verification', () => {
     await act(async () => { await flushPromises() })
     await act(async () => { await flushPromises() })
 
-    expect(container.textContent).toContain('Verification Complete')
-    expect(apiService.getTaskById).toHaveBeenCalledWith('t1')
-    expect(container.textContent).toContain('1')
-
-    // Dismiss the completion modal and confirm the selection cleared.
-    const closeBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Close')
-    act(() => { closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-
+    // No completion modal — a non-blocking toast instead.
+    expect(document.body.textContent).not.toContain('Verification Complete')
+    expect(document.body.textContent).toContain('Verification complete')
+    // Selection cleared, button back to its idle (disabled) state.
     expect(container.textContent).toContain('0 selected')
     expect(checkboxFor('/a').checked).toBe(false)
+    expect(verifySelectedButton().textContent).toBe('Verify Selected')
+    expect(verifySelectedButton().disabled).toBe(true)
   })
 
   it('does not abort the batch when one URL fails to verify', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' }), makeTask({ _id: 't2', pageUrl: '/b' })]
     apiService.verifyUrl.mockImplementation((pid, url) => Promise.resolve({ success: true, data: { runId: `run-${url}` } }))
-    apiService.getTaskById.mockResolvedValue({ success: true, data: { status: 'reopened' } })
     render()
 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     const onFailed = lastHandler(socketService.onVerificationFailed)
     const onCompleted = lastHandler(socketService.onVerificationCompleted)
     act(() => { onFailed({ pageUrl: '/a', runId: 'run-/a', errorMessage: 'x' }) })
     await act(async () => { await flushPromises() })
-    expect(container.textContent).toContain('Verifying URLs') // /b still running, batch not aborted
+    // /b still running → batch not aborted, button still loading.
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
 
     act(() => { onCompleted({ pageUrl: '/b', runId: 'run-/b' }) })
     await act(async () => { await flushPromises() })
     await act(async () => { await flushPromises() })
 
-    expect(container.textContent).toContain('Verification Complete')
+    // Batch ended (1 completed, 1 failed) → loading cleared, still no modal.
+    expect(document.body.textContent).not.toContain('Verification Complete')
+    expect(verifySelectedButton().textContent).toBe('Verify Selected')
+  })
+
+  it('a fully failed batch keeps the selection so it can be retried, and shows an error toast', async () => {
+    mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' })]
+    apiService.verifyUrl.mockResolvedValue({ success: true, data: { runId: 'run-1' } })
+    render()
+
+    act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await act(async () => { await flushPromises() })
+
+    const onFailed = lastHandler(socketService.onVerificationFailed)
+    act(() => { onFailed({ pageUrl: '/a', runId: 'run-1', errorMessage: 'boom' }) })
+    await act(async () => { await flushPromises() })
+    await act(async () => { await flushPromises() })
+
+    expect(document.body.textContent).toContain('Verification failed. Please try again.')
+    // Selection preserved for an immediate retry.
+    expect(container.textContent).toContain('1 selected')
+    expect(checkboxFor('/a').checked).toBe(true)
+    expect(verifySelectedButton().textContent).toBe('Verify Selected (1)')
+    expect(verifySelectedButton().disabled).toBe(false)
   })
 })
 
@@ -433,8 +451,6 @@ describe('Optimization Center — STATUS vs ACTION workflow consistency', () => 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     // Both rows show the in-flight indicator, and neither checkbox can be
@@ -465,7 +481,7 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
     window.sessionStorage.clear()
   })
 
-  it('starts via ONE POST /start-verification-batch instead of N verifyUrl calls', async () => {
+  it('starts via ONE POST /start-verification-batch instead of N verifyUrl calls, straight from the click', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' }), makeTask({ _id: 't2', pageUrl: '/b' })]
     apiService.startVerificationBatch.mockResolvedValue({
       success: true, batchId: 'batch-1', status: 'RUNNING', totalUrls: 2, dispatchedUrls: 2,
@@ -477,31 +493,27 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     expect(apiService.startVerificationBatch).toHaveBeenCalledTimes(1)
     expect(apiService.startVerificationBatch).toHaveBeenCalledWith('proj-1', ['/a', '/b'])
     expect(apiService.verifyUrl).not.toHaveBeenCalled()
-    expect(container.textContent).toContain('Verifying URLs')
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
+    expect(document.body.textContent).not.toContain('Verifying URLs')
   })
 
-  it('per-page events update the modal but only verification:batch-completed ends the batch', async () => {
+  it('per-page events do not end the batch — only verification:batch-completed clears the loading state', async () => {
     mockTasks = [makeTask({ _id: 't1', pageUrl: '/a' }), makeTask({ _id: 't2', pageUrl: '/b' })]
     apiService.startVerificationBatch.mockResolvedValue({
       success: true, batchId: 'batch-1', status: 'RUNNING', totalUrls: 2, dispatchedUrls: 2,
       runs: [{ url: '/a', runId: 'run-a', dispatched: true }, { url: '/b', runId: 'run-b', dispatched: true }],
       rejected: [],
     })
-    apiService.getTaskById.mockResolvedValue({ success: true, data: { status: 'reopened' } })
     render()
 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { checkboxFor('/b').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     const onCompleted = lastHandler(socketService.onVerificationCompleted)
@@ -510,16 +522,17 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
     act(() => { onFailed({ pageUrl: '/b', runId: 'run-b', errorMessage: 'boom' }) })
     await act(async () => { await flushPromises() })
 
-    // Both pages resolved, but the backend hasn't said batch-completed yet
-    // — the modal must NOT infer completion from page counts.
-    expect(container.textContent).toContain('Verifying URLs')
+    // Both pages resolved, but the backend hasn't said batch-completed yet.
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
 
     const onBatchCompleted = lastHandler(socketService.onVerificationBatchCompleted)
     act(() => { onBatchCompleted({ batchId: 'batch-1', status: 'partial', totalUrls: 2, completedUrls: 1, failedUrls: 1 }) })
     await act(async () => { await flushPromises() })
     await act(async () => { await flushPromises() })
 
-    expect(container.textContent).toContain('Verification Complete')
+    expect(document.body.textContent).not.toContain('Verification Complete')
+    expect(document.body.textContent).toContain('Verification complete')
+    expect(verifySelectedButton().textContent).toBe('Verify Selected')
   })
 
   it('a websocket reconnect triggers REST recovery (GET verification-batches/:batchId[/runs])', async () => {
@@ -535,8 +548,6 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
 
     act(() => { checkboxFor('/a').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     act(() => { verifySelectedButton().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Verify')
-    act(() => { verifyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     await act(async () => { await flushPromises() })
 
     const onConnectionChange = lastHandler(socketService.onConnectionStateChange)
@@ -562,7 +573,8 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
 
     expect(apiService.getVerificationBatch).toHaveBeenCalledWith('batch-1')
     expect(apiService.startVerificationBatch).not.toHaveBeenCalled()
-    expect(container.textContent).toContain('Verifying URLs')
+    // The toolbar button reflects the resumed in-flight batch.
+    expect(verifySelectedButton().textContent).toContain('Verifying…')
   })
 
   it('an expired/unknown batchId on refresh fails gracefully back to an idle state, not a crash', async () => {
@@ -575,6 +587,10 @@ describe('Optimization Center — Bulk Verification via batch endpoint (F4-019, 
     expect(() => render()).not.toThrow()
     await act(async () => { await flushPromises() })
 
-    expect(container.textContent).not.toContain('Verifying URLs')
+    // No progress modal ever existed; the button falls back to idle and the
+    // failure is not surfaced as a toast (the user never started this batch).
+    expect(document.body.textContent).not.toContain('Verifying URLs')
+    expect(document.body.textContent).not.toContain('Verification failed')
+    expect(verifySelectedButton().textContent).toBe('Verify Selected')
   })
 })

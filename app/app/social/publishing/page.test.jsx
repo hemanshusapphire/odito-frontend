@@ -17,7 +17,7 @@ vi.mock('@/hooks/useToastQueue', () => ({
 
 vi.mock('@/components/dashboard/social/SocialTabs', () => ({ default: () => null }))
 vi.mock('@/components/shared/ToastStack', () => ({ default: () => null }))
-vi.mock('@/components/dashboard/social/publishing/BulkUploadCard', () => ({ default: () => null }))
+vi.mock('@/components/dashboard/social/publishing/bulk-upload/BulkUploadWizard', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/social/publishing/PostPlannerBoard', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/social/publishing/PostsTable', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/social/publishing/PostHistoryTable', () => ({ default: () => null }))
