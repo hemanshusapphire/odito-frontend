@@ -12,12 +12,12 @@ import { useGoogleAdsCurrencyFormatter } from '@/contexts/GoogleAdsCurrencyConte
 const ACTION_VARIANT = { add: 'success', negative: 'critical', watch: 'secondary' }
 const ACTION_LABEL = { add: 'Add as keyword', negative: 'Add negative', watch: 'Monitor' }
 
-/** Recent search queries that triggered ads, with a suggested next action - reads GET /google-ads/search-terms. */
-export default function SearchTermsTable({ projectId, ready }) {
+/** Recent search queries that triggered ads, with a suggested next action - reads GET /google-ads/search-terms. Pass campaignId to scope this to one campaign (Campaign Detail page) instead of the whole account. */
+export default function SearchTermsTable({ projectId, ready, campaignId }) {
   const { format } = useGoogleAdsCurrencyFormatter()
   const { data, isLoading, isError, refetch } = useGoogleAdsSearchTerms(
     projectId,
-    { limit: 25, sortBy: 'cost', sortOrder: -1 },
+    { limit: 25, sortBy: 'cost', sortOrder: -1, campaignId },
     { enabled: !!ready }
   )
   const rows = data?.data || []

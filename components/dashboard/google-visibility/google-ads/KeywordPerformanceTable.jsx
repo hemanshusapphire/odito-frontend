@@ -22,14 +22,14 @@ function titleCase(value) {
   return value.charAt(0) + value.slice(1).toLowerCase()
 }
 
-/** Top keywords by cost, last 30 days - reads GET /google-ads/keywords (see Phase 6.4). */
-export default function KeywordPerformanceTable({ projectId, ready }) {
+/** Top keywords by cost, last 30 days - reads GET /google-ads/keywords (see Phase 6.4). Pass campaignId to scope this to one campaign (Campaign Detail page) instead of the whole account. */
+export default function KeywordPerformanceTable({ projectId, ready, campaignId }) {
   const { format, formatPrecise } = useGoogleAdsCurrencyFormatter()
   const [search, setSearch] = useState('')
 
   const { data, isLoading, isError, refetch } = useGoogleAdsKeywords(
     projectId,
-    { limit: 50, sortBy: 'cost', sortOrder: -1 },
+    { limit: 50, sortBy: 'cost', sortOrder: -1, campaignId },
     { enabled: !!ready }
   )
   const keywords = data?.data || []

@@ -32,9 +32,6 @@ import SearchTermsTable from '@/components/dashboard/google-visibility/google-ad
 import BudgetOverviewCard from '@/components/dashboard/google-visibility/google-ads/BudgetOverviewCard'
 import DevicePerformanceCard from '@/components/dashboard/google-visibility/google-ads/DevicePerformanceCard'
 import GeographicPerformanceCard from '@/components/dashboard/google-visibility/google-ads/GeographicPerformanceCard'
-import AudiencePerformanceCard from '@/components/dashboard/google-visibility/google-ads/AudiencePerformanceCard'
-import AdPerformanceCard from '@/components/dashboard/google-visibility/google-ads/AdPerformanceCard'
-import OptimizationCenterGrid from '@/components/dashboard/google-visibility/google-ads/OptimizationCenterGrid'
 import CampaignHealthGrid from '@/components/dashboard/google-visibility/google-ads/CampaignHealthGrid'
 import RecentActivityCard from '@/components/dashboard/google-visibility/google-ads/RecentActivityCard'
 import { AlertTriangle } from 'lucide-react'
@@ -400,15 +397,6 @@ export default function GoogleAdsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DevicePerformanceCard projectId={projectId} dateRange={dateRange} ready={hasCompletedBefore} />
           <GeographicPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AudiencePerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-          <AdPerformanceCard projectId={projectId} ready={hasCompletedBefore} />
-        </div>
-
-        <div id="google-ads-optimization-center">
-          <OptimizationCenterGrid projectId={projectId} ready={hasCompletedBefore} />
         </div>
 
         <CampaignHealthGrid projectId={projectId} ready={hasCompletedBefore} />

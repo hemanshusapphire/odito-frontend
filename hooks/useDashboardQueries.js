@@ -1114,11 +1114,11 @@ export function useGoogleAdsOverview(projectId, dateRange, { enabled = true } = 
   })
 }
 
-/** Historical trend series (daily/weekly/monthly) backing the Campaign Performance chart and the KPI sparklines. */
-export function useGoogleAdsTrends(projectId, dateRange, granularity = 'daily', { enabled = true } = {}) {
+/** Historical trend series (daily/weekly/monthly) backing the Campaign Performance chart and the KPI sparklines. Optional campaignId scopes the series to one campaign (Campaign Detail page) instead of the whole account. */
+export function useGoogleAdsTrends(projectId, dateRange, granularity = 'daily', { enabled = true, campaignId = null } = {}) {
   return useQuery({
-    queryKey: queryKeys.googleAds.trends(projectId, dateRange, granularity),
-    queryFn: () => apiService.getGoogleAdsTrends(projectId, dateRange, granularity),
+    queryKey: queryKeys.googleAds.trends(projectId, dateRange, granularity, campaignId),
+    queryFn: () => apiService.getGoogleAdsTrends(projectId, dateRange, granularity, campaignId),
     enabled: !!projectId && enabled,
     staleTime: staleTimes.DYNAMIC,
     gcTime: gcTimes.STANDARD,
@@ -1137,6 +1137,17 @@ export function useGoogleAdsCampaigns(projectId, { page = 1, limit = 100, status
   })
 }
 
+/** One campaign's own metadata + a metrics summary for the given range - backs the Campaign Detail page. */
+export function useGoogleAdsCampaignDetail(projectId, campaignId, dateRange, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleAds.campaignDetail(projectId, campaignId, dateRange),
+    queryFn: () => apiService.getGoogleAdsCampaignDetail(projectId, campaignId, dateRange),
+    enabled: !!projectId && !!campaignId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
 /** Account-wide health tiles (Budget Pacing / Quality Score / Ad Strength / Conversion Tracking). */
 export function useGoogleAdsCampaignHealth(projectId, { enabled = true } = {}) {
   return useQuery({
@@ -1148,9 +1159,9 @@ export function useGoogleAdsCampaignHealth(projectId, { enabled = true } = {}) {
   })
 }
 
-/** Top keywords by cost/clicks. startDate/endDate are optional - see GoogleAdsKeyword.getProjectKeywords' doc comment for the interval-overlap semantics. */
-export function useGoogleAdsKeywords(projectId, { page = 1, limit = 50, search, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
-  const params = { page, limit, search: search || null, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
+/** Top keywords by cost/clicks. startDate/endDate are optional - see GoogleAdsKeyword.getProjectKeywords' doc comment for the interval-overlap semantics. Optional campaignId scopes the list to one campaign (Campaign Detail page). */
+export function useGoogleAdsKeywords(projectId, { page = 1, limit = 50, campaignId, search, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
+  const params = { page, limit, campaignId: campaignId || null, search: search || null, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
   return useQuery({
     queryKey: queryKeys.googleAds.keywords(projectId, params),
     queryFn: () => apiService.getGoogleAdsKeywords(projectId, params),
@@ -1171,9 +1182,9 @@ export function useRefreshGoogleAdsKeywords(projectId) {
   })
 }
 
-/** Recent search queries that triggered ads, with a suggested next action. startDate/endDate optional - same interval-overlap semantics as useGoogleAdsKeywords. */
-export function useGoogleAdsSearchTerms(projectId, { page = 1, limit = 25, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
-  const params = { page, limit, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
+/** Recent search queries that triggered ads, with a suggested next action. startDate/endDate optional - same interval-overlap semantics as useGoogleAdsKeywords. Optional campaignId scopes the list to one campaign (Campaign Detail page). */
+export function useGoogleAdsSearchTerms(projectId, { page = 1, limit = 25, campaignId, sortBy = 'cost', sortOrder = -1, startDate, endDate } = {}, { enabled = true } = {}) {
+  const params = { page, limit, campaignId: campaignId || null, sortBy, sortOrder, startDate: startDate || null, endDate: endDate || null }
   return useQuery({
     queryKey: queryKeys.googleAds.searchTerms(projectId, params),
     queryFn: () => apiService.getGoogleAdsSearchTerms(projectId, params),
@@ -1258,6 +1269,18 @@ export function useGoogleAdsAds(projectId, { enabled = true } = {}) {
     queryKey: queryKeys.googleAds.adPerformance(projectId, params),
     queryFn: () => apiService.getGoogleAdsAdPerformance(projectId, params),
     enabled: !!projectId && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    gcTime: gcTimes.STANDARD,
+  })
+}
+
+/** Individual ads for one campaign (ungrouped) - ad_strength/status/approval per ad plus its own metrics. Backs the Campaign Detail page's Ads section. */
+export function useGoogleAdsCampaignAds(projectId, campaignId, { page = 1, limit = 50, sortBy = 'cost', sortOrder = -1 } = {}, { enabled = true } = {}) {
+  const params = { page, limit, campaignId, sortBy, sortOrder }
+  return useQuery({
+    queryKey: queryKeys.googleAds.adPerformance(projectId, params),
+    queryFn: () => apiService.getGoogleAdsAdPerformance(projectId, params),
+    enabled: !!projectId && !!campaignId && enabled,
     staleTime: staleTimes.DYNAMIC,
     gcTime: gcTimes.STANDARD,
   })

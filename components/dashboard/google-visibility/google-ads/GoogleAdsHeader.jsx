@@ -1,9 +1,13 @@
 "use client"
 
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, ExternalLink, RefreshCw, Loader2, Repeat } from 'lucide-react'
+import { CheckCircle2, ExternalLink, RefreshCw, Loader2, Repeat, History } from 'lucide-react'
 import { formatRelativeTime as formatSyncTime } from '@/lib/formatRelativeTime'
+import CreateCampaignMenu from './ai-campaign/CreateCampaignMenu'
+
+const GOOGLE_ADS_BASE_PATH = '/app/google-visibility/google-ads'
 
 /**
  * Page header for the Google Ads dashboard - mirrors
@@ -25,6 +29,7 @@ export default function GoogleAdsHeader({
   onRefresh,
   onChangeAccount,
 }) {
+  const router = useRouter()
   const hasAccount = !!customerId
   const displayId = customerId ? customerId.replace(/(\d{3})(\d{3})(\d+)/, '$1-$2-$3') : null
 
@@ -60,7 +65,27 @@ export default function GoogleAdsHeader({
               </span>
             )}
 
-            <Button size="sm" onClick={onRefresh} disabled={refreshing} className="gap-2">
+            {/* Phase 3 — AI Campaign Builder entry point. Isolated: opens
+                its own route, never touches this dashboard's data paths. */}
+            <CreateCampaignMenu basePath={GOOGLE_ADS_BASE_PATH} />
+
+            {/* Secondary action: makes the existing AI campaign drafts list
+                (already reachable via CreateCampaignMenu's "Continue a
+                draft" item) directly discoverable from the header, rather
+                than buried inside the Create Campaign dropdown. Reuses the
+                exact same route/page — no second campaign-list implementation. */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() => router.push(`${GOOGLE_ADS_BASE_PATH}/ai-campaigns`)}
+              data-testid="recent-campaigns"
+            >
+              <History className="h-4 w-4" />
+              Recent Campaigns
+            </Button>
+
+            <Button size="sm" variant="outline" onClick={onRefresh} disabled={refreshing} className="gap-2">
               {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               {refreshing ? 'Refreshing…' : 'Refresh Data'}
             </Button>

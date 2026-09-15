@@ -55,13 +55,13 @@ function ChartTooltip({ active, payload, label }) {
  * and 'all' request monthly granularity so the chart doesn't try to plot
  * hundreds/thousands of daily bars for a multi-year range.
  */
-export default function CampaignPerformanceTrendsCard({ projectId, dateRange, ready }) {
+export default function CampaignPerformanceTrendsCard({ projectId, dateRange, ready, campaignId }) {
   const [hidden, setHidden] = useState(
     () => new Set(TREND_METRICS.filter((m) => !m.defaultVisible).map((m) => m.key))
   )
 
   const granularity = dateRange?.preset === '12m' || dateRange?.preset === 'all' ? 'monthly' : 'daily'
-  const { data, isLoading, isError, refetch } = useGoogleAdsTrends(projectId, dateRange, granularity, { enabled: !!ready })
+  const { data, isLoading, isError, refetch } = useGoogleAdsTrends(projectId, dateRange, granularity, { enabled: !!ready, campaignId })
   const series = data?.data?.series || []
 
   const visibleMetrics = TREND_METRICS.filter((m) => !hidden.has(m.key))

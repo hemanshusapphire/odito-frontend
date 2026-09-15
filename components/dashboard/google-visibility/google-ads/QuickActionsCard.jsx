@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from '@/components/ui/card'
-import { RefreshCw, Loader2, Zap, Sparkles, LayoutGrid } from 'lucide-react'
+import { RefreshCw, Loader2, Zap, LayoutGrid } from 'lucide-react'
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -22,12 +22,6 @@ export default function QuickActionsCard({ refreshing, onRefresh }) {
       icon: Zap,
       label: 'Open Google Ads',
       href: 'https://ads.google.com',
-    },
-    {
-      key: 'optimization',
-      icon: Sparkles,
-      label: 'Optimization Center',
-      onClick: () => scrollToSection('google-ads-optimization-center'),
     },
     {
       key: 'campaigns',

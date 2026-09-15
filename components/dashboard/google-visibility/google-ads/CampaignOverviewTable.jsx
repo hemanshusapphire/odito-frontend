@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -153,7 +154,12 @@ export default function CampaignOverviewTable({ projectId, dateRange, ready }) {
               {rows.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <div className="font-medium">{c.name}</div>
+                    <Link
+                      href={`/app/google-visibility/google-ads/${c.id}`}
+                      className="font-medium hover:text-primary hover:underline underline-offset-2 transition-colors"
+                    >
+                      {c.name}
+                    </Link>
                     <div className="text-[11px] text-muted-foreground">{c.type}</div>
                   </TableCell>
                   <TableCell>
