@@ -1,4 +1,5 @@
 import Navbar from "@/components/new-landing/Navbar"
+import Footer from "@/components/new-landing/Footer"
 import FeaturesHero from "@/components/features/FeaturesHero"
 import FeaturesGrid from "@/components/features/FeaturesGrid"
 import FeatureDeepDive from "@/components/features/FeatureDeepDive"
@@ -42,6 +43,7 @@ export default function FeaturesPage() {
       <ComparisonSection />
       <UseCases />
       <FinalCTA />
+      <Footer />
     </div>
   )
 }

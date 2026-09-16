@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="w-full rounded-t-[40px] mt-20 bg-surface-container-low dark:bg-[#131318]">
@@ -53,9 +55,9 @@ export default function Footer() {
           <h4 className="text-primary font-semibold mb-6">Legal</h4>
           <ul className="space-y-4">
             <li>
-              <a className="text-on-surface-variant/70 hover:text-secondary dark:hover:text-cyan-400 transition-colors hover:translate-x-1 inline-block" href="#">
+              <Link className="text-on-surface-variant/70 hover:text-secondary dark:hover:text-cyan-400 transition-colors hover:translate-x-1 inline-block" href="/privacy-policy">
                 Privacy Policy
-              </a>
+              </Link>
             </li>
             <li>
               <a className="text-on-surface-variant/70 hover:text-secondary dark:hover:text-cyan-400 transition-colors hover:translate-x-1 inline-block" href="#">

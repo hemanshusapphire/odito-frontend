@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Navbar from "@/components/new-landing/Navbar"
+import Footer from "@/components/new-landing/Footer"
 import PricingHero from "@/components/pricing/PricingHero"
 import PricingIntro from "@/components/pricing/PricingIntro"
 import PricingGrid from "@/components/pricing/PricingGrid"
@@ -67,6 +68,7 @@ export default function PricingPageClient() {
       <PricingPlanGuide />
       <PricingFAQ />
       <PricingCTA />
+      <Footer />
     </div>
   )
 }
