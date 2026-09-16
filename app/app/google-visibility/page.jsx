@@ -11,17 +11,12 @@ import {
   Search,
   BarChart3,
   Building,
-  Plus,
   RefreshCw,
-  Loader2,
   CheckCircle2,
-  XCircle,
-  AlertTriangle,
   X,
   ArrowRight,
   Info,
 } from 'lucide-react'
-import apiService from '@/lib/apiService'
 import { useProject } from '@/contexts/ProjectContext'
 import {
   useBusinessProfileStatus,
@@ -46,32 +41,6 @@ function formatDateTime(value) {
   return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-function ConnectionBadge({ status }) {
-  if (!status) return null
-  if (status.connected) {
-    return (
-      <Badge variant="success">
-        <CheckCircle2 className="h-3 w-3" /> Connected
-      </Badge>
-    )
-  }
-  if (status.connectionStatus === 'expired') {
-    return (
-      <Badge variant="warning">
-        <AlertTriangle className="h-3 w-3" /> Expired
-      </Badge>
-    )
-  }
-  if (status.connectionStatus === 'revoked') {
-    return (
-      <Badge variant="critical">
-        <XCircle className="h-3 w-3" /> Revoked
-      </Badge>
-    )
-  }
-  return <Badge variant="outline">Not connected</Badge>
-}
-
 export default function GoogleVisibilityPage() {
   const router = useRouter()
   const pathname = usePathname()
@@ -79,16 +48,13 @@ export default function GoogleVisibilityPage() {
   const { activeProjectId } = useProject()
 
   const [banner, setBanner] = useState(null)
-  const [connecting, setConnecting] = useState(false)
 
-  // Connection status is shared across all three service cards below (one
-  // GoogleConnection document per project covers Business Profile, Search
-  // Console and Analytics - see GoogleConnection.service_type) - the
-  // Business Profile status endpoint returns the same connection-level
-  // fields (connected/googleEmail/connectionStatus/lastSyncAt) regardless of
-  // which service you ask via, so this single React Query call replaces
-  // what used to be a raw useState + manual fetchStatus() duplicated
-  // nowhere else - reused as the one status source for the whole page.
+  // Each service now has its own independent GoogleConnection (its own
+  // Google account, its own OAuth consent) - Business Profile, Search
+  // Console and Analytics status are three separate queries below, never
+  // treated as one shared identity. Connect/Change Account/Disconnect for
+  // all three live exclusively in Settings -> Profile (Google Services);
+  // this page only reads each service's own status.
   const statusQuery = useBusinessProfileStatus(activeProjectId)
   const status = statusQuery.data?.data
   const statusLoading = statusQuery.isLoading
@@ -145,43 +111,33 @@ export default function GoogleVisibilityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // The status query below is persisted to localStorage (see
+  // Each status query below is persisted to localStorage (see
   // lib/queryClient.js) and kept "fresh" for staleTimes.STANDARD (5 min).
-  // A page landing here straight off the OAuth redirect rehydrates that
-  // persisted (pre-connection) "not connected" entry and, being still
+  // A page landing here straight off a Settings OAuth redirect rehydrates
+  // that persisted (pre-connection) "not connected" entry and, being still
   // within its staleTime window, React Query won't auto-refetch it - so the
-  // connection badge/buttons would keep showing "Not connected" for up to
-  // 5 minutes despite the GoogleConnection the redirect just created,
-  // until something else (e.g. switching projects, which invalidates the
-  // whole cache) forces a refetch. Force that one refetch here instead, as
+  // connection badges would keep showing "Not connected" for up to 5
+  // minutes despite the GoogleConnection the redirect just created, until
+  // something else (e.g. switching projects, which invalidates the whole
+  // cache) forces a refetch. Force a refetch of all three here instead, as
   // soon as activeProjectId is known, so the UI reflects reality immediately.
   useEffect(() => {
     if (justConnectedRef.current && activeProjectId) {
       justConnectedRef.current = false
       statusQuery.refetch()
+      searchConsoleStatusQuery.refetch()
+      analyticsStatusQuery.refetch()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId])
 
-  async function handleConnect() {
-    if (!activeProjectId) return
-    setConnecting(true)
-    setBanner(null)
-    try {
-      const res = await apiService.getGoogleConnectUrl(activeProjectId)
-      if (res?.data?.url) {
-        window.location.href = res.data.url
-        return
-      }
-      setBanner({ type: 'error', message: 'Could not start the Google connection.' })
-    } catch (error) {
-      setBanner({ type: 'error', message: error.message || 'Could not start the Google connection.' })
-    } finally {
-      setConnecting(false)
-    }
+  function refetchAllStatuses() {
+    statusQuery.refetch()
+    searchConsoleStatusQuery.refetch()
+    analyticsStatusQuery.refetch()
   }
 
-  const isReconnect = status?.connectionStatus === 'expired' || status?.connectionStatus === 'revoked'
+  const anyLoading = statusLoading || searchConsoleStatusQuery.isLoading || analyticsStatusQuery.isLoading
 
   return (
     <div className="flex-1 space-y-6">
@@ -212,59 +168,45 @@ export default function GoogleVisibilityPage() {
       <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold tracking-tight">Google Visibility Overview</h2>
-              <ConnectionBadge status={status} />
-            </div>
+            <h2 className="text-xl font-semibold tracking-tight">Google Visibility Overview</h2>
             <p className="text-muted-foreground">
-              {status?.connected
-                ? <>Connected as <span className="font-medium text-foreground">{status.googleEmail}</span></>
-                : 'Connect your Google account to view Search Console, Analytics, and Business Profile data.'}
+              Search Console, Analytics, and Business Profile can each use a different Google
+              account.
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => statusQuery.refetch()} disabled={statusLoading}>
-              <RefreshCw className={`h-4 w-4 ${statusLoading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" size="sm" onClick={refetchAllStatuses} disabled={anyLoading}>
+              <RefreshCw className={`h-4 w-4 ${anyLoading ? 'animate-spin' : ''}`} />
             </Button>
-            {!statusLoading && activeProjectId && !status?.connected && (
-              <Button onClick={handleConnect} disabled={connecting} className="flex items-center gap-2">
-                {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {isReconnect ? 'Reconnect Google' : 'Connect Google'}
-              </Button>
-            )}
           </div>
         </div>
 
-        {/* Purely informational - all actual account management (reconnect,
-            switch account, disconnect) lives on Settings -> Profile
-            (components/settings/profile/ConnectedAccountsCard.jsx) and is
-            NOT duplicated here. This just points users there. */}
-        {status?.connected && (
-          <div className="mt-4 rounded-lg border bg-muted/30 px-4 py-3.5 flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-background border flex items-center justify-center shrink-0">
-                <Info className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">Manage Google Account</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Google account connection settings are managed from your Profile Settings.
-                </p>
-                <ul className="text-xs text-muted-foreground mt-1.5 space-y-0.5 list-disc list-inside">
-                  <li>Reconnect your Google account</li>
-                  <li>Switch to another Google account</li>
-                  <li>Disconnect Google completely</li>
-                </ul>
-              </div>
+        {/* Purely informational - all account management (connect, change
+            account, disconnect) for every service lives on Settings ->
+            Profile (components/settings/profile/ConnectedAccountsCard.jsx,
+            "Google Services") and is NOT duplicated here. This just points
+            users there - shown regardless of connection state, since there
+            is no single shared "Connect Google" action anymore. */}
+        <div className="rounded-lg border bg-muted/30 px-4 py-3.5 flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-background border flex items-center justify-center shrink-0">
+              <Info className="h-4 w-4 text-muted-foreground" />
             </div>
-            <Button asChild variant="outline" size="sm" className="gap-2 shrink-0">
-              <Link href="/app/settings/profile">
-                Open Profile Settings
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">Manage Google Accounts</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Connect, change, or disconnect the Google account for each service from your
+                Profile Settings.
+              </p>
+            </div>
           </div>
-        )}
+          <Button asChild variant="outline" size="sm" className="gap-2 shrink-0">
+            <Link href="/app/settings/profile">
+              Open Profile Settings
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
 
         {!activeProjectId && (
           <p className="text-sm text-muted-foreground">Select or create a project to connect Google Visibility.</p>
@@ -295,13 +237,17 @@ export default function GoogleVisibilityPage() {
                 </div>
               )}
 
-              {!searchConsoleStatusQuery.isLoading && !status?.connected && (
+              {!searchConsoleStatusQuery.isLoading && !searchConsoleStatus?.connected && (
                 <p className="text-sm text-muted-foreground">
-                  Use the "{isReconnect ? 'Reconnect Google' : 'Connect Google'}" button above to get started.
+                  Connect a Google account in{' '}
+                  <Link href="/app/settings/profile" className="text-primary underline-offset-2 hover:underline">
+                    Profile Settings
+                  </Link>{' '}
+                  to get started.
                 </p>
               )}
 
-              {!searchConsoleStatusQuery.isLoading && status?.connected && !searchConsoleStatus?.service_enabled && (
+              {!searchConsoleStatusQuery.isLoading && searchConsoleStatus?.connected && !searchConsoleStatus?.service_enabled && (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">Connected - choose a property to finish setup.</p>
                   <Button asChild size="sm" className="gap-2 shrink-0">
@@ -313,7 +259,7 @@ export default function GoogleVisibilityPage() {
                 </div>
               )}
 
-              {!searchConsoleStatusQuery.isLoading && status?.connected && searchConsoleStatus?.service_enabled && (
+              {!searchConsoleStatusQuery.isLoading && searchConsoleStatus?.connected && searchConsoleStatus?.service_enabled && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5 text-sm">
                     <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Connected</Badge>
@@ -357,13 +303,17 @@ export default function GoogleVisibilityPage() {
                 </div>
               )}
 
-              {!analyticsStatusQuery.isLoading && !status?.connected && (
+              {!analyticsStatusQuery.isLoading && !analyticsStatus?.connected && (
                 <p className="text-sm text-muted-foreground">
-                  Use the "{isReconnect ? 'Reconnect Google' : 'Connect Google'}" button above to get started.
+                  Connect a Google account in{' '}
+                  <Link href="/app/settings/profile" className="text-primary underline-offset-2 hover:underline">
+                    Profile Settings
+                  </Link>{' '}
+                  to get started.
                 </p>
               )}
 
-              {!analyticsStatusQuery.isLoading && status?.connected && !analyticsStatus?.serviceEnabled && (
+              {!analyticsStatusQuery.isLoading && analyticsStatus?.connected && !analyticsStatus?.serviceEnabled && (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">Connected - choose a property to finish setup.</p>
                   <Button asChild size="sm" className="gap-2 shrink-0">
@@ -375,7 +325,7 @@ export default function GoogleVisibilityPage() {
                 </div>
               )}
 
-              {!analyticsStatusQuery.isLoading && status?.connected && analyticsStatus?.serviceEnabled && (
+              {!analyticsStatusQuery.isLoading && analyticsStatus?.connected && analyticsStatus?.serviceEnabled && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5 text-sm">
                     <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Connected</Badge>
@@ -418,7 +368,11 @@ export default function GoogleVisibilityPage() {
 
               {!statusLoading && !status?.connected && (
                 <p className="text-sm text-muted-foreground">
-                  Use the "{isReconnect ? 'Reconnect Google' : 'Connect Google'}" button above to get started.
+                  Connect a Google account in{' '}
+                  <Link href="/app/settings/profile" className="text-primary underline-offset-2 hover:underline">
+                    Profile Settings
+                  </Link>{' '}
+                  to get started.
                 </p>
               )}
 

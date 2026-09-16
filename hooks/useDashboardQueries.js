@@ -724,6 +724,52 @@ export function useDisconnectGoogleAccount() {
   })
 }
 
+// ==================== GOOGLE SERVICES (INDEPENDENT PER-SERVICE ACCOUNTS) ====================
+
+/**
+ * Project-scoped status for all four independently-connectable Google
+ * services (google_ads/search_console/analytics/business_profile) — the
+ * data source for Settings → Google Services. Unlike useGoogleAccountStatus
+ * above, this reflects one project at a time and never rolls services
+ * together (see getProjectGoogleServiceConnections's own doc comment).
+ */
+export function useGoogleServiceConnections(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.googleServices.connections(projectId),
+    queryFn: () => apiService.getGoogleServiceConnections(projectId),
+    enabled: enabled && !!projectId,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Starts (or restarts, for "Change Account") the OAuth flow for exactly one
+ * Google service. Returns a function the caller invokes on click; redirects
+ * the browser on success rather than resolving a value, since the consent
+ * URL must be navigated to, not rendered.
+ */
+export function useConnectGoogleService(projectId, service) {
+  return async (returnTo) => {
+    const res = await apiService.getGoogleServiceConnectUrl(service, projectId, returnTo)
+    if (res?.data?.url) {
+      window.location.href = res.data.url
+      return
+    }
+    throw new Error(`Failed to start ${service} connection.`)
+  }
+}
+
+/** Disconnects exactly one service's Google connection for one project — never any other service, never any other project. */
+export function useDisconnectGoogleService(projectId, service) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.disconnectGoogleService(service, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.googleServices.connections(projectId) })
+    },
+  })
+}
+
 // ==================== BRAND ASSET RESOLVER ====================
 
 /**

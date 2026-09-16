@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { IconBrandGoogle, IconBrandWindows, IconBrandLinkedin, IconBrandWordpress } from "@tabler/icons-react"
-import { Link2, Info, Loader2, Copy, Check, Download } from "lucide-react"
+import { Link2, Info, Loader2, Copy, Check, Download, Megaphone, Search, BarChart3, Building2 } from "lucide-react"
 import {
   Card,
   CardHeader,
@@ -35,8 +35,9 @@ import {
 } from "@/components/ui/dialog"
 import { useProject } from "@/contexts/ProjectContext"
 import {
-  useGoogleAccountStatus,
-  useDisconnectGoogleAccount,
+  useGoogleServiceConnections,
+  useConnectGoogleService,
+  useDisconnectGoogleService,
   useWordPressStatus,
   useConnectWordPress,
   useVerifyWordPressConnection,
@@ -89,8 +90,8 @@ function Toast({ message, type = "success", onClose }) {
 
 /**
  * Future (comingSoon) providers only — Google is handled separately below
- * (GoogleProviderRow) since it's the one provider with a real, live
- * connection to reflect. Add a future non-comingSoon provider by giving it
+ * (GoogleServicesSection) since it's the one provider with real, live
+ * connections to reflect. Add a future non-comingSoon provider by giving it
  * the same treatment Google gets, not by extending this array's shape.
  */
 const COMING_SOON_PROVIDERS = [
@@ -116,28 +117,60 @@ function formatDate(value) {
 const GOOGLE_STATUS_BADGE = {
   connected: { label: "Connected", variant: "success" },
   expired: { label: "Expired", variant: "outline" },
-  revoked: { label: "Revoked", variant: "outline" },
+  revoked: { label: "Reconnect Required", variant: "outline" },
   not_connected: { label: "Not Connected", variant: "outline" },
+  error: { label: "Connection Error", variant: "critical" },
 }
 
 /**
- * Google's row — the one provider with a real, working OAuth connection to
- * reflect (see GoogleConnection.js / googleAccountConnectionService.js).
- * Status is account-wide, rolled up across every project the user has ever
- * connected Google to; Connect/Reconnect reuses the exact same
- * /auth/oauth/google/start flow the existing Google Visibility page uses,
- * scoped to whichever project is currently active in Settings.
+ * The four independently-connectable Google services (Section 3). Each maps
+ * to its own GoogleConnection.purpose and its own OAuth scope list on the
+ * backend (see oauth.routes.js) - deliberately NOT a single "Google"
+ * provider, so a different Google account can be used per service.
  */
-function GoogleProviderRow({ provider }) {
-  const Icon = provider.icon
-  const { activeProjectId } = useProject()
-  const { data: statusResponse, isLoading } = useGoogleAccountStatus()
-  const disconnectMutation = useDisconnectGoogleAccount()
+const GOOGLE_SERVICES = [
+  {
+    id: "google_ads",
+    name: "Google Ads",
+    description: "Manage campaigns, advertising performance and optimization.",
+    icon: Megaphone,
+  },
+  {
+    id: "search_console",
+    name: "Search Console",
+    description: "Monitor search visibility, queries and indexing.",
+    icon: Search,
+  },
+  {
+    id: "analytics",
+    name: "Analytics",
+    description: "Analyze traffic and user behavior.",
+    icon: BarChart3,
+  },
+  {
+    id: "business_profile",
+    name: "Business Profile",
+    description: "Manage business profile data, locations and reviews.",
+    icon: Building2,
+  },
+]
+
+/**
+ * One service's row within Google Services. Fully independent lifecycle -
+ * Connect/Change Account/Disconnect here only ever touch this one service's
+ * GoogleConnection row (purpose-scoped on the backend), never any other
+ * service's. `status` is this service's slice of the single
+ * useGoogleServiceConnections(activeProjectId) response the parent section
+ * fetches once for all four rows (Section 34: no per-row network calls).
+ */
+function GoogleServiceRow({ service, activeProjectId, status, isLoading }) {
+  const Icon = service.icon
+  const connectService = useConnectGoogleService(activeProjectId, service.id)
+  const disconnectMutation = useDisconnectGoogleService(activeProjectId, service.id)
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState(null)
   const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false)
 
-  const status = statusResponse?.data
   const badge = isLoading ? null : (GOOGLE_STATUS_BADGE[status?.status] || GOOGLE_STATUS_BADGE.not_connected)
   const needsReconnect = status?.status === "expired" || status?.status === "revoked"
 
@@ -146,15 +179,10 @@ function GoogleProviderRow({ provider }) {
     setConnectError(null)
     setConnecting(true)
     try {
-      const res = await apiService.getGoogleConnectUrl(activeProjectId, "settings")
-      if (res?.data?.url) {
-        window.location.href = res.data.url
-        return
-      }
-      setConnectError("Failed to start Google connection.")
-      setConnecting(false)
+      await connectService("settings")
+      // On success the browser navigates away to Google - nothing left to do.
     } catch (err) {
-      setConnectError(err.message || "Failed to start Google connection.")
+      setConnectError(err.message || `Failed to start ${service.name} connection.`)
       setConnecting(false)
     }
   }
@@ -176,14 +204,13 @@ function GoogleProviderRow({ provider }) {
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="space-y-0.5">
-          <h4 className="text-sm font-semibold text-foreground">{provider.name}</h4>
-          <p className="text-xs text-muted-foreground">{provider.description}</p>
+          <h4 className="text-sm font-semibold text-foreground">{service.name}</h4>
+          <p className="text-xs text-muted-foreground">{service.description}</p>
 
           {!isLoading && status?.connected && (
             <dl className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
               {status.email && <div>{status.email}</div>}
               {status.connectedAt && <div>Connected on {formatDate(status.connectedAt)}</div>}
-              {status.scopes?.length > 0 && <div className="capitalize">Scopes: {status.scopes.map((s) => s.replace(/_/g, " ")).join(", ")}</div>}
               <div>Last sync: {status.lastSync ? formatDate(status.lastSync) : "Never"}</div>
             </dl>
           )}
@@ -208,15 +235,28 @@ function GoogleProviderRow({ provider }) {
         )}
 
         {!isLoading && status?.connected && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmDisconnectOpen(true)}
-            disabled={disconnectMutation.isPending}
-          >
-            {disconnectMutation.isPending ? "Disconnecting..." : "Disconnect"}
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleConnect}
+              disabled={connecting || !activeProjectId}
+              className="gap-1.5"
+            >
+              {connecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {connecting ? "Redirecting..." : "Change Account"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDisconnectOpen(true)}
+              disabled={disconnectMutation.isPending}
+            >
+              {disconnectMutation.isPending ? "Disconnecting..." : "Disconnect"}
+            </Button>
+          </>
         )}
 
         {!isLoading && !status?.connected && (
@@ -232,7 +272,7 @@ function GoogleProviderRow({ provider }) {
                   className="gap-1.5"
                 >
                   {connecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {connecting ? "Redirecting..." : needsReconnect ? "Reconnect" : "Connect"}
+                  {connecting ? "Redirecting..." : needsReconnect ? "Reconnect" : "Connect Google Account"}
                 </Button>
               </span>
             </TooltipTrigger>
@@ -248,11 +288,11 @@ function GoogleProviderRow({ provider }) {
           <div className="px-7 pt-7 pb-6 space-y-3">
             <AlertDialogHeader className="space-y-3 text-left sm:text-left">
               <AlertDialogTitle className="text-xl font-bold text-foreground">
-                Disconnect Google Account?
+                Disconnect {service.name}?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-sm leading-relaxed text-foreground">
-                This revokes Odito&apos;s access to your Google account and stops syncing Search
-                Console, Analytics, and Business Profile data across all your projects. You can
+                Odito will stop accessing {service.name} data from this Google account. Your other
+                Google service connections for this project will remain unchanged. You can
                 reconnect at any time.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -280,11 +320,57 @@ function GoogleProviderRow({ provider }) {
               disabled={disconnectMutation.isPending}
               className="rounded-lg bg-destructive px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
-              {disconnectMutation.isPending ? "Disconnecting..." : "Disconnect"}
+              {disconnectMutation.isPending ? "Disconnecting..." : `Disconnect ${service.name}`}
             </button>
           </div>
         </AlertDialogContent>
       </AlertDialog>
+    </li>
+  )
+}
+
+/**
+ * Google Services - Section 5/16: a separate, independently-manageable
+ * Google account per service, scoped to whichever project is currently
+ * active (same activeProjectId pattern WordPressProviderRow below already
+ * uses). One network call (useGoogleServiceConnections) backs all four
+ * rows - Settings never calls a live Google API just to render a status
+ * badge (Section 34).
+ */
+function GoogleServicesSection() {
+  const { activeProjectId } = useProject()
+  const { data: connectionsResponse, isLoading } = useGoogleServiceConnections(activeProjectId)
+  const connections = connectionsResponse?.data || {}
+
+  return (
+    <li className="flex flex-col gap-1 py-4 first:pt-0 last:pb-0">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
+          <IconBrandGoogle className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-foreground">Google Services</h4>
+          <p className="text-xs text-muted-foreground">
+            Connect a separate Google account for each Odito service.
+          </p>
+        </div>
+      </div>
+
+      {!activeProjectId ? (
+        <p className="mt-3 pl-13 text-xs text-muted-foreground">Select or create a project first.</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-border/60 pl-13 sm:pl-13">
+          {GOOGLE_SERVICES.map((service) => (
+            <GoogleServiceRow
+              key={service.id}
+              service={service}
+              activeProjectId={activeProjectId}
+              status={connections[service.id]}
+              isLoading={isLoading}
+            />
+          ))}
+        </ul>
+      )}
     </li>
   )
 }
@@ -815,11 +901,12 @@ function ComingSoonProviderRow({ provider }) {
 }
 
 /**
- * Connected Accounts. Google reflects the real, account-wide
- * GoogleConnection rollup (live status, Connect/Reconnect/Disconnect —
- * reusing the existing OAuth start/callback flow and token-revocation
- * service, never a second OAuth implementation). Microsoft/LinkedIn remain
- * static placeholders until real linking exists for them.
+ * Connected Accounts. Google Services reflects four fully independent
+ * GoogleConnection rows, one per service (live status, Connect/Change
+ * Account/Disconnect per service — reusing the existing OAuth start/
+ * callback flow and token-revocation service, never a second OAuth
+ * implementation). Microsoft/LinkedIn remain static placeholders until real
+ * linking exists for them.
  */
 export default function ConnectedAccountsCard() {
   const router = useRouter()
@@ -829,16 +916,20 @@ export default function ConnectedAccountsCard() {
   const [toast, setToast] = useState(null)
 
   // Reads the redirect-back query params the OAuth callback attaches
-  // (?google_connected=1 or ?google_error=<code>) when it lands here
-  // (returnTo=settings) instead of on /google-visibility — same pattern
-  // that page already uses, just landing on a different route now.
+  // (?google_connected=1 or ?google_error=<code>, plus ?projectId= when a
+  // project-scoped flow redirected here) when it lands here (returnTo=
+  // settings) instead of on /google-visibility — same pattern that page
+  // already uses, just landing on a different route now.
   useEffect(() => {
     const connected = searchParams.get("google_connected")
     const error = searchParams.get("google_error")
+    const projectId = searchParams.get("projectId")
 
     if (connected) {
       setToast({ message: "Google account connected successfully.", type: "success" })
-      queryClient.invalidateQueries({ queryKey: queryKeys.googleAccount.status() })
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.googleServices.connections(projectId) })
+      }
     } else if (error) {
       setToast({ message: GOOGLE_ERROR_MESSAGES[error] || "Failed to connect Google account.", type: "error" })
     }
@@ -868,14 +959,7 @@ export default function ConnectedAccountsCard() {
 
       <CardContent>
         <ul className="divide-y divide-border/60">
-          <GoogleProviderRow
-            provider={{
-              id: "google",
-              name: "Google",
-              description: "Sync Search Console, Analytics, and Business Profile data.",
-              icon: IconBrandGoogle,
-            }}
-          />
+          <GoogleServicesSection />
           <WordPressProviderRow
             provider={{
               id: "wordpress",
