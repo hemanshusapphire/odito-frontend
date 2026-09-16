@@ -5,9 +5,13 @@ import { Resend } from "resend"
 // is the verified sending domain for this project (see Resend dashboard).
 const FROM_ADDRESS = process.env.CONTACT_FROM_ADDRESS || "Odito Contact Form <contact@mail.oditoai.com>"
 
-// Where contact form submissions land. Defaults to the same address already
-// shown to visitors on the Contact page itself.
-const TO_ADDRESS = process.env.CONTACT_NOTIFICATION_EMAIL || "hello@odito.ai"
+// Where contact form submissions land. No hardcoded fallback here on
+// purpose — a previous guessed default (hello@odito.ai) silently swallowed
+// every submission because that address never accepted inbound mail (Resend
+// showed every send stuck at last_event "sent", never "delivered"). Getting
+// this wrong fails loudly instead of silently, since it's unverifiable from
+// code alone.
+const TO_ADDRESS = process.env.CONTACT_NOTIFICATION_EMAIL
 
 function escapeHtml(value) {
   return String(value)
@@ -21,7 +25,8 @@ function escapeHtml(value) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { name, email, subject, message } = body
+    const { name, email, subject, message, projectType } = body
+    const projectTypes = Array.isArray(projectType) ? projectType.filter(Boolean) : []
 
     if (!name || !email || !message) {
       return NextResponse.json(
@@ -45,6 +50,14 @@ export async function POST(request) {
       )
     }
 
+    if (!TO_ADDRESS) {
+      console.error("Contact form error: CONTACT_NOTIFICATION_EMAIL is not configured")
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      )
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY)
 
     const html = `
@@ -53,6 +66,7 @@ export async function POST(request) {
         <p><strong>Name:</strong> ${escapeHtml(name)}</p>
         <p><strong>Email:</strong> ${escapeHtml(email)}</p>
         ${subject ? `<p><strong>Subject:</strong> ${escapeHtml(subject)}</p>` : ""}
+        ${projectTypes.length ? `<p><strong>Looking for:</strong> ${escapeHtml(projectTypes.join(", "))}</p>` : ""}
         <p><strong>Message:</strong></p>
         <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
       </div>

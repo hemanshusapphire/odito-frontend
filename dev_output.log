@@ -1,0 +1,25 @@
+
+> frontend@0.1.0 dev
+> next dev -p 3000
+
+   ▲ Next.js 15.1.6
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.134:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 2.2s
+ ○ Compiling /contact ...
+ ✓ Compiled /contact in 9s (1300 modules)
+ GET /contact 200 in 50ms
+ GET /contact 200 in 55ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1978ms (1511 modules)
+ GET /contact 200 in 767ms
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 3521ms
+ ✓ Compiled /api/contact in 381ms (1526 modules)
+ POST /api/contact 200 in 862ms
+ ✓ Compiled in 743ms (612 modules)
+[?25h

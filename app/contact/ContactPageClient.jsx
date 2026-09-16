@@ -4,15 +4,22 @@ import Navbar from "@/components/new-landing/Navbar"
 import { ContactSection } from "@/components/ui/contact"
 
 export default function ContactPageClient() {
-  const handleFormSubmit = (data) => {
-    console.log("Contact form submitted:", data)
-    fetch("/api/contact", {
+  const handleFormSubmit = async (data) => {
+    const response = await fetch("/api/contact", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     })
+
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to send message. Please try again.")
+    }
+
+    return result
   }
 
   return (

@@ -27,6 +27,8 @@ export function ContactSection({
     message: '',
     projectType: [],
   })
+  const [status, setStatus] = React.useState('idle') // 'idle' | 'submitting' | 'success' | 'error'
+  const [errorMessage, setErrorMessage] = React.useState('')
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -44,10 +46,22 @@ export function ContactSection({
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSubmit?.(formData)
-    console.log("Form submitted:", formData)
+
+    if (status === 'submitting') return
+
+    setStatus('submitting')
+    setErrorMessage('')
+
+    try {
+      await onSubmit?.(formData)
+      setStatus('success')
+      setFormData({ name: '', email: '', message: '', projectType: [] })
+    } catch (error) {
+      setStatus('error')
+      setErrorMessage(error?.message || 'Something went wrong. Please try again.')
+    }
   }
 
   const projectTypeOptions = [
@@ -132,9 +146,20 @@ export function ContactSection({
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                Send a message
+              <Button type="submit" className="w-full" disabled={status === 'submitting'}>
+                {status === 'submitting' ? 'Sending...' : 'Send a message'}
               </Button>
+
+              {status === 'success' && (
+                <p className="text-sm text-green-500 text-center" role="status">
+                  Thanks! Your message has been sent — we&apos;ll get back to you soon.
+                </p>
+              )}
+              {status === 'error' && (
+                <p className="text-sm text-red-500 text-center" role="alert">
+                  {errorMessage}
+                </p>
+              )}
             </form>
           </div>
         </div>
