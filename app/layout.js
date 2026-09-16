@@ -8,6 +8,12 @@ import { QueryProvider } from "@/lib/queryClient";
 
 import { WebVitals } from "@/lib/monitoring/web-vitals";
 
+import { siteConfig } from "@/config/site";
+
+import JsonLd from "@/components/seo/JsonLd";
+
+import { getOrganizationJsonLd } from "@/lib/seo/organizationSchema";
+
 const inter = localFont({
   src: [
     {
@@ -61,6 +67,14 @@ const dmSans = localFont({
 });
 
 export const metadata = {
+  // Resolves every relative `alternates.canonical` (and relative OG/Twitter
+  // image/url) set by any page or layout in the app into an absolute URL
+  // against the single configured production origin — see config/site.js.
+  // This is what makes `alternates: { canonical: "/about" }` on an
+  // individual page render as `<link rel="canonical" href="https://oditoai.com/about" />`
+  // without that page ever hardcoding the domain itself.
+  metadataBase: new URL(siteConfig.url),
+
   title: "Odito AI - SEO Analytics Platform",
 
   description: "Advanced SEO analytics and auditing platform powered by AI",
@@ -74,6 +88,11 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
           rel="stylesheet"
         />
+        {/* Organization + WebSite JSON-LD, site-wide — see lib/seo/organizationSchema.js
+            for the single canonical Organization entity (@id: {siteUrl}/#organization)
+            every page shares. Server-rendered here so it's present in the
+            initial HTML for any crawler that only fetches/parses HTML. */}
+        <JsonLd data={getOrganizationJsonLd()} />
       </head>
 
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>

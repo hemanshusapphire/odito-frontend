@@ -1,26 +1,25 @@
+"use client"
+
 import Navbar from "@/components/new-landing/Navbar"
-import AboutHero from "@/components/about/AboutHero"
-import AboutStory from "@/components/about/AboutStory"
-import AboutStats from "@/components/about/AboutStats"
-import AboutMission from "@/components/about/AboutMission"
-import AboutTeam from "@/components/about/AboutTeam"
-import AboutCTA from "@/components/about/AboutCTA"
+import { ContactSection } from "@/components/ui/contact"
 
-export const metadata = {
-  title: "About Odito.ai — AI-Powered SEO & Website Optimization Platform",
-  description:
-    "Learn how Odito.ai helps businesses improve SEO, website visibility, technical performance, accessibility, and AI search readiness.",
-  alternates: {
-    canonical: "/about",
-  },
-};
+export default function ContactPageClient() {
+  const handleFormSubmit = (data) => {
+    console.log("Contact form submitted:", data)
+    fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+  }
 
-export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
       {/* Dark Overlay */}
       <div className="absolute inset-0 dark-overlay -z-10"></div>
-      
+
       {/* Grid Pattern */}
       <div className="absolute inset-0 grid-pattern -z-10 opacity-50"></div>
 
@@ -32,14 +31,14 @@ export default function AboutPage() {
 
       {/* Bottom Decorative Gradient */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0a0f] to-transparent -z-10"></div>
-      
+
       <Navbar />
-      <AboutHero />
-      <AboutStory />
-      <AboutStats />
-      <AboutMission />
-      <AboutTeam />
-      <AboutCTA />
+      <ContactSection
+        title="We can turn your dream project into reality"
+        mainMessage="Let's talk! 👋"
+        contactEmail="hello@odito.ai"
+        onSubmit={handleFormSubmit}
+      />
     </div>
   )
 }

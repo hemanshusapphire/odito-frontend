@@ -17,6 +17,14 @@ import { SystemAdminLayout } from "@/components/system-admin/layout/SystemAdminL
  * SystemAdminGuard enforces roleId === 1 before SystemAdminLayout (sidebar
  * + header shell) ever mounts, so regular users never load this UI.
  */
+// Internal admin-only screens — never public, never indexable.
+export const metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default function SystemAdminRouteLayout({ children }) {
   return (
     <DashboardThemeProvider>

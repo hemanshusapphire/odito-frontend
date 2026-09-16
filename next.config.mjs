@@ -48,8 +48,8 @@ const nextConfig = {
   //     non-empty fallback so the build can never crash on host env hygiene,
   //     independent of whatever that host's actual NEXTAUTH_URL is set to.
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://odito.ai',
-    NEXTAUTH_URL_INTERNAL: process.env.NEXTAUTH_URL_INTERNAL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://odito.ai',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://oditoai.com',
+    NEXTAUTH_URL_INTERNAL: process.env.NEXTAUTH_URL_INTERNAL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://oditoai.com',
   },
 
   // 7. Disable Next.js 15 ISR/Static dev indicator (lightning bolt icon in dev mode).

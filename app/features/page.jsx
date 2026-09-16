@@ -7,6 +7,15 @@ import ComparisonSection from "@/components/features/ComparisonSection"
 import UseCases from "@/components/features/UseCases"
 import FinalCTA from "@/components/features/FinalCTA"
 
+export const metadata = {
+  title: "Odito.ai Features — SEO Audit, AI Visibility & Website Optimization",
+  description:
+    "Explore Odito.ai features for SEO auditing, AI visibility, technical SEO, performance, accessibility, keyword tracking, and insights.",
+  alternates: {
+    canonical: "/features",
+  },
+};
+
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">

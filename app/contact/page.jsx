@@ -1,44 +1,18 @@
-"use client"
+import ContactPageClient from "./ContactPageClient"
 
-import Navbar from "@/components/new-landing/Navbar"
-import { ContactSection } from "@/components/ui/contact"
+// This page needs client-side interactivity (form submission), which is
+// incompatible with exporting `metadata`/`generateMetadata` from a Server
+// Component — Next.js requires that export to live on a Server Component.
+// So the interactive UI is split out into ContactPageClient, and this file
+// stays a plain Server Component solely to carry the canonical/description metadata.
+export const metadata = {
+  description:
+    "Contact Odito.ai for help with SEO audits, AI search visibility, technical SEO, accessibility, and website optimization for your business.",
+  alternates: {
+    canonical: "/contact",
+  },
+};
 
 export default function ContactPage() {
-  const handleFormSubmit = (data) => {
-    console.log("Contact form submitted:", data)
-    fetch("/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    })
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 dark-overlay -z-10"></div>
-      
-      {/* Grid Pattern */}
-      <div className="absolute inset-0 grid-pattern -z-10 opacity-50"></div>
-
-      {/* Decorative Background Elements - Cyan/Purple Theme */}
-      <div className="absolute inset-0 -z-10 opacity-15">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px] bg-cyan-500/10"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px] bg-purple-500/10"></div>
-      </div>
-
-      {/* Bottom Decorative Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0a0f] to-transparent -z-10"></div>
-      
-      <Navbar />
-      <ContactSection
-        title="We can turn your dream project into reality"
-        mainMessage="Let's talk! 👋"
-        contactEmail="hello@odito.ai"
-        onSubmit={handleFormSubmit}
-      />
-    </div>
-  )
+  return <ContactPageClient />
 }

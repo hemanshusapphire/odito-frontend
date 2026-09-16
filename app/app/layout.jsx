@@ -4,6 +4,18 @@ import DashboardLayout from "@/components/layout/dashboard-layout"
 import { AuthGuard } from "@/components/guards/AuthGuard"
 import { ProjectAuditGuard } from "@/components/guards/ProjectAuditGuard"
 
+// Every route under /app/* is an authenticated, per-user application screen
+// (dashboard, settings, project data, ...), never public marketing content —
+// applied once here rather than per-page so no future route under /app/*
+// can accidentally end up indexable. Canonical URLs are not a fix for these
+// pages; they should not appear in search results at all.
+export const metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 /**
  * Shared layout for all dashboard routes.
  *

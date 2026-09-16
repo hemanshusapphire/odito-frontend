@@ -16,9 +16,9 @@ export default function PricingCard({
   ctaText,
   ctaType,
   onCtaClick,
-  isYearly,
 }) {
-  const displayPrice = typeof price === 'string' ? price : (isYearly ? price.yearly : price.monthly)
+  const displayPrice = price
+  const isFlatPrice = price === "Custom"
 
   return (
     <div
@@ -36,8 +36,8 @@ export default function PricingCard({
         <h3 className="text-xl font-bold text-on-surface mb-2">{name}</h3>
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-black text-on-surface">{displayPrice}</span>
-          {typeof price !== 'string' && (
-            <span className="text-outline text-sm uppercase tracking-wider">/{isYearly ? 'year' : 'month'}</span>
+          {!isFlatPrice && (
+            <span className="text-outline text-sm uppercase tracking-wider">/month</span>
           )}
         </div>
         {description && (
