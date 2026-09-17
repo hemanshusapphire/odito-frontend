@@ -145,15 +145,27 @@ export default function IssueDetailView({
     issue.affected_urls && Array.isArray(issue.affected_urls) ? null : issueCode
   )
 
+  // Normalizes any of this hook's possible shapes into one consistent
+  // { url, issue_message, severity, detected_value, data_path } shape, so
+  // rendering below never has to branch on where a row came from. Plain
+  // strings (issue.affected_urls, the mock fallback) become { url: str }
+  // with no page-specific override — they fall back to the aggregate
+  // `issue` object's message exactly like before this fix. Rules whose
+  // backend endpoint returns per-page detail (see getIssueUrls in
+  // onPageIssuesService.js) get their own accurate message/severity here
+  // instead of the same aggregate text repeated for every row.
+  const toUrlEntry = (item) =>
+    typeof item === 'string' ? { url: item } : { url: item.url, ...item }
+
   const urls = useMemo(() => {
     if (issue.affected_urls && Array.isArray(issue.affected_urls)) {
-      return issue.affected_urls
+      return issue.affected_urls.map(toUrlEntry)
     }
     if (urlsResponse?.success && Array.isArray(urlsResponse.data)) {
-      return urlsResponse.data
+      return urlsResponse.data.map(toUrlEntry)
     }
     if (Array.isArray(urlsResponse)) {
-      return urlsResponse
+      return urlsResponse.map(toUrlEntry)
     }
     // Fallback to mock data if query fails or loading is done and we have no data
     if (!loadingUrls && !urlsResponse) {
@@ -166,13 +178,13 @@ export default function IssueDetailView({
         "/pricing",
         "/contact",
         "/features/white-label"
-      ]
+      ].map(toUrlEntry)
     }
     return []
   }, [urlsResponse, issue.affected_urls, loadingUrls])
 
   const openUrls = useMemo(
-    () => urls.filter(u => !fixedUrlsSet.has(u)),
+    () => urls.filter(u => !fixedUrlsSet.has(u.url)),
     [urls, fixedUrlsSet]
   )
 
@@ -406,14 +418,14 @@ export default function IssueDetailView({
             textTransform: "uppercase",
             letterSpacing: "0.08em",
             marginBottom: 8
-          }}>SEO IMPACT</div>
+          }}>PAGES AFFECTED %</div>
           <div style={{
             fontFamily: "/dashboard",
             fontWeight: 800,
             fontSize: 32,
             lineHeight: 1,
             color: "var(--cy)"
-          }}>+{issue.impact || issue.impact_percentage || 0}%</div>
+          }}>{issue.impact || issue.impact_percentage || 0}%</div>
         </div>
         <div style={{
           background: "var(--s)",
@@ -494,10 +506,10 @@ export default function IssueDetailView({
           color: "var(--t2)",
           lineHeight: 1.65
         }}>
-          This issue affects {issue.pages || issue.pages_affected || 0} pages.
+          This issue affects {issue.pages || issue.pages_affected || 0} pages
+          ({issue.impact || issue.impact_percentage || 0}% of pages analyzed).
           Missing or empty attributes reduce both search engine understanding and AI citation probability.
-          Fixing this is rated {issue.difficulty || "Medium"} difficulty and can recover an estimated
-          +{issue.impact || issue.impact_percentage || 0}% SEO impact.
+          Fixing this is rated {issue.difficulty || "Medium"} difficulty.
         </div>
       </div>
 
@@ -516,7 +528,8 @@ export default function IssueDetailView({
             </div>
           </div>
 
-          {openUrls.map(url => {
+          {openUrls.map(entry => {
+            const { url, issue_message: pageIssueMessage } = entry
             const isSelected = selUrl === url
             const task = taskMap[url]
             let badge = null
@@ -563,7 +576,7 @@ export default function IssueDetailView({
                     {badge}
                   </div>
                   <div className="text-[10.5px] mt-0.5 truncate" style={{ color: 'var(--t2)' }}>
-                    {issue.issue || issue.issue_message || 'Issue detected on this page'}
+                    {pageIssueMessage || issue.issue || issue.issue_message || 'Issue detected on this page'}
                   </div>
                 </div>
                 <button

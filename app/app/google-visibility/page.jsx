@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ import {
   useAnalyticsStatus,
   useAnalyticsProperty,
   useSearchConsoleStatus,
+  invalidateGoogleServiceStatusQueries,
 } from '@/hooks/useDashboardQueries'
 
 const GOOGLE_ERROR_MESSAGES = {
@@ -45,6 +47,7 @@ export default function GoogleVisibilityPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const { activeProjectId } = useProject()
 
   const [banner, setBanner] = useState(null)
@@ -113,20 +116,24 @@ export default function GoogleVisibilityPage() {
 
   // Each status query below is persisted to localStorage (see
   // lib/queryClient.js) and kept "fresh" for staleTimes.STANDARD (5 min).
-  // A page landing here straight off a Settings OAuth redirect rehydrates
-  // that persisted (pre-connection) "not connected" entry and, being still
+  // A page landing here straight off an OAuth redirect rehydrates that
+  // persisted (pre-connection) "not connected" entry and, being still
   // within its staleTime window, React Query won't auto-refetch it - so the
   // connection badges would keep showing "Not connected" for up to 5
   // minutes despite the GoogleConnection the redirect just created, until
-  // something else (e.g. switching projects, which invalidates the whole
-  // cache) forces a refetch. Force a refetch of all three here instead, as
-  // soon as activeProjectId is known, so the UI reflects reality immediately.
+  // something else forces a refetch. invalidateGoogleServiceStatusQueries
+  // (shared with ConnectedAccountsCard's own OAuth-return handler, since
+  // Settings → Profile is the actual entry point for Connect/Change
+  // Account/Disconnect - see its own doc comment) marks every service's
+  // status/discovery query stale; the three actually mounted here
+  // (Business Profile/Search Console/Analytics) refetch immediately as a
+  // result, same effect as the old explicit .refetch() calls, and Google
+  // Ads' own page - not mounted here - picks up the invalidation on its own
+  // next mount instead of silently missing out on it.
   useEffect(() => {
     if (justConnectedRef.current && activeProjectId) {
       justConnectedRef.current = false
-      statusQuery.refetch()
-      searchConsoleStatusQuery.refetch()
-      analyticsStatusQuery.refetch()
+      invalidateGoogleServiceStatusQueries(queryClient, activeProjectId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId])

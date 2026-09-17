@@ -743,6 +743,44 @@ export function useGoogleServiceConnections(projectId, { enabled = true } = {}) 
 }
 
 /**
+ * Invalidates every cached query that could be showing a stale "not
+ * connected" (or stale property/site/account list) state for one project,
+ * right after a Google OAuth connect/reconnect succeeds for ANY of the four
+ * independent services.
+ *
+ * Why this exists: each status query below is persisted to localStorage
+ * (see lib/queryClient.js) and kept "fresh" for staleTimes.STANDARD (5 min).
+ * The OAuth redirect can land on Settings → Profile (ConnectedAccountsCard)
+ * or on the Google Visibility overview page (app/google-visibility/page.jsx)
+ * depending on `returnTo` — but the four SERVICE-SPECIFIC dashboard pages
+ * (search-console/analytics/business-profile/google-ads) are usually not
+ * mounted at that moment, so nothing is there to `.refetch()`. Marking their
+ * queries stale here instead means whichever page the user opens next
+ * fetches fresh data on mount, rather than serving a pre-connection cache
+ * entry that still looks "fresh" to React Query.
+ *
+ * The backend redirect doesn't currently say which of the four services was
+ * just connected (see oauth.routes.js), so this invalidates all four
+ * status/discovery queries unconditionally — cheap: an unmounted query is
+ * only marked stale (no network request) until something next observes it;
+ * an actively mounted one (e.g. this same overview page) refetches once,
+ * immediately, which is exactly the desired "update without a manual
+ * refresh" behavior.
+ */
+export function invalidateGoogleServiceStatusQueries(queryClient, projectId) {
+  if (!projectId) return
+  queryClient.invalidateQueries({ queryKey: queryKeys.googleServices.connections(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.searchConsole.status(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.searchConsole.sites(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.analytics.status(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.analytics.properties(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.status(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.accounts(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.googleAds.syncStatus(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.googleAds.accounts(projectId) })
+}
+
+/**
  * Starts (or restarts, for "Change Account") the OAuth flow for exactly one
  * Google service. Returns a function the caller invokes on click; redirects
  * the browser on success rather than resolving a value, since the consent

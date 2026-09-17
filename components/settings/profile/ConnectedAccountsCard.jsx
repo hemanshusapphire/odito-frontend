@@ -38,6 +38,7 @@ import {
   useGoogleServiceConnections,
   useConnectGoogleService,
   useDisconnectGoogleService,
+  invalidateGoogleServiceStatusQueries,
   useWordPressStatus,
   useConnectWordPress,
   useVerifyWordPressConnection,
@@ -46,7 +47,6 @@ import {
   useGenerateWordPressPairingToken,
   useWordPressForms,
 } from "@/hooks/useDashboardQueries"
-import { queryKeys } from "@/lib/query/keys"
 import apiService from "@/lib/apiService"
 
 // Same error codes the existing /google-visibility page already translates —
@@ -920,6 +920,18 @@ export default function ConnectedAccountsCard() {
   // project-scoped flow redirected here) when it lands here (returnTo=
   // settings) instead of on /google-visibility — same pattern that page
   // already uses, just landing on a different route now.
+  //
+  // Invalidating only googleServices.connections here (as this used to)
+  // fixes THIS card's own Google Services row, but every dedicated
+  // service page (search-console/analytics/business-profile/google-ads)
+  // keeps its own separate, persisted, 5-minute-stale-tolerant status
+  // query — none of them are mounted right now to pick this up, so their
+  // pre-connection "not connected" cache entry would otherwise keep being
+  // served as "fresh" the next time the user opens one of those pages.
+  // invalidateGoogleServiceStatusQueries covers all four (see its own doc
+  // comment in useDashboardQueries.js) so connecting from here propagates
+  // everywhere immediately, exactly like connecting from the Google
+  // Visibility overview page already does for the queries it mounts.
   useEffect(() => {
     const connected = searchParams.get("google_connected")
     const error = searchParams.get("google_error")
@@ -928,7 +940,7 @@ export default function ConnectedAccountsCard() {
     if (connected) {
       setToast({ message: "Google account connected successfully.", type: "success" })
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.googleServices.connections(projectId) })
+        invalidateGoogleServiceStatusQueries(queryClient, projectId)
       }
     } else if (error) {
       setToast({ message: GOOGLE_ERROR_MESSAGES[error] || "Failed to connect Google account.", type: "error" })

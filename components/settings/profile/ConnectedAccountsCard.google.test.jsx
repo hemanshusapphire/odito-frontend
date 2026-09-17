@@ -19,14 +19,19 @@ vi.mock("@/contexts/ProjectContext", () => ({
   useProject: () => mockProject,
 }))
 
+const mockRouterReplace = vi.fn()
+let mockSearchParams = new URLSearchParams()
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: mockRouterReplace }),
   usePathname: () => "/app/settings/profile",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }))
 
+const mockQueryClient = { invalidateQueries: vi.fn() }
+
 vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => mockQueryClient,
 }))
 
 vi.mock("@/lib/apiService", () => ({
@@ -46,6 +51,8 @@ function makeDisconnectMutation() {
   }
 }
 
+const mockInvalidateGoogleServiceStatusQueries = vi.fn()
+
 vi.mock("@/hooks/useDashboardQueries", () => ({
   useGoogleServiceConnections: vi.fn(() => ({ data: { data: googleConnectionsData }, isLoading: false })),
   useConnectGoogleService: vi.fn((projectId, service) => {
@@ -56,6 +63,11 @@ vi.mock("@/hooks/useDashboardQueries", () => ({
     disconnectMutations[service] = disconnectMutations[service] || makeDisconnectMutation()
     return disconnectMutations[service]
   }),
+  // Wrapped in a closure (not a direct reference) so the mock factory
+  // object literal — constructed as soon as this module is first resolved,
+  // before this file's own top-level `const` declarations have run — never
+  // reads mockInvalidateGoogleServiceStatusQueries before it's initialized.
+  invalidateGoogleServiceStatusQueries: (...args) => mockInvalidateGoogleServiceStatusQueries(...args),
   useWordPressStatus: () => ({ data: { data: { connected: false, status: "not_connected" } }, isLoading: false }),
   useConnectWordPress: () => ({ mutateAsync: vi.fn(), isPending: false, isError: false, error: null, reset: vi.fn() }),
   useVerifyWordPressConnection: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
@@ -68,6 +80,10 @@ vi.mock("@/hooks/useDashboardQueries", () => ({
 beforeEach(() => {
   for (const key of Object.keys(connectServiceFns)) delete connectServiceFns[key]
   for (const key of Object.keys(disconnectMutations)) delete disconnectMutations[key]
+  mockSearchParams = new URLSearchParams()
+  mockRouterReplace.mockClear()
+  mockQueryClient.invalidateQueries.mockClear()
+  mockInvalidateGoogleServiceStatusQueries.mockClear()
 
   googleConnectionsData = {
     google_ads: { connected: true, status: "connected", email: "ads@example.com", connectedAt: "2026-01-01", lastSync: "2026-02-01" },
@@ -150,5 +166,28 @@ describe("ConnectedAccountsCard — Google Services", () => {
 
     expect(connectServiceFns.search_console).toHaveBeenCalledTimes(1)
     expect(connectServiceFns.google_ads).not.toHaveBeenCalled()
+  })
+
+  test("landing back here with ?google_connected=1 invalidates every service's status query, not just this card's own", () => {
+    // Regression: this used to only invalidate googleServices.connections
+    // (fixing this card's own rows) — the dedicated search-console/
+    // analytics/business-profile/google-ads pages kept serving a stale,
+    // persisted "not connected" query result until their 5-minute
+    // staleTime expired, since nothing told React Query their data was
+    // out of date.
+    mockSearchParams = new URLSearchParams("?google_connected=1&projectId=project-1")
+
+    render(<ConnectedAccountsCard />)
+
+    expect(mockInvalidateGoogleServiceStatusQueries).toHaveBeenCalledTimes(1)
+    expect(mockInvalidateGoogleServiceStatusQueries).toHaveBeenCalledWith(mockQueryClient, "project-1")
+  })
+
+  test("landing back here with ?google_error=... does not invalidate any query", () => {
+    mockSearchParams = new URLSearchParams("?google_error=save_failed")
+
+    render(<ConnectedAccountsCard />)
+
+    expect(mockInvalidateGoogleServiceStatusQueries).not.toHaveBeenCalled()
   })
 })
