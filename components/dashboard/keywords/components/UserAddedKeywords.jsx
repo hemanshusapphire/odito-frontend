@@ -231,6 +231,25 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
   const mapsRank      = keyword.maps_rank       ?? null;
   const mapsListing   = keyword.maps_listing    ?? null;
 
+  // Set by buildKeywordUpdate (rankingHistoryService.js) when the last scan's
+  // organic SERP request/parse itself failed (DataForSEO API/task error,
+  // timeout, etc.) — distinct from a scan that succeeded and genuinely found
+  // no match. A present-but-null currentRank must NOT be labeled "Not ranked"
+  // in this case: we don't actually know, the check itself failed.
+  // last_scan_error is already sanitized server-side (see
+  // sanitizeScanErrorForStorage in rankingHistoryService.js) — never the raw
+  // vendor message — so it's safe to show directly here.
+  const scanFailed = keyword.last_scan_status === 'error';
+  const scanErrorMessage = keyword.last_scan_error || 'The last ranking check failed — this is not a confirmed rank. Try rescanning.';
+
+  // 'pending' only ever exists transiently in the frontend's own optimistic
+  // cache (see useAddKeyword in useKeywordQueries.js) right after adding a
+  // keyword — the database never stores this value, only 'ok'/'error'. It
+  // means the initial DataForSEO scan for this brand-new keyword is still
+  // in flight; must render distinctly from both "Not ranked" (a completed
+  // scan found nothing) and "Scan Error" (a completed scan failed).
+  const isScanning = keyword.last_scan_status === 'pending';
+
   const status      = currentRank != null ? getStatusFromRank(currentRank) : null;
   const rankingUrls = keyword.ranking_urls || [];
   const hasUrls     = rankingUrls.length > 0;
@@ -267,7 +286,19 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Current Rank */}
-        <div><RankBadge rank={currentRank} nullTitle="Not in Top 100" /></div>
+        <div>
+          {isScanning ? (
+            <span title="Checking your Google ranking…" style={{ fontSize: '12px', color: 'var(--cyan)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ display: 'inline-block', animation: 'kwdash-spin 1s linear infinite' }}>⟳</span>
+              Scanning…
+            </span>
+          ) : (
+            <RankBadge
+              rank={currentRank}
+              nullTitle={scanFailed ? scanErrorMessage : 'Not in Top 100'}
+            />
+          )}
+        </div>
 
         {/* Last Scan Rank */}
         <div><DeltaBadge currentRank={currentRank} compareRank={lastScanRank} /></div>
@@ -317,12 +348,36 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
 
         {/* Status */}
         <div>
-          {status ? (
+          {isScanning ? (
+            <span
+              title="Checking your Google ranking…"
+              style={{
+                fontSize: '11px', fontWeight: 500,
+                background: 'var(--color-brand-cyan-surface, rgba(0,223,255,0.08))', color: 'var(--cyan)',
+                border: '1px solid var(--color-brand-cyan-border, rgba(0,223,255,0.18))',
+                borderRadius: '6px', padding: '3px 8px', display: 'inline-block'
+              }}
+            >
+              Scanning…
+            </span>
+          ) : status ? (
             <span style={{
               fontSize: '11px', fontWeight: 500, ...status.style,
               borderRadius: '6px', padding: '3px 8px', display: 'inline-block'
             }}>
               {status.text}
+            </span>
+          ) : scanFailed ? (
+            <span
+              title={scanErrorMessage}
+              style={{
+                fontSize: '11px', fontWeight: 500,
+                background: 'var(--color-status-warning-surface)', color: 'var(--am)',
+                border: '1px solid var(--color-status-warning-border)',
+                borderRadius: '6px', padding: '3px 8px', display: 'inline-block'
+              }}
+            >
+              Scan Error
             </span>
           ) : (
             <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Not ranked</span>
@@ -332,16 +387,20 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         {/* Actions: rescan + delete + expand */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
+            {/* While isScanning, this row is still the optimistic placeholder
+                from useAddKeyword — the real record may not exist server-side
+                yet, so rescan/delete are disabled rather than risking a
+                "not tracked" error on a request that's already in flight. */}
             {onRescan && (
               <RescanButton
                 keyword={keyword.keyword}
-                isRescanning={isRescanning}
+                isRescanning={isRescanning || isScanning}
                 onRescan={onRescan}
               />
             )}
             {onRequestDelete && (
               <DeleteButton
-                isDeleting={isDeleting}
+                isDeleting={isDeleting || isScanning}
                 onRequestDelete={() => onRequestDelete(keyword.keyword)}
               />
             )}

@@ -21,22 +21,48 @@ export default function KeywordDashboard() {
   const [rescanningKeywords, setRescanningKeywords] = useState(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  // Distinct from a DataForSEO scan_error (which the backend already
+  // reports as a normal 200 success with last_scan_status='error' — see
+  // UserAddedKeywords.jsx's "Scan Error" row state). This is for a HARD
+  // failure of the rescan request itself (network drop, cooldown 429,
+  // unexpected 500) that never reaches that success path at all — those
+  // used to be swallowed with only a console.error, leaving the row
+  // silently unchanged with no feedback that anything went wrong.
+  const [rescanError, setRescanError] = useState(null);
 
   const rankingData = response?.data?.[0] ?? null;
   const usage = rankingData?.usage ?? null;
 
+  // Was a hardcoded "GOOGLE US" regardless of the project's actual location —
+  // e.g. always wrong for a project like Nashik, Maharashtra, India, whose
+  // rankings are genuinely checked against location_code 9040235 (India), not
+  // the US. rankingData.country already carries the real value (see
+  // SeoRankingCurrent's country field / getProjectRankings) — no change to
+  // any ranking/location logic, this only corrects what the label displays.
+  const trackingCountryLabel = rankingData?.country || 'US';
+
   const handleRescanKeyword = useCallback(async (keyword) => {
     if (!projectId || rescanningKeywords.has(keyword)) return;
 
+    setRescanError(null);
     setRescanningKeywords(prev => new Set(prev).add(keyword));
     try {
       await apiService.rescanKeyword(projectId, keyword);
       // Rescan changes rank data but not the tracked-keyword count/usage —
       // a simple refetch keeps this in sync with React Query's cache
-      // without hand-rolling a local-state merge (the old approach).
+      // without hand-rolling a local-state merge (the old approach). A
+      // DataForSEO-side scan failure still resolves here successfully
+      // (200, last_scan_status='error' on the keyword) — this refetch is
+      // what makes that row's "Scan Error" state show up without a manual
+      // page reload.
       await refetch();
     } catch (err) {
+      // A hard failure of the REQUEST itself (network drop, the 30-minute
+      // cooldown's 429, an unexpected 500) — never silently reverted to
+      // whatever the row showed before; the user is told the rescan itself
+      // didn't go through.
       console.error('Rescan failed for keyword:', keyword, err);
+      setRescanError({ keyword, message: err?.message || 'Failed to rescan this keyword. Please try again.' });
     } finally {
       setRescanningKeywords(prev => {
         const next = new Set(prev);
@@ -97,7 +123,7 @@ export default function KeywordDashboard() {
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase'
               }}>
-                MANUAL TRACKING · GOOGLE US
+                MANUAL TRACKING · GOOGLE {trackingCountryLabel}
               </span>
             </div>
             <div style={{
@@ -178,6 +204,21 @@ export default function KeywordDashboard() {
             <span>{deleteError}</span>
             <button
               onClick={() => setDeleteError(null)}
+              style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: 0 }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {rescanError && (
+          <div style={{
+            marginTop: 10, fontSize: 12, color: 'var(--red)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10
+          }}>
+            <span>Scan failed for "{rescanError.keyword}": {rescanError.message}</span>
+            <button
+              onClick={() => setRescanError(null)}
               style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: 0 }}
             >
               Dismiss
