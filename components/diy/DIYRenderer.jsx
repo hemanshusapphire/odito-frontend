@@ -252,6 +252,15 @@ export default function DIYRenderer({
   selUrl = null,
   onMarkImplemented,
   isMarkingImplemented = false,
+  // Phase 4 — WordPress-automated alternative to the manual flow below.
+  // canApplyViaWordPress is pre-computed by IssueDetailView.jsx (connection
+  // + capability + task + recommendation all present); this component only
+  // renders based on it, never re-derives it.
+  canApplyViaWordPress = false,
+  wordPressFieldLabel = null,
+  wordPressProviderLabel = null,
+  wordPressBridgeRequired = false,
+  onApplyViaWordPress,
 }) {
   const [checkedReviewed, setCheckedReviewed] = useState(false)
   const [checkedImplemented, setCheckedImplemented] = useState(false)
@@ -431,6 +440,60 @@ export default function DIYRenderer({
             </div>
           ) : (
             <>
+              {/* Apply via WordPress (Phase 4) — offered as an alternative
+                  to the manual checklist below, never a replacement for it:
+                  both remain available side by side. */}
+              {canApplyViaWordPress && (
+                <div style={{
+                  marginBottom: 14,
+                  padding: "12px 14px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(0,223,255,0.25)",
+                  background: "rgba(0,223,255,0.06)",
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t)", marginBottom: 4 }}>
+                    Apply automatically via WordPress
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 10, lineHeight: 1.5 }}>
+                    Odito can write this {wordPressFieldLabel?.toLowerCase() || "field"} directly to your connected
+                    WordPress site{wordPressProviderLabel ? ` (${wordPressProviderLabel})` : ""} — no manual editing required.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onApplyViaWordPress}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: "pointer",
+                      background: "linear-gradient(135deg,#7730ed,#00dfff)",
+                      color: "#fff",
+                    }}
+                  >
+                    Apply via WordPress
+                  </button>
+                </div>
+              )}
+
+              {wordPressBridgeRequired && (
+                <div style={{
+                  marginBottom: 14,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  color: "var(--t3)",
+                  background: "var(--s2)",
+                  borderLeft: "3px solid var(--b)",
+                }}>
+                  This SEO field cannot currently be modified by Odito on this WordPress site. Install the
+                  Odito SEO Bridge plugin to enable WordPress editing for {wordPressProviderLabel || "this SEO plugin"}.
+                </div>
+              )}
+
               {/* Checkbox 1 */}
               <label style={{
                 display: "flex",

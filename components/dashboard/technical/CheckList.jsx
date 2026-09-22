@@ -10,8 +10,12 @@ const CHECKS_LOOKUP = {
     difficulty: "N/A",
     icon: "🔒",
     aiPrompt: "Generate SSL certificate configuration for [domain]. Include certificate setup, renewal, and security best practices.",
-    what: "Your SSL certificate is valid and properly configured. HTTPS is enforced sitewide with no mixed content issues detected.",
-    whatToDo: "No action needed. Monitor certificate expiration and ensure auto-renewal is configured.",
+    // No static "what"/"whatToDo" here on purpose: unlike the other checks,
+    // SSL status varies (valid / expired / hostname mismatch / unverifiable)
+    // and the backend message already says exactly which one it is -- a
+    // fixed "your certificate is valid" string here would contradict a
+    // Critical/Warning status and show a false all-clear. Let both fields
+    // fall through to check.message (see the mapping below).
     diySteps: [],
     before: "",
     after: ""

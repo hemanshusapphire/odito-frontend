@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation"
 import { ElevenSidebar } from "@/components/sidebar/ElevenSidebar"
 import WordPressSidebar from "@/components/wordpress/WordPressSidebar"
+import SocialMediaSidebar from "@/components/social-media/SocialMediaSidebar"
+import { SocialMediaHeader } from "@/components/social-media/SocialMediaHeader"
 import { SiteHeader } from "@/components/site-header"
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
@@ -20,6 +22,19 @@ export function DashboardLayout({
   // deliberately independent from the Audit sidebar - see
   // components/wordpress/WordPressSidebar.jsx.
   const isWordPressModule = pathname?.startsWith('/app/wordpress')
+  // Social Media AI is a separate, frontend-only mock module (see
+  // components/social-media/**) with its own sidebar AND its own header
+  // (SocialMediaHeader, rendered right here as SiteHeader's sibling so it
+  // sits flush at the top the same way SiteHeader does everywhere else -
+  // rendering it from inside {children} instead left an awkward gutter
+  // above it, since {children} sits inside padded wrapper divs that
+  // SiteHeader itself is never subject to). The global SiteHeader carries
+  // audit-tool-specific actions (Add project, Export PDF) that don't apply
+  // here, so it's swapped out entirely rather than reused. This module
+  // always renders on its own light background, independent of the
+  // dashboard's dark/light theme toggle, since it's a deliberately
+  // distinct visual identity, not the audit tool.
+  const isSocialMediaModule = pathname?.startsWith('/app/social-media')
   
   // Use auth user if no user prop provided (preferred approach)
   const currentUser = user || authUser
@@ -52,11 +67,17 @@ export function DashboardLayout({
         </div>
       )}
 
-      <div className="flex min-h-screen w-full">
-        {isWordPressModule ? <WordPressSidebar /> : <ElevenSidebar user={currentUser} />}
+      <div className={`flex min-h-screen w-full ${isSocialMediaModule ? 'bg-[#f7f7fb]' : ''}`}>
+        {isWordPressModule ? (
+          <WordPressSidebar />
+        ) : isSocialMediaModule ? (
+          <SocialMediaSidebar />
+        ) : (
+          <ElevenSidebar user={currentUser} />
+        )}
 
         <div className="flex flex-1 flex-col min-w-0">
-          {showHeader && <SiteHeader user={currentUser} {...headerProps} />}
+          {showHeader && (isSocialMediaModule ? <SocialMediaHeader /> : <SiteHeader user={currentUser} {...headerProps} />)}
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             {children}
           </div>

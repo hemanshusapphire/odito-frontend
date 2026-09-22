@@ -1748,14 +1748,31 @@ export function useWordPressStatus(projectId, { enabled = true } = {}) {
   })
 }
 
+/**
+ * Invalidates EVERY WordPress query cached for this project — status,
+ * pluginStatus, forms, capabilities, and every cached seo-data entry
+ * (keyed per pageUrl, so no single specific key could name them all).
+ * TanStack Query's invalidateQueries matches by key PREFIX by default, so
+ * `['wordpress', projectId]` catches every `['wordpress', projectId, ...]`
+ * entry in one call — still scoped to this one project, never global.
+ *
+ * Bug fix (Phase 3 verification audit): connect/verify/disconnect
+ * previously only invalidated `status` (disconnect also invalidated
+ * `pluginStatus`) — `capabilities` and `seoData` were left stale, so a
+ * disconnect-then-reconnect-to-a-different-site (or a provider change
+ * revealed by a fresh verify) could keep showing the PREVIOUS connection's
+ * capability/live-data answers until an unrelated cache eviction happened.
+ */
+function invalidateAllWordPressQueries(queryClient, projectId) {
+  queryClient.invalidateQueries({ queryKey: ['wordpress', projectId] })
+}
+
 /** Connects a WordPress site (Application Password) to this project. */
 export function useConnectWordPress(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (credentials) => apiService.connectWordPress(projectId, credentials),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
-    },
+    onSuccess: () => invalidateAllWordPressQueries(queryClient, projectId),
   })
 }
 
@@ -1764,9 +1781,7 @@ export function useVerifyWordPressConnection(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => apiService.verifyWordPressConnection(projectId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
-    },
+    onSuccess: () => invalidateAllWordPressQueries(queryClient, projectId),
   })
 }
 
@@ -1775,10 +1790,7 @@ export function useDisconnectWordPress(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => apiService.disconnectWordPress(projectId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.status(projectId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.pluginStatus(projectId) })
-    },
+    onSuccess: () => invalidateAllWordPressQueries(queryClient, projectId),
   })
 }
 
@@ -1809,6 +1821,32 @@ export function useWordPressForms(projectId, { enabled = true } = {}) {
     queryKey: queryKeys.wordpress.forms(projectId),
     queryFn: () => apiService.getWordPressForms(projectId),
     enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+// ==================== WORDPRESS SEO PROVIDER + LIVE DATA (Phase 4) ====================
+// Read + capability detection only — no write mutation lives here yet
+// (single-fix apply is a task-scoped mutation defined inline in
+// IssueDetailView.jsx, matching createTaskMutation/markImplementedMutation's
+// own placement).
+
+/** Detected SEO provider + per-field read/write capability table for this project's WordPress site. */
+export function useWordPressCapabilities(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.capabilities(projectId),
+    queryFn: () => apiService.getWordPressCapabilities(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/** Live (not crawled) SEO field values for one page, read directly from WordPress. */
+export function useWordPressSeoData(projectId, pageUrl, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.seoData(projectId, pageUrl),
+    queryFn: () => apiService.getWordPressSeoData(projectId, pageUrl),
+    enabled: !!projectId && !!pageUrl && enabled,
     staleTime: staleTimes.STANDARD,
   })
 }

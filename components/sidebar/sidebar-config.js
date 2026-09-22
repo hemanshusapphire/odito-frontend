@@ -37,6 +37,7 @@ import {
   Users,
   Share2,
   Server,
+  Sparkles,
 } from "lucide-react"
 
 /**
@@ -114,6 +115,12 @@ export const sidebarSections = [
         label: "Overview",
         href: "/app/social",
         icon: Share2,
+      },
+      {
+        id: "social-media-ai",
+        label: "Social Media AI",
+        href: "/app/social-media",
+        icon: Sparkles,
       },
     ],
   },

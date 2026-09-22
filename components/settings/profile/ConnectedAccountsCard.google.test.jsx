@@ -35,7 +35,7 @@ vi.mock("@tanstack/react-query", () => ({
 }))
 
 vi.mock("@/lib/apiService", () => ({
-  default: { downloadWordPressPlugin: vi.fn() },
+  default: { downloadWordPressPlugin: vi.fn(), downloadSeoBridgePlugin: vi.fn() },
 }))
 
 let googleConnectionsData
@@ -75,6 +75,13 @@ vi.mock("@/hooks/useDashboardQueries", () => ({
   useWordPressPluginStatus: () => ({ data: { data: { connected: false } } }),
   useGenerateWordPressPairingToken: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, isError: false, error: null, data: null, reset: vi.fn() }),
   useWordPressForms: () => ({ data: { data: [] } }),
+  // Bug fix (Phase 3 regression pass): WordPressProviderRow (Phase 4) calls
+  // this unconditionally regardless of connection status — this mock was
+  // never updated when that hook was added, so every test in this file was
+  // crashing on render (masked until this suite was actually run as part of
+  // the Phase 3 regression pass). Shape matches the real "not connected"
+  // capabilities response.
+  useWordPressCapabilities: () => ({ data: { data: { connected: false, provider: "none", capabilities: null, ambiguous: false, bridgeRequired: false } }, isLoading: false }),
 }))
 
 beforeEach(() => {

@@ -46,6 +46,7 @@ import {
   useWordPressPluginStatus,
   useGenerateWordPressPairingToken,
   useWordPressForms,
+  useWordPressCapabilities,
 } from "@/hooks/useDashboardQueries"
 import apiService from "@/lib/apiService"
 
@@ -381,6 +382,28 @@ const WORDPRESS_STATUS_BADGE = {
   not_connected: { label: "Not Connected", variant: "outline" },
 }
 
+// Human-readable labels for the capability object's field keys — mirrors
+// odito_backend's seoProviderAdapter.js capability shape exactly
+// (title/metaDescription/canonical/robots/openGraph/schema/slug/altText).
+const SEO_FIELD_LABELS = {
+  title: "Title",
+  metaDescription: "Meta description",
+  canonical: "Canonical URL",
+  robots: "Robots meta",
+  openGraph: "Open Graph",
+  schema: "Schema markup",
+  slug: "Slug",
+  altText: "Image alt text",
+}
+
+const SEO_PROVIDER_LABELS = {
+  none: "WordPress Core",
+  aioseo: "AIOSEO",
+  seopress: "SEOPress",
+  rank_math: "Rank Math",
+  yoast: "Yoast SEO",
+}
+
 /**
  * Connect-form modal for WordPress Application Passwords. NOT an OAuth
  * redirect (WordPress core has no OAuth flow of its own) — the user enters
@@ -632,6 +655,7 @@ function WordPressProviderRow({ provider }) {
   const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false)
   const [pairingOpen, setPairingOpen] = useState(false)
   const [formsExpanded, setFormsExpanded] = useState(false)
+  const [seoBridgeDownloadError, setSeoBridgeDownloadError] = useState(null)
 
   const status = statusResponse?.data
   const badge = isLoading ? null : (WORDPRESS_STATUS_BADGE[status?.status] || WORDPRESS_STATUS_BADGE.not_connected)
@@ -644,12 +668,30 @@ function WordPressProviderRow({ provider }) {
   const { data: formsResponse } = useWordPressForms(activeProjectId, { enabled: !!pluginStatus?.connected && formsExpanded })
   const forms = formsResponse?.data || []
 
+  // SEO provider detection + per-field capability table (Phase 4) — only
+  // meaningful once the Application Password connection itself is live,
+  // same enabling condition as the Odito Plugin status query above.
+  const { data: capabilitiesResponse, isLoading: capabilitiesLoading } = useWordPressCapabilities(activeProjectId, { enabled: !!status?.connected })
+  const capabilities = capabilitiesResponse?.data
+  const writableFields = capabilities?.capabilities
+    ? Object.entries(capabilities.capabilities).filter(([, c]) => c.write).map(([field]) => SEO_FIELD_LABELS[field] || field)
+    : []
+
   const handleDisconnect = async () => {
     try {
       await disconnectMutation.mutateAsync()
       setConfirmDisconnectOpen(false)
     } catch {
       // Inline error already surfaced via disconnectMutation.isError below.
+    }
+  }
+
+  const handleDownloadSeoBridge = async () => {
+    setSeoBridgeDownloadError(null)
+    try {
+      await apiService.downloadSeoBridgePlugin()
+    } catch (err) {
+      setSeoBridgeDownloadError(err.message || "Failed to download the Odito SEO Bridge plugin.")
     }
   }
 
@@ -721,6 +763,59 @@ function WordPressProviderRow({ provider }) {
                       Get Pairing Token
                     </Button>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SEO provider + capability display (Phase 4, Step 1-2) — read
+              only, never exposes credentials. Multiple detected SEO plugins
+              are surfaced as an explicit ambiguity, never silently
+              resolved to one. */}
+          {!isLoading && status?.connected && (
+            <div className="mt-2.5 rounded-md border border-border/60 bg-muted/20 p-2.5 text-xs">
+              <div className="font-medium text-foreground">SEO Fix Support</div>
+              {capabilitiesLoading ? (
+                <div className="mt-1 text-muted-foreground">Checking...</div>
+              ) : capabilities?.ambiguous ? (
+                <div className="mt-1 space-y-1 text-muted-foreground">
+                  <div className="font-medium text-amber-600 dark:text-amber-500">
+                    Multiple SEO plugins detected
+                  </div>
+                  <div>
+                    {(capabilities.providers || []).map((p) => SEO_PROVIDER_LABELS[p] || p).join(", ")}
+                  </div>
+                  <div>Odito cannot safely choose which plugin to edit — deactivate one to enable WordPress fixes.</div>
+                </div>
+              ) : (
+                <div className="mt-1 space-y-1 text-muted-foreground">
+                  <div>
+                    SEO Provider: <span className="font-medium text-foreground">{capabilities?.providerLabel || "WordPress Core"}</span>
+                  </div>
+                  {capabilities?.bridgeInstalled && (
+                    <div className="flex items-center gap-1.5 font-medium text-foreground">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                      Odito SEO Bridge: Connected{capabilities.bridgeVersion ? ` (v${capabilities.bridgeVersion})` : ""}
+                    </div>
+                  )}
+                  {writableFields.length > 0 ? (
+                    <div>Can auto-apply: {writableFields.join(", ")}</div>
+                  ) : (
+                    <div>No fields can be auto-applied via WordPress yet for this provider.</div>
+                  )}
+                  {capabilities?.bridgeRequired && !capabilities?.bridgeInstalled && (
+                    <div className="space-y-1.5">
+                      <div>Install the Odito SEO Bridge plugin to enable editing title, meta description, and canonical URL for this SEO plugin.</div>
+                      <Button type="button" variant="outline" size="sm" onClick={handleDownloadSeoBridge} className="gap-1.5">
+                        <Download className="h-3.5 w-3.5" />
+                        Download Odito SEO Bridge
+                      </Button>
+                      {seoBridgeDownloadError && (
+                        <p className="text-destructive" role="alert">{seoBridgeDownloadError}</p>
+                      )}
+                      <p>In WordPress: Plugins → Add New → Upload Plugin, select the downloaded file, then Activate.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

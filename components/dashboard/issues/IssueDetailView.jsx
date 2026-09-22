@@ -32,7 +32,116 @@ import { IssueRecommendationPanel } from "@/components/recommendations"
 import DIYRenderer from "@/components/diy/DIYRenderer"
 import CurrentStateRenderer from "@/components/issue-context/CurrentStateRenderer"
 import { useIssueContext } from "@/hooks/useIssueContext"
-import { useIssueUrls, useActiveTaskUrls } from "@/hooks/useDashboardQueries"
+import { useIssueUrls, useActiveTaskUrls, useWordPressCapabilities, useWordPressSeoData } from "@/hooks/useDashboardQueries"
+import { useTaskRealtimeSync } from "@/hooks/useTaskRealtimeSync"
+import { describeApplyError } from "./wordPressApplyError"
+
+// issueKey -> the field WordPress fixes can target, mirrored from the
+// backend's own src/modules/tasks/service/issueSnapshotTypes.js. Kept in
+// sync manually (no shared package between frontend/backend exists) —
+// deliberately only the 3 types wordPressSeoFixService.js currently
+// supports (title, meta_description, canonical), NOT the full 5-type set
+// TaskVerificationService verifies (h1 and image_alt are excluded from the
+// WordPress apply flow itself — see the Phase 4 report's limitations).
+const WORDPRESS_FIXABLE_ISSUE_TYPES = {
+  title_missing: "title", title_too_short: "title", title_too_long: "title",
+  meta_description_missing: "meta_description", meta_description_too_short: "meta_description", meta_description_too_long: "meta_description",
+  canonical_tag_errors: "canonical",
+}
+const WORDPRESS_CAPABILITY_KEY = { title: "title", meta_description: "metaDescription", canonical: "canonical" }
+const WORDPRESS_FIELD_LABEL = { title: "Title", meta_description: "Meta description", canonical: "Canonical URL" }
+
+/**
+ * Apply-via-WordPress confirmation modal. Deliberately shows the CURRENT
+ * value as freshly read live from WordPress (not a possibly-stale crawled
+ * snapshot) — the exact same value sent back to the server as
+ * `expectedCurrentValue`, so what the user approves here is what the
+ * backend's read-before-write check compares against (see
+ * wordPressSeoFixService.js's CONFLICT handling).
+ */
+function WordPressApplyConfirmDialog({ open, onOpenChange, fieldLabel, siteLabel, providerLabel, currentValue, currentValueLoading, newValue, onConfirm, onRefreshLiveValue, isApplying, errorInfo }) {
+  if (!open) return null
+  // A conflict (live value changed, or the WordPress write succeeded but
+  // recording it on the Task lost a concurrency race) must be explicitly
+  // acknowledged by refreshing the live value before trying again — never
+  // silently re-fetched, and the primary button is replaced (not just
+  // re-enabled) so re-clicking "Apply Fix" blindly with the same stale
+  // expectedCurrentValue can't just conflict again in a loop.
+  const showRefreshAction = errorInfo?.requiresRefresh
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+      <div style={{ width: "min(440px, 92vw)", background: "var(--card, var(--s))", border: "1px solid var(--b)", borderRadius: 14, padding: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.4)" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t)", marginBottom: 4 }}>Apply SEO Fix?</div>
+        <div style={{ fontSize: 11.5, color: "var(--t3)", marginBottom: 14 }}>
+          {siteLabel ? `Website: ${siteLabel}` : null}{providerLabel ? ` · Provider: ${providerLabel}` : null}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+              Current {fieldLabel}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--t)", padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b)", minHeight: 20 }}>
+              {currentValueLoading ? "Loading current value…" : (currentValue || "(empty)")}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, color: "#00f5a0", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+              New {fieldLabel}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--t)", padding: "8px 10px", background: "rgba(0,245,160,0.06)", borderRadius: 8, border: "1px solid rgba(0,245,160,0.2)", minHeight: 20 }}>
+              {newValue || "(empty)"}
+            </div>
+          </div>
+        </div>
+
+        {errorInfo && (
+          <div style={{
+            fontSize: 11.5, lineHeight: 1.5, marginBottom: 12, padding: "8px 10px", borderRadius: 8,
+            color: errorInfo.isConflict ? "#f5a623" : "#ff3860",
+            background: errorInfo.isConflict ? "rgba(245,166,35,0.1)" : "rgba(255,56,96,0.08)",
+          }}>
+            {errorInfo.wordpressWriteSucceeded
+              ? "The WordPress change may have already been applied, but Odito couldn't record it because the task changed at the same time. Refresh the live value and check WordPress before trying again."
+              : errorInfo.isConflict
+                ? "This value changed on WordPress before the fix was applied. Refresh the live value and review the recommendation before applying again."
+                : errorInfo.message}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={isApplying}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "1px solid var(--b)", background: "var(--s2)", color: "var(--t2)", cursor: isApplying ? "not-allowed" : "pointer" }}
+          >
+            Cancel
+          </button>
+          {showRefreshAction ? (
+            <button
+              type="button"
+              onClick={onRefreshLiveValue}
+              disabled={currentValueLoading}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "#f5a623", color: "#1a1a1a", cursor: currentValueLoading ? "not-allowed" : "pointer", opacity: currentValueLoading ? 0.7 : 1 }}
+            >
+              {currentValueLoading ? "Refreshing…" : "Refresh Live Value"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isApplying || currentValueLoading}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "linear-gradient(135deg,#7730ed,#00dfff)", color: "#fff", cursor: (isApplying || currentValueLoading) ? "not-allowed" : "pointer", opacity: (isApplying || currentValueLoading) ? 0.7 : 1 }}
+            >
+              {isApplying ? "Applying…" : "Apply Fix"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function IssueDetailView({
   issue,
@@ -47,6 +156,11 @@ export default function IssueDetailView({
   const [mode, setMode] = useState(initialMode)
   const [selUrl, setSelUrl] = useState(initialSelUrl)
   const [toast, setToast] = useState(null)
+
+  // Closes the pre-existing gap where a task silently verified/reopened in
+  // the background (a routine recrawl) never reached this view without a
+  // manual refresh — see useTaskRealtimeSync.js.
+  useTaskRealtimeSync(activeProject?._id)
 
   // Resolve issueId once for reuse in both the issue context hook and mutation
   const issueId = issue.issue_code || issue.rule_id || issue.issue
@@ -223,6 +337,104 @@ export default function IssueDetailView({
   const { data, isIdle, isPending, isSuccess, isError, error } = recommendationMutation;
   const recommendation = data?.data;
   const meta = data?.meta;
+
+  // ── Apply via WordPress (Phase 4) ─────────────────────────────────────
+  // Only offered when: a WordPress connection exists, the detected SEO
+  // provider (unambiguously) supports writing this specific field, a task
+  // already exists for the selected URL, and an AI recommendation is
+  // linked to it — otherwise the existing "Mark as Implemented" (DIY) flow
+  // is the only option, unchanged.
+  const wordPressFieldType = WORDPRESS_FIXABLE_ISSUE_TYPES[issueId] || null
+  const { data: wpCapabilitiesResponse } = useWordPressCapabilities(activeProject?._id, { enabled: !!wordPressFieldType })
+  const wpCapabilities = wpCapabilitiesResponse?.data
+  const wpCapabilityKey = wordPressFieldType ? WORDPRESS_CAPABILITY_KEY[wordPressFieldType] : null
+  const wpFieldSupported = !!(
+    wordPressFieldType &&
+    wpCapabilities?.connected &&
+    !wpCapabilities?.ambiguous &&
+    wpCapabilities?.capabilities?.[wpCapabilityKey]?.write
+  )
+
+  const [wpConfirmOpen, setWpConfirmOpen] = useState(false)
+  const selectedTask = selUrl ? taskMap[selUrl] : null
+  // Requires a linked recommendation too — wordPressSeoFixService.js
+  // derives the value it writes from Task.recommendationId server-side and
+  // rejects the request outright if none is set, so the button is hidden
+  // rather than offered-then-guaranteed-to-fail.
+  const canOfferWordPressApply = !!(wpFieldSupported && selUrl && selectedTask && recommendation)
+
+  // Live current value, fetched only while the confirmation dialog is open
+  // — never cached/displayed stale, and re-sent back to the server as
+  // expectedCurrentValue so the backend's read-before-write conflict check
+  // compares against exactly what this dialog showed.
+  const { data: wpSeoDataResponse, isLoading: wpSeoDataLoading } = useWordPressSeoData(
+    activeProject?._id, selUrl, { enabled: wpConfirmOpen && !!selUrl }
+  )
+  const wpLiveValue = wordPressFieldType
+    ? wpSeoDataResponse?.data?.seo?.[wpCapabilityKey] ?? null
+    : null
+
+  // Same source TaskHistoryService.resolveExpectedValue() reads server-side
+  // (sections.contentRewrite.optimized, falling back to recommendedVersion)
+  // — shown here for the user's approval, but the backend re-derives it
+  // independently rather than trusting anything sent from this dialog.
+  const newValueForWordPress = wordPressFieldType
+    ? (recommendation?.sections?.contentRewrite?.optimized || recommendation?.sections?.recommendedVersion || null)
+    : null
+
+  const applyWordPressFixMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTask?._id) throw new Error('No task exists for this URL yet.')
+      return apiService.applyWordPressFix(selectedTask._id, {
+        expectedCurrentValue: wpLiveValue,
+        approved: true,
+      })
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.activeUrls(activeProject._id, issueId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all(activeProject._id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.summary(activeProject._id) })
+      setWpConfirmOpen(false)
+      // Idempotent re-apply (backend detected the live value already
+      // matched — no WordPress write occurred) is still a SUCCESS, worded
+      // distinctly rather than repeating "Applied" as if a new write just
+      // happened (Section 10 of the Phase 3 spec).
+      const alreadyApplied = result?.data?.alreadyApplied
+      setToast({
+        message: alreadyApplied
+          ? 'This value was already correct on WordPress — no change needed. Pending verification on next recrawl.'
+          : 'Applied via WordPress — pending verification on next recrawl',
+        type: 'success',
+      })
+    },
+    onError: () => {
+      // Error is rendered inline in the confirmation dialog (conflict,
+      // permission, etc. all benefit from staying visible next to the
+      // current/new value comparison) rather than as a toast that
+      // auto-dismisses after 3.5s.
+    },
+  })
+
+  const onApplyViaWordPress = useCallback(() => {
+    if (canOfferWordPressApply) setWpConfirmOpen(true)
+  }, [canOfferWordPressApply])
+
+  const applyErrorInfo = useMemo(
+    () => (applyWordPressFixMutation.isError ? describeApplyError(applyWordPressFixMutation.error) : null),
+    [applyWordPressFixMutation.isError, applyWordPressFixMutation.error]
+  )
+
+  // After a CONFLICT, the user must explicitly refresh the live value
+  // before trying again — never silently re-fetched (Section 8: "do not
+  // automatically retry... do not silently refresh and write again"). This
+  // clears the stale error/value and re-fetches via the same
+  // useWordPressSeoData query the dialog already reads.
+  const onRefreshLiveValue = useCallback(() => {
+    applyWordPressFixMutation.reset()
+    if (activeProject?._id && selUrl) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.seoData(activeProject._id, selUrl) })
+    }
+  }, [applyWordPressFixMutation, queryClient, activeProject?._id, selUrl])
 
   // Recommendation mutation state is lifted to this parent (see comment
   // above) specifically so it survives tab switches — but that same lift
@@ -756,6 +968,11 @@ export default function IssueDetailView({
                   selUrl={selUrl}
                   onMarkImplemented={onMarkImplemented}
                   isMarkingImplemented={markImplementedMutation.isPending}
+                  canApplyViaWordPress={canOfferWordPressApply}
+                  wordPressFieldLabel={wordPressFieldType ? WORDPRESS_FIELD_LABEL[wordPressFieldType] : null}
+                  wordPressProviderLabel={wpCapabilities?.providerLabel}
+                  wordPressBridgeRequired={!!(wordPressFieldType && wpCapabilities?.connected && !wpCapabilities?.ambiguous && wpCapabilities?.bridgeRequired && !wpFieldSupported)}
+                  onApplyViaWordPress={onApplyViaWordPress}
                 />
               )}
 
@@ -975,6 +1192,24 @@ export default function IssueDetailView({
           </div>
         </div>
       </div>
+
+      {wpConfirmOpen && createPortal(
+        <WordPressApplyConfirmDialog
+          open={wpConfirmOpen}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          fieldLabel={wordPressFieldType ? WORDPRESS_FIELD_LABEL[wordPressFieldType] : ""}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          providerLabel={wpCapabilities?.providerLabel}
+          currentValue={wpLiveValue}
+          currentValueLoading={wpSeoDataLoading}
+          newValue={newValueForWordPress}
+          onConfirm={() => applyWordPressFixMutation.mutate()}
+          onRefreshLiveValue={onRefreshLiveValue}
+          isApplying={applyWordPressFixMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
 
       {toast && createPortal(
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />,
