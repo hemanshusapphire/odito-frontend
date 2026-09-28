@@ -510,6 +510,40 @@ export function useActiveTaskUrls(projectId, issueKey) {
 }
 
 /**
+ * Links an already-existing task to a recommendation (a task created
+ * before any AI recommendation existed never gets this backfilled
+ * automatically — see taskController.js's linkTaskRecommendation()).
+ * Invalidates activeUrls so taskMap picks up the newly-set
+ * recommendationId on the very next read.
+ */
+export function useLinkTaskRecommendation(projectId, issueKey) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, recommendationId }) => apiService.linkTaskRecommendation(taskId, recommendationId),
+    onSuccess: () => {
+      if (projectId && issueKey) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.activeUrls(projectId, issueKey) })
+      }
+    },
+  })
+}
+
+/**
+ * Fetches one recommendation by id, scoped to the project — the
+ * authoritative source for "what will actually be written" in the
+ * WordPress apply-fix dialog, keyed off the Task's own persisted
+ * recommendationId rather than any local component state.
+ */
+export function useRecommendationById(projectId, recommendationId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.recommendations.byId(projectId, recommendationId),
+    queryFn: () => apiService.getRecommendationById(recommendationId, projectId),
+    enabled: !!projectId && !!recommendationId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
  * Paginated task list. Powers the Optimization Center.
  */
 export function useTasks(params = {}) {
@@ -1848,6 +1882,54 @@ export function useWordPressSeoData(projectId, pageUrl, { enabled = true } = {})
     queryFn: () => apiService.getWordPressSeoData(projectId, pageUrl),
     enabled: !!projectId && !!pageUrl && enabled,
     staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Live SITE-LEVEL schema (Organization sameAs, breadcrumbs) — one
+ * site-wide state, not per-page. `data.supported` tells the caller whether
+ * to show the sameAs/breadcrumb UI at all (a pre-site-schema Bridge, no
+ * Bridge, or a non-Rank-Math provider all resolve `supported:false` with a
+ * human `reason`, never a thrown error).
+ */
+export function useWordPressSiteSchema(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.siteSchema(projectId),
+    queryFn: () => apiService.getWordPressSiteSchema(projectId),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Does this page URL resolve to a WordPress post/page Odito can act on? Read-only; the same shared
+ * resolver an Apply uses, so the dialog can never offer an action the write would refuse.
+ */
+export function useWordPressPageResolution(projectId, pageUrl, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.pageResolution(projectId, pageUrl),
+    queryFn: () => apiService.getWordPressPageResolution(projectId, pageUrl),
+    enabled: !!projectId && !!pageUrl && enabled,
+    staleTime: staleTimes.DYNAMIC,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+}
+
+/**
+ * Whether a page's H1 can be fixed through WordPress (builder adapter decision), what it currently
+ * has, and the fingerprint of the page state being reviewed. Read-only. `recommended` is only
+ * previewed (validated/normalized) — the write derives its own value from the task's Recommendation.
+ * staleTime 0 + no focus refetch: the fingerprint must be as fresh as the review it belongs to.
+ */
+export function useWordPressH1Context(projectId, pageUrl, recommended, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.wordpress.h1Context(projectId, pageUrl, recommended || null),
+    queryFn: () => apiService.getWordPressH1Context(projectId, pageUrl, recommended),
+    enabled: !!projectId && !!pageUrl && enabled,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    retry: false,
   })
 }
 

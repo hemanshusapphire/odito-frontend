@@ -6,6 +6,8 @@ import { Copy, Check, AlertCircle, Zap, Eye, Layers } from "lucide-react"
 import RecommendationLoadingState from "./RecommendationLoadingState"
 import RecommendationCodeBlock from "./RecommendationCodeBlock"
 import RecommendationDiffViewer from "./RecommendationDiffViewer"
+import { describeFaqGenerationBlock } from "../issue-context/faqDetection"
+import { describeRatingGenerationBlock, formatRating } from "../issue-context/ratingDetection"
 
 // ── Design tokens — theme-aware CSS variables ────────────────────────────────
 const T = {
@@ -123,15 +125,19 @@ const RecommendedVersionSection = memo(function RecommendedVersionSection({ reco
   const afterState = recommendation?.afterState
 
   const displayText = rv || afterState?.rawText
-  const charCount   = afterState?.measurement?.value ?? (typeof displayText === 'string' ? displayText.length : null)
-  const constraint  = afterState?.satisfiesConstraint
+  const isFaqSchema = recommendation?.ruleId === 'faq_schema'
+  const isRatingSchema = recommendation?.ruleId === 'aggregate_rating_schema'
+  // A schema preview isn't a length-constrained text: the char count and the
+  // "valid range" pill are meaningless for it.
+  const charCount   = (isFaqSchema || isRatingSchema) ? null : (afterState?.measurement?.value ?? (typeof displayText === 'string' ? displayText.length : null))
+  const constraint  = (isFaqSchema || isRatingSchema) ? null : afterState?.satisfiesConstraint
 
   if (!displayText) return null
 
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <SectionHeader icon={Zap} label="Recommended Version" />
+        <SectionHeader icon={Zap} label={isFaqSchema ? "FAQPage Schema Preview" : isRatingSchema ? "Generated Schema Preview" : "Recommended Version"} />
         <div className="flex items-center gap-2">
           {charCount != null && (
             <span className="text-[10px] text-muted-foreground">{charCount} chars</span>
@@ -250,6 +256,8 @@ export default function IssueRecommendationPanel({
   mutationState = {},
   onGenerate,
   onReset,
+  faqDetection = null,
+  ratingDetection = null,
 }) {
   const {
     isIdle = true,
@@ -282,8 +290,39 @@ export default function IssueRecommendationPanel({
     )
   }
 
+  // ── STATE 2a: FAQ issue, nothing safe to generate from ────────────────────
+  // Only for the faq_schema issue (faqDetection is only ever provided for it).
+  // When FAQ content was found but its Q/A pairs could not be reliably
+  // extracted — or a schema already exists — no generate action is offered at
+  // all, so a schema can never be produced from content that wasn't read.
+  const faqBlock = isIdle && selUrl
+    ? (describeFaqGenerationBlock(faqDetection) || describeRatingGenerationBlock(ratingDetection))
+    : null
+  if (faqBlock) {
+    const warn = faqBlock.tone === "warning"
+    return (
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+        <div className="rounded-xl border border-[rgba(0,223,255,0.18)] bg-[rgba(0,223,255,0.04)] p-3.5">
+          <div className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-[0.08em] mb-1.5">Selected URL</div>
+          <div className="text-[12px] text-(--cy) font-medium font-mono truncate">{selUrl}</div>
+        </div>
+        <div
+          data-testid={ratingDetection ? "rating-generation-blocked" : "faq-generation-blocked"}
+          className={`rounded-xl border p-3.5 text-[12px] leading-relaxed ${warn
+            ? "border-[rgba(255,183,3,0.25)] bg-[rgba(255,183,3,0.06)] text-[#ffb703]"
+            : "border-border bg-card/60 text-muted-foreground"}`}
+        >
+          {faqBlock.message}
+          {faqBlock.hint && <div className="mt-1.5 text-muted-foreground">{faqBlock.hint}</div>}
+        </div>
+      </motion.div>
+    )
+  }
+
   // ── STATE 2: Ready to generate ────────────────────────────────────────────
   if (isIdle && selUrl) {
+    const faqPairCount = faqDetection?.content?.pairCount
+    const ratingFigure = ratingDetection ? formatRating(ratingDetection.detectedRatingData?.selected) : null
     return (
       <motion.div
         initial={{ opacity: 0, y: 6 }}
@@ -299,10 +338,14 @@ export default function IssueRecommendationPanel({
           onClick={onGenerate}
           className="w-full py-3 rounded-xl text-[13px] font-bold text-white cursor-pointer bg-gradient-to-r from-[#7730ed] to-[#00dfff] border-none shadow-[0_0_20px_rgba(119,48,237,0.2)] transition-all duration-200 hover:shadow-[0_0_28px_rgba(119,48,237,0.35)] hover:-translate-y-px active:translate-y-0"
         >
-          ✦ Generate AI Recommendation
+          {faqDetection ? "✦ Generate Schema from Detected FAQs" : ratingDetection ? "✦ Generate Schema from Detected Rating" : "✦ Generate AI Recommendation"}
         </button>
         <div className="text-[10.5px] text-muted-foreground text-center leading-relaxed">
-          Generates a context-aware remediation strategy grounded in real page data
+          {faqDetection
+            ? `Builds FAQPage schema only from the ${faqPairCount} question${faqPairCount === 1 ? "" : "s"} detected on this page — nothing is added or reworded`
+            : ratingDetection
+              ? `Builds AggregateRating only from the rating shown on this page (${ratingFigure}) and the existing ${ratingDetection.targetSchemaType} schema — nothing is estimated`
+              : "Generates a context-aware remediation strategy grounded in real page data"}
         </div>
       </motion.div>
     )
@@ -415,7 +458,9 @@ export default function IssueRecommendationPanel({
                 The fix was not confirmed. Use the <strong className="text-foreground">DIY Guide</strong> or <strong className="text-foreground">History Logs</strong> to re-implement.
               </p>
             </div>
-          ) : (
+          ) : typeof onCreateTask === 'function' ? (
+            // Only rendered when a screen actually provides a handler — a button
+            // whose click silently does nothing is worse than no button.
             <button
               onClick={onCreateTask}
               disabled={isCreatingTask}
@@ -423,7 +468,7 @@ export default function IssueRecommendationPanel({
             >
               {isCreatingTask ? '⏳ Creating…' : '📋 Create Task'}
             </button>
-          )}
+          ) : null}
           <button
             onClick={onReset}
             className="w-full py-2.5 rounded-lg text-[12.5px] font-semibold cursor-pointer bg-muted text-muted-foreground border border-border transition-all duration-200 hover:bg-accent hover:text-foreground"

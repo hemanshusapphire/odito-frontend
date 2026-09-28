@@ -260,6 +260,12 @@ export default function DIYRenderer({
   wordPressFieldLabel = null,
   wordPressProviderLabel = null,
   wordPressBridgeRequired = false,
+  wordPressUnsupportedReason = null,
+  // For a fix whose value the SITE OWNER must enter (sameAs profile URLs):
+  // replaces the "no manual editing required" copy, which would be untrue.
+  wordPressUserInputHint = null,
+  wordPressRecommendationMissing = false,
+  onGenerateRecommendation,
   onApplyViaWordPress,
 }) {
   const [checkedReviewed, setCheckedReviewed] = useState(false)
@@ -455,8 +461,12 @@ export default function DIYRenderer({
                     Apply automatically via WordPress
                   </div>
                   <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 10, lineHeight: 1.5 }}>
-                    Odito can write this {wordPressFieldLabel?.toLowerCase() || "field"} directly to your connected
-                    WordPress site{wordPressProviderLabel ? ` (${wordPressProviderLabel})` : ""} — no manual editing required.
+                    {wordPressUserInputHint || (
+                      <>
+                        Odito can write this {/^[A-Z]{2,}|^[A-Z][a-z]+[A-Z]/.test(wordPressFieldLabel || "") ? wordPressFieldLabel : (wordPressFieldLabel?.toLowerCase() || "field")} directly to your connected
+                        WordPress site{wordPressProviderLabel ? ` (${wordPressProviderLabel})` : ""} — no manual editing required.
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -478,7 +488,26 @@ export default function DIYRenderer({
                 </div>
               )}
 
-              {wordPressBridgeRequired && (
+              {/* A specific, backend-provided reason (e.g. "this site's Bridge
+                  plugin predates site-schema support — update it") always
+                  takes priority over the generic Bridge-required message
+                  below — same capability-driven-UI principle as everywhere
+                  else in this flow: show what's ACTUALLY true for this site,
+                  never a one-size-fits-all message. */}
+              {wordPressUnsupportedReason ? (
+                <div style={{
+                  marginBottom: 14,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  color: "var(--t3)",
+                  background: "var(--s2)",
+                  borderLeft: "3px solid var(--b)",
+                }}>
+                  {wordPressUnsupportedReason}
+                </div>
+              ) : wordPressBridgeRequired && (
                 <div style={{
                   marginBottom: 14,
                   padding: "10px 14px",
@@ -491,6 +520,40 @@ export default function DIYRenderer({
                 }}>
                   This SEO field cannot currently be modified by Odito on this WordPress site. Install the
                   Odito SEO Bridge plugin to enable WordPress editing for {wordPressProviderLabel || "this SEO plugin"}.
+                </div>
+              )}
+
+              {/* State A (Apply-via-WordPress fix): the field/provider/bridge
+                  are all fine, but THIS task has no recommendation linked
+                  yet — never silently hide this the way canApplyViaWordPress
+                  itself is hidden elsewhere; tell the user exactly what to
+                  do next instead of a guaranteed-to-fail Apply button. */}
+              {wordPressRecommendationMissing && (
+                <div style={{
+                  marginBottom: 14,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  color: "var(--t3)",
+                  background: "var(--s2)",
+                  borderLeft: "3px solid var(--b)",
+                }}>
+                  <div style={{ marginBottom: onGenerateRecommendation ? 8 : 0 }}>
+                    No AI recommendation is linked to this task yet — generate one before applying a WordPress fix.
+                  </div>
+                  {onGenerateRecommendation && (
+                    <button
+                      type="button"
+                      onClick={onGenerateRecommendation}
+                      style={{
+                        padding: "7px 12px", borderRadius: 7, fontSize: 11, fontWeight: 600,
+                        border: "1px solid var(--b)", background: "var(--s)", color: "var(--t)", cursor: "pointer",
+                      }}
+                    >
+                      Generate Recommendation
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { IconBrandGoogle, IconBrandWindows, IconBrandLinkedin, IconBrandWordpress } from "@tabler/icons-react"
-import { Link2, Info, Loader2, Copy, Check, Download, Megaphone, Search, BarChart3, Building2 } from "lucide-react"
+import { IconBrandGoogle, IconBrandWordpress } from "@tabler/icons-react"
+import { Link2, Loader2, Copy, Check, Download, Megaphone, Search, BarChart3, Building2, Inbox, Wand2, ChevronDown } from "lucide-react"
 import {
   Card,
   CardHeader,
@@ -95,21 +95,6 @@ function Toast({ message, type = "success", onClose }) {
  * connections to reflect. Add a future non-comingSoon provider by giving it
  * the same treatment Google gets, not by extending this array's shape.
  */
-const COMING_SOON_PROVIDERS = [
-  {
-    id: "microsoft",
-    name: "Microsoft",
-    description: "Connect your Microsoft account.",
-    icon: IconBrandWindows,
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    description: "Connect your LinkedIn account.",
-    icon: IconBrandLinkedin,
-  },
-]
-
 function formatDate(value) {
   if (!value) return null
   return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
@@ -342,35 +327,49 @@ function GoogleServicesSection() {
   const { activeProjectId } = useProject()
   const { data: connectionsResponse, isLoading } = useGoogleServiceConnections(activeProjectId)
   const connections = connectionsResponse?.data || {}
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <li className="flex flex-col gap-1 py-4 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
-          <IconBrandGoogle className="h-5 w-5" aria-hidden="true" />
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-3 text-left"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
+            <IconBrandGoogle className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Google Services</h4>
+            <p className="text-xs text-muted-foreground">
+              Connect a separate Google account for each Odito service.
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="text-sm font-semibold text-foreground">Google Services</h4>
-          <p className="text-xs text-muted-foreground">
-            Connect a separate Google account for each Odito service.
-          </p>
-        </div>
-      </div>
+        <ChevronDown
+          className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
 
-      {!activeProjectId ? (
-        <p className="mt-3 pl-13 text-xs text-muted-foreground">Select or create a project first.</p>
-      ) : (
-        <ul className="mt-2 divide-y divide-border/60 pl-13 sm:pl-13">
-          {GOOGLE_SERVICES.map((service) => (
-            <GoogleServiceRow
-              key={service.id}
-              service={service}
-              activeProjectId={activeProjectId}
-              status={connections[service.id]}
-              isLoading={isLoading}
-            />
-          ))}
-        </ul>
+      {expanded && (
+        !activeProjectId ? (
+          <p className="mt-3 pl-13 text-xs text-muted-foreground">Select or create a project first.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border/60 pl-13 sm:pl-13">
+            {GOOGLE_SERVICES.map((service) => (
+              <GoogleServiceRow
+                key={service.id}
+                service={service}
+                activeProjectId={activeProjectId}
+                status={connections[service.id]}
+                isLoading={isLoading}
+              />
+            ))}
+          </ul>
+        )
       )}
     </li>
   )
@@ -380,6 +379,25 @@ const WORDPRESS_STATUS_BADGE = {
   connected: { label: "Connected", variant: "success" },
   verification_failed: { label: "Verification Failed", variant: "critical" },
   not_connected: { label: "Not Connected", variant: "outline" },
+}
+
+/** Lead Capture and SEO Bridge are independent plugins on the SAME WordPress connection — each gets its own row/badge below WordPress, same layout as each Google service under Google Services. */
+function leadCaptureBadge(wordPressConnected, pluginStatus) {
+  if (!wordPressConnected) return { label: "Not Connected", variant: "outline" }
+  return pluginStatus?.connected
+    ? { label: "Installed", variant: "success" }
+    : { label: "Not Installed", variant: "outline" }
+}
+
+function seoBridgeBadge(wordPressConnected, capabilities) {
+  if (!wordPressConnected) return { label: "Not Connected", variant: "outline" }
+  if (!capabilities) return { label: "Loading...", variant: "secondary" }
+  if (capabilities.ambiguous) return { label: "Multiple Plugins", variant: "warning" }
+  if (!capabilities.bridgeInstalled) return { label: "Not Installed", variant: "outline" }
+  if (!capabilities.bridgeActive) return { label: "Inactive", variant: "warning" }
+  if (capabilities.bridgeVersionSupported === false) return { label: "Update Required", variant: "warning" }
+  if (capabilities.bridgeUpdateAvailable) return { label: "Update Available", variant: "warning" }
+  return { label: "Active", variant: "success" }
 }
 
 // Human-readable labels for the capability object's field keys — mirrors
@@ -656,6 +674,7 @@ function WordPressProviderRow({ provider }) {
   const [pairingOpen, setPairingOpen] = useState(false)
   const [formsExpanded, setFormsExpanded] = useState(false)
   const [seoBridgeDownloadError, setSeoBridgeDownloadError] = useState(null)
+  const [pluginsExpanded, setPluginsExpanded] = useState(false)
 
   const status = statusResponse?.data
   const badge = isLoading ? null : (WORDPRESS_STATUS_BADGE[status?.status] || WORDPRESS_STATUS_BADGE.not_connected)
@@ -695,8 +714,37 @@ function WordPressProviderRow({ provider }) {
     }
   }
 
+  const leadCaptureBadgeInfo = isLoading ? { label: "Loading...", variant: "secondary" } : leadCaptureBadge(status?.connected, pluginStatus)
+  // Shown when a Bridge is installed but older than the version Odito ships.
+  // Installing the downloaded ZIP over the existing plugin (same slug) is a
+  // normal WordPress update — the newer capabilities (FAQ, rating, robots,
+  // site schema) then appear on the next capabilities check.
+  const renderSeoBridgeUpdate = ({ withVersions = true } = {}) => {
+    if (!capabilities?.bridgeUpdateAvailable) return null
+    return (
+      <div className="space-y-1.5 pt-1" data-testid="seo-bridge-update">
+        <p className="font-medium text-amber-600 dark:text-amber-500">
+          {withVersions && capabilities.bridgeVersion && capabilities.latestBridgeVersion
+            ? `Update available: ${capabilities.bridgeVersion} → ${capabilities.latestBridgeVersion}`
+            : "A newer Odito SEO Bridge is available."}
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={handleDownloadSeoBridge} className="gap-1.5">
+          <Download className="h-3.5 w-3.5" />
+          Download latest Odito SEO Bridge
+        </Button>
+        <p>Upload it in WordPress under Plugins → Add New → Upload Plugin and replace the current version.</p>
+        {seoBridgeDownloadError && (
+          <p className="text-destructive" role="alert">{seoBridgeDownloadError}</p>
+        )}
+      </div>
+    )
+  }
+
+  const seoBridgeBadgeInfo = isLoading ? { label: "Loading...", variant: "secondary" } : seoBridgeBadge(status?.connected, capabilitiesLoading ? null : capabilities)
+
   return (
-    <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+    <li className="flex flex-col gap-1 py-4 first:pt-0 last:pb-0">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -719,107 +767,6 @@ function WordPressProviderRow({ provider }) {
             </dl>
           )}
 
-          {/* Odito Plugin (Phase 3A) — deliberately labeled "Odito Plugin"
-              to disambiguate from the line above, which reports the
-              site's OWN installed WordPress plugin count (Phase 2 REST
-              detection) — an unrelated number. */}
-          {!isLoading && status?.connected && (
-            <div className="mt-2.5 rounded-md border border-border/60 bg-muted/20 p-2.5 text-xs">
-              {pluginStatus?.connected ? (
-                <div className="space-y-1 text-muted-foreground">
-                  <div className="flex items-center gap-1.5 font-medium text-foreground">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                    Odito Plugin: Connected
-                  </div>
-                  <div>{pluginStatus.formsDetected} form{pluginStatus.formsDetected === 1 ? "" : "s"} detected</div>
-                  <div>Last sync: {pluginStatus.lastFormSyncAt ? formatDateTime(pluginStatus.lastFormSyncAt) : "Never"}</div>
-                  <div>Last seen: {pluginStatus.lastSeenAt ? formatDateTime(pluginStatus.lastSeenAt) : "Never"}</div>
-                  {pluginStatus.formsDetected > 0 && (
-                    <button
-                      type="button"
-                      className="mt-1 text-primary underline-offset-2 hover:underline"
-                      onClick={() => setFormsExpanded((v) => !v)}
-                    >
-                      {formsExpanded ? "Hide detected forms" : "Show detected forms"}
-                    </button>
-                  )}
-                  {formsExpanded && (
-                    <ul className="mt-1.5 space-y-1.5 border-t border-border/60 pt-1.5">
-                      {forms.map((form) => (
-                        <li key={form._id}>
-                          <div className="font-medium text-foreground">{form.name || "Untitled form"} <span className="text-muted-foreground/70">({form.provider.replace(/_/g, " ")})</span></div>
-                          <div className="text-muted-foreground/80">{form.fields?.length || 0} field{form.fields?.length === 1 ? "" : "s"}: {(form.fields || []).map((f) => f.name).join(", ") || "none"}</div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-1.5 text-muted-foreground">
-                  <div className="font-medium text-foreground">Odito Plugin: Not Installed</div>
-                  <p>Install the Odito plugin on your WordPress site to detect Contact Form 7, Divi, and other forms.</p>
-                  <div className="flex gap-2 pt-0.5">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setPairingOpen(true)}>
-                      Get Pairing Token
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SEO provider + capability display (Phase 4, Step 1-2) — read
-              only, never exposes credentials. Multiple detected SEO plugins
-              are surfaced as an explicit ambiguity, never silently
-              resolved to one. */}
-          {!isLoading && status?.connected && (
-            <div className="mt-2.5 rounded-md border border-border/60 bg-muted/20 p-2.5 text-xs">
-              <div className="font-medium text-foreground">SEO Fix Support</div>
-              {capabilitiesLoading ? (
-                <div className="mt-1 text-muted-foreground">Checking...</div>
-              ) : capabilities?.ambiguous ? (
-                <div className="mt-1 space-y-1 text-muted-foreground">
-                  <div className="font-medium text-amber-600 dark:text-amber-500">
-                    Multiple SEO plugins detected
-                  </div>
-                  <div>
-                    {(capabilities.providers || []).map((p) => SEO_PROVIDER_LABELS[p] || p).join(", ")}
-                  </div>
-                  <div>Odito cannot safely choose which plugin to edit — deactivate one to enable WordPress fixes.</div>
-                </div>
-              ) : (
-                <div className="mt-1 space-y-1 text-muted-foreground">
-                  <div>
-                    SEO Provider: <span className="font-medium text-foreground">{capabilities?.providerLabel || "WordPress Core"}</span>
-                  </div>
-                  {capabilities?.bridgeInstalled && (
-                    <div className="flex items-center gap-1.5 font-medium text-foreground">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                      Odito SEO Bridge: Connected{capabilities.bridgeVersion ? ` (v${capabilities.bridgeVersion})` : ""}
-                    </div>
-                  )}
-                  {writableFields.length > 0 ? (
-                    <div>Can auto-apply: {writableFields.join(", ")}</div>
-                  ) : (
-                    <div>No fields can be auto-applied via WordPress yet for this provider.</div>
-                  )}
-                  {capabilities?.bridgeRequired && !capabilities?.bridgeInstalled && (
-                    <div className="space-y-1.5">
-                      <div>Install the Odito SEO Bridge plugin to enable editing title, meta description, and canonical URL for this SEO plugin.</div>
-                      <Button type="button" variant="outline" size="sm" onClick={handleDownloadSeoBridge} className="gap-1.5">
-                        <Download className="h-3.5 w-3.5" />
-                        Download Odito SEO Bridge
-                      </Button>
-                      {seoBridgeDownloadError && (
-                        <p className="text-destructive" role="alert">{seoBridgeDownloadError}</p>
-                      )}
-                      <p>In WordPress: Plugins → Add New → Upload Plugin, select the downloaded file, then Activate.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {!isLoading && status?.status === "verification_failed" && (
             <p className="mt-1.5 text-xs text-destructive" role="alert">
@@ -899,7 +846,159 @@ function WordPressProviderRow({ provider }) {
             )}
           </Tooltip>
         )}
+
+        <button
+          type="button"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          onClick={() => setPluginsExpanded((v) => !v)}
+          aria-expanded={pluginsExpanded}
+          aria-label={pluginsExpanded ? "Hide Odito WordPress plugins" : "Show Odito WordPress plugins"}
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${pluginsExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+        </button>
       </div>
+    </div>
+
+      {/* Odito WordPress Plugins — Lead Capture and SEO Bridge are two
+          separate, independent plugins (different responsibility, different
+          trust boundary — never merged), but BOTH ride on this ONE
+          WordPress connection/Application Password. Same list pattern as
+          Google Services: one parent row above, one child row per
+          plugin below, each with its own badge/button — no separate
+          "connect" step or second Application Password for either plugin.
+          Collapsed by default, same as Google Services, so the settings
+          page doesn't dump every sub-row on screen at once. */}
+      {pluginsExpanded && (
+      <ul className="mt-2 divide-y divide-border/60 pl-13 sm:pl-13">
+        <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
+              <Inbox className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-semibold text-foreground">Lead Capture</h4>
+              <p className="text-xs text-muted-foreground">Capture leads from supported WordPress forms.</p>
+
+              {status?.connected && pluginStatus?.connected && (
+                <dl className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                  {pluginStatus.pluginVersion && <div>Version {pluginStatus.pluginVersion}</div>}
+                  <div>{pluginStatus.formsDetected} form{pluginStatus.formsDetected === 1 ? "" : "s"} detected</div>
+                  <div>Last sync: {pluginStatus.lastFormSyncAt ? formatDateTime(pluginStatus.lastFormSyncAt) : "Never"}</div>
+                  <div>Last seen: {pluginStatus.lastSeenAt ? formatDateTime(pluginStatus.lastSeenAt) : "Never"}</div>
+                  {pluginStatus.formsDetected > 0 && (
+                    <button
+                      type="button"
+                      className="mt-1 text-primary underline-offset-2 hover:underline"
+                      onClick={() => setFormsExpanded((v) => !v)}
+                    >
+                      {formsExpanded ? "Hide detected forms" : "Show detected forms"}
+                    </button>
+                  )}
+                  {formsExpanded && (
+                    <ul className="mt-1.5 space-y-1.5 border-t border-border/60 pt-1.5">
+                      {forms.map((form) => (
+                        <li key={form._id}>
+                          <div className="font-medium text-foreground">{form.name || "Untitled form"} <span className="text-muted-foreground/70">({form.provider.replace(/_/g, " ")})</span></div>
+                          <div className="text-muted-foreground/80">{form.fields?.length || 0} field{form.fields?.length === 1 ? "" : "s"}: {(form.fields || []).map((f) => f.name).join(", ") || "none"}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </dl>
+              )}
+              {status?.connected && !pluginStatus?.connected && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Install the Odito plugin on your WordPress site to detect Contact Form 7, Divi, and other forms.
+                </p>
+              )}
+              {!status?.connected && (
+                <p className="mt-1.5 text-xs text-muted-foreground">Connect WordPress first.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pl-13 sm:pl-0">
+            <Badge variant={leadCaptureBadgeInfo.variant} className={leadCaptureBadgeInfo.variant === "outline" ? "text-muted-foreground" : undefined}>
+              {leadCaptureBadgeInfo.label}
+            </Badge>
+            {status?.connected && !pluginStatus?.connected && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setPairingOpen(true)}>
+                Get Pairing Token
+              </Button>
+            )}
+          </div>
+        </li>
+
+        <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
+              <Wand2 className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-semibold text-foreground">SEO Bridge</h4>
+              <p className="text-xs text-muted-foreground">Apply SEO fixes directly to your WordPress SEO plugin.</p>
+
+              {!status?.connected && (
+                <p className="mt-1.5 text-xs text-muted-foreground">Connect WordPress first.</p>
+              )}
+              {status?.connected && capabilitiesLoading && (
+                <p className="mt-1.5 text-xs text-muted-foreground">Checking...</p>
+              )}
+              {status?.connected && !capabilitiesLoading && capabilities?.ambiguous && (
+                <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                  <div className="font-medium text-amber-600 dark:text-amber-500">Multiple SEO plugins detected.</div>
+                  <div>{(capabilities.providers || []).map((p) => SEO_PROVIDER_LABELS[p] || p).join(", ")}</div>
+                  <div>Automatic SEO fixes are disabled until one provider is selected.</div>
+                </div>
+              )}
+              {status?.connected && !capabilitiesLoading && !capabilities?.ambiguous && !capabilities?.bridgeInstalled && (
+                <div className="mt-1.5 space-y-1.5 text-xs text-muted-foreground">
+                  <p>Install Odito SEO Bridge to enable automatic SEO fixes.</p>
+                  <Button type="button" variant="outline" size="sm" onClick={handleDownloadSeoBridge} className="gap-1.5">
+                    <Download className="h-3.5 w-3.5" />
+                    Download Odito SEO Bridge
+                  </Button>
+                  {seoBridgeDownloadError && (
+                    <p className="text-destructive" role="alert">{seoBridgeDownloadError}</p>
+                  )}
+                </div>
+              )}
+              {status?.connected && !capabilitiesLoading && !capabilities?.ambiguous && capabilities?.bridgeInstalled && !capabilities?.bridgeActive && (
+                <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                  {capabilities.bridgeVersion && <div>Version {capabilities.bridgeVersion}</div>}
+                  <p>Odito SEO Bridge is installed but inactive. Activate it in WordPress.</p>
+                  {renderSeoBridgeUpdate()}
+                </div>
+              )}
+              {status?.connected && !capabilitiesLoading && !capabilities?.ambiguous && capabilities?.bridgeActive && capabilities?.bridgeVersionSupported === false && (
+                <div className="mt-1.5 space-y-1.5 text-xs text-muted-foreground">
+                  <p>Please update Odito SEO Bridge to continue using automatic SEO fixes.</p>
+                  {renderSeoBridgeUpdate({ withVersions: false })}
+                </div>
+              )}
+              {status?.connected && !capabilitiesLoading && !capabilities?.ambiguous && capabilities?.bridgeActive && capabilities?.bridgeVersionSupported !== false && (
+                <dl className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                  {capabilities.bridgeVersion && <div>Version {capabilities.bridgeVersion}</div>}
+                  <div>Provider: <span className="font-medium text-foreground">{capabilities?.providerLabel || "WordPress Core"}</span></div>
+                  {writableFields.length > 0 ? (
+                    <div>Can auto-apply: {writableFields.join(", ")}</div>
+                  ) : (
+                    <div>No fields can be auto-applied via WordPress yet for this provider.</div>
+                  )}
+                  {renderSeoBridgeUpdate()}
+                </dl>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pl-13 sm:pl-0">
+            <Badge variant={seoBridgeBadgeInfo.variant} className={seoBridgeBadgeInfo.variant === "outline" ? "text-muted-foreground" : undefined}>
+              {seoBridgeBadgeInfo.label}
+            </Badge>
+          </div>
+        </li>
+      </ul>
+      )}
 
       <ConnectWordPressDialog
         open={connectOpen}
@@ -955,42 +1054,6 @@ function WordPressProviderRow({ provider }) {
           </div>
         </AlertDialogContent>
       </AlertDialog>
-    </li>
-  )
-}
-
-/** Unchanged from Phase 4 — a static, disabled, no-op row with a tooltip. */
-function ComingSoonProviderRow({ provider }) {
-  const Icon = provider.icon
-  return (
-    <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div className="space-y-0.5">
-          <h4 className="text-sm font-semibold text-foreground">{provider.name}</h4>
-          <p className="text-xs text-muted-foreground">{provider.description}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pl-13 sm:pl-0">
-        <Badge variant="secondary">Coming Soon</Badge>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-disabled="true"
-              aria-label={`${provider.name} — support will be available in a future update`}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 outline-none cursor-not-allowed hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-              onClick={(e) => e.preventDefault()}
-            >
-              <Info className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Support will be available in a future update.</TooltipContent>
-        </Tooltip>
-      </div>
     </li>
   )
 }
@@ -1075,15 +1138,7 @@ export default function ConnectedAccountsCard() {
               icon: IconBrandWordpress,
             }}
           />
-          {COMING_SOON_PROVIDERS.map((provider) => (
-            <ComingSoonProviderRow key={provider.id} provider={provider} />
-          ))}
         </ul>
-
-        <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/80">
-          <Info className="h-3 w-3 shrink-0" aria-hidden="true" />
-          Additional account providers will be available in future updates.
-        </p>
       </CardContent>
 
       {toast && typeof document !== "undefined" && createPortal(

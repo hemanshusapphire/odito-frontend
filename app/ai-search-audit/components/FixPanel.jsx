@@ -8,6 +8,8 @@ import { useIssueContext } from "@/hooks/useIssueContext";
 import styles from "../ai-search-audit.module.css";
 import { useProject } from "@/contexts/ProjectContext";
 import apiService from "@/lib/apiService";
+import TaskToast from "@/components/dashboard/issues/TaskToast";
+import { useCreateIssueTask } from "@/hooks/useCreateIssueTask";
 
 function IssueCurrentStateSection({ projectId, issueId, pageUrl }) {
   const { data: issueContext, isLoading, error } = useIssueContext(projectId, issueId, pageUrl);
@@ -84,6 +86,18 @@ export default function FixPanel({ issue, selIdx, mode, setMode, onFixed }) {
   const recommendation = data?.data;
   const meta = data?.meta;
 
+  // "Create Task" — shared hook (hooks/useCreateIssueTask.js): duplicate guard,
+  // POST /tasks for (project, this issue, this page), list refresh, toast.
+  const [toast, setToast] = useState(null);
+  const { taskMap, createTask, isCreating } = useCreateIssueTask({
+    projectId: activeProject?._id,
+    issueKey: issueId,
+    issueName: issue.title || issue.issue || issue.issue_message,
+    issueCategory: issue.category,
+    recommendationId: recommendation?.id,
+    onFeedback: setToast,
+  });
+
   console.log(`[RECOMMENDATION_UI] ai-search-audit FixPanel | issue=${issueId} | url=${selUrl} | projectId=${activeProject?._id}`);
 
   return (
@@ -113,6 +127,9 @@ export default function FixPanel({ issue, selIdx, mode, setMode, onFixed }) {
           selUrl={selUrl}
           issue={issue}
           onMarkFixed={onFixed}
+          onCreateTask={() => createTask(selUrl)}
+          isCreatingTask={isCreating}
+          task={selUrl ? taskMap[selUrl] ?? null : null}
           // Pass mutation state as props (panel becomes pure render component)
           mutationState={{
             isIdle,
@@ -139,6 +156,7 @@ export default function FixPanel({ issue, selIdx, mode, setMode, onFixed }) {
         </div>
       )}
       {mode === "help" && <AuditIQHelp issue={issue} />}
+      <TaskToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

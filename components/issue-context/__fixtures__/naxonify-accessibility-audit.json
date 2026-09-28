@@ -1,0 +1,2680 @@
+{
+ "available": true,
+ "pageUrl": "https://naxonify.com/",
+ "auditVersion": 2,
+ "auditMethod": "playwright_tab_traversal+computed_style_diff",
+ "testedAt": "2026-09-26T06:04:46.853Z",
+ "tested": {
+  "focusableTotal": 79,
+  "focusableVisible": 44,
+  "tabStopsVisited": 44,
+  "completed": true,
+  "truncated": false
+ },
+ "technology": {
+  "kind": "wordpress-divi",
+  "cms": "WordPress",
+  "builder": "Divi",
+  "theme": "divi-child",
+  "cssFramework": null,
+  "jsFramework": null,
+  "label": "WordPress · Divi",
+  "detected": true,
+  "signals": [
+   "wp-content assets",
+   "et_pb_* classes"
+  ]
+ },
+ "cssRulesUnavailable": true,
+ "findings": [
+  {
+   "type": "missing_focus_indicator",
+   "count": 40,
+   "testedCount": 44,
+   "elements": [
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Naxonify Transform Grow Lead",
+     "text": "",
+     "selector": "div.et_pb_menu__logo > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_column > div.et_pb_with_border > div.et_pb_menu_inner_container > div.et_pb_menu__logo-wrap > div.et_pb_menu__logo > a",
+     "href": "https://naxonify.com/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "header.et-l.et-l--header",
+      "role": "header"
+     },
+     "rect": {
+      "x": 137,
+      "y": 13,
+      "w": 220,
+      "h": 53
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Home",
+     "text": "Home",
+     "selector": "#menu-main-menu > li:nth-of-type(1) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-main-menu > li#menu-item-17 > a",
+     "href": "https://naxonify.com/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 814,
+      "y": 13,
+      "w": 65,
+      "h": 53
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "0px none rgb(1, 97, 244)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "0px none rgb(1, 97, 244)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "About Us",
+     "text": "About Us",
+     "selector": "#menu-main-menu > li:nth-of-type(2) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-main-menu > li.et_pb_menu_page_id-233 > a",
+     "href": "https://naxonify.com/about-naxonify/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 901,
+      "y": 13,
+      "w": 90,
+      "h": 53
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Service",
+     "text": "Service",
+     "selector": "#menu-main-menu > li:nth-of-type(3) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-main-menu > li#menu-item-12 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 1013,
+      "y": 13,
+      "w": 87,
+      "h": 53
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Case Study",
+     "text": "Case Study",
+     "selector": "#menu-main-menu > li:nth-of-type(4) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-main-menu > li.et_pb_menu_page_id-4241 > a",
+     "href": "https://naxonify.com/case-study/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 1122,
+      "y": 13,
+      "w": 108,
+      "h": 53
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(2, 18, 51)",
+       "boxShadow": "none",
+       "border": "0px none rgb(2, 18, 51)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(2, 18, 51)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Book a Strategy Call",
+     "text": "Book a Strategy Call",
+     "selector": "a.et_pb_button.et_pb_button_0_tb_header.book-calendly",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_0_tb_header",
+      "book-calendly",
+      "cta-calendly",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": {
+      "selector": "header.et-l.et-l--header",
+      "role": "header"
+     },
+     "rect": {
+      "x": 137,
+      "y": 66,
+      "w": 203,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgba(255, 255, 255, 0)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgba(255, 255, 255, 0)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Become a White-Label Partner",
+     "text": "Become a White-Label Partner",
+     "selector": "a.et_pb_button.et_pb_button_0.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_row > div.et_pb_column > div.et_pb_row_inner > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_0",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 137,
+      "y": 797,
+      "w": 295,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Claim Free Audit",
+     "text": "Claim Free Audit",
+     "selector": "a.et_pb_button.et_pb_button_2.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_row > div.et_pb_column > div.et_pb_row_inner > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_2",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 738,
+      "y": 1691,
+      "w": 446,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Fix My Marketing System",
+     "text": "Fix My Marketing System",
+     "selector": "a.et_pb_button.et_pb_button_3.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_3",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 546,
+      "y": 2632,
+      "w": 289,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Get Free Audit Now",
+     "text": "Get Free Audit Now",
+     "selector": "a.et_pb_button.et_pb_button_4.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_4",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 904,
+      "y": 2821,
+      "w": 233,
+      "h": 47
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(255, 255, 255)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(255, 255, 255)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Get My Free Audit Report",
+     "text": "Get My Free Audit Report",
+     "selector": "a.et_pb_button.et_pb_button_5.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_5",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 553,
+      "y": 4489,
+      "w": 251,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Get Your Custom Growth Plan",
+     "text": "Get Your Custom Growth Plan",
+     "selector": "a.et_pb_button.et_pb_button_6.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_6",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 536,
+      "y": 5306,
+      "w": 285,
+      "h": 51
+     },
+     "computedBackground": "rgb(27, 35, 64)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(44, 50, 82)",
+       "backgroundColor": "rgb(27, 35, 64)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(44, 50, 82)",
+       "backgroundColor": "rgb(27, 35, 64)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "View All Services",
+     "text": "View All Services",
+     "selector": "a[href=\"https://naxonify.com/services/\"]",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/services/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_7",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 1025,
+      "y": 5536,
+      "w": 204,
+      "h": 51
+     },
+     "computedBackground": "rgb(27, 35, 64)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgba(255, 255, 255, 0)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgba(255, 255, 255, 0)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Get Free Audit Before You Decide",
+     "text": "Get Free Audit Before You Decide",
+     "selector": "a.et_pb_button.et_pb_button_8.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "#",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_8",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 526,
+      "y": 6400,
+      "w": 324,
+      "h": 51
+     },
+     "computedBackground": "rgb(27, 35, 64)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgba(255, 255, 255, 0)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgba(255, 255, 255, 0)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Get Free Audit",
+     "text": "Get Free Audit",
+     "selector": "a.et_pb_button.et_pb_button_9.free-audit-form",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": null,
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_9",
+      "free-audit-form",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 808,
+      "y": 6579,
+      "w": 183,
+      "h": 51
+     },
+     "computedBackground": "rgb(255, 255, 255)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(255, 255, 255)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(1, 97, 244)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(255, 255, 255)",
+       "color": "rgb(1, 97, 244)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Book a Strategy Call",
+     "text": "Book a Strategy Call",
+     "selector": "a.et_pb_button.et_pb_button_10.et_pb_bg_layout_light",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/contact-us/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_10",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 1011,
+      "y": 6579,
+      "w": 219,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(255, 255, 255)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "View All Case Studies",
+     "text": "View All Case Studies",
+     "selector": "a.et_pb_button.et_pb_button_11.et_pb_bg_layout_light",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/case-study/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_11",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 559,
+      "y": 8107,
+      "w": 263,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Work With Us",
+     "text": "Work With Us",
+     "selector": "a.et_pb_button.et_pb_button_12.et_pb_bg_layout_light",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/contact-us/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_12",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 137,
+      "y": 9058,
+      "w": 189,
+      "h": 47
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "button",
+     "role": "button",
+     "accessibleName": "Get My Free Audit",
+     "text": "Get My Free Audit",
+     "selector": "button[name=\"et_builder_submit_button\"]",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_column > div#custom-contact-form > div.et_pb_contact > form.et_pb_contact_form > div.et_contact_bottom_container > button.et_pb_contact_submit",
+     "href": null,
+     "classes": [
+      "et_pb_contact_submit",
+      "et_pb_button"
+     ],
+     "tabindex": null,
+     "container": {
+      "selector": "form.et_pb_contact_form.clearfix",
+      "role": "form"
+     },
+     "rect": {
+      "x": 747,
+      "y": 9746,
+      "w": 190,
+      "h": 43
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "3px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": ":focus",
+       "stylesheet": "inline <style>",
+       "onFocus": true
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Start Working With Naxonify",
+     "text": "Start Working With Naxonify",
+     "selector": "a.et_pb_button.et_pb_button_13.et_pb_bg_layout_light",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/contact-us/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_13",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 541,
+      "y": 11072,
+      "w": 274,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Still Have Questions?",
+     "text": "Still Have Questions?",
+     "selector": "a.et_pb_button.et_pb_button_14.et_pb_bg_layout_light",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_button_module_wrapper > a.et_pb_button",
+     "href": "https://naxonify.com/contact-us/",
+     "classes": [
+      "et_pb_button",
+      "et_pb_button_14",
+      "et_pb_bg_layout_light"
+     ],
+     "tabindex": null,
+     "container": null,
+     "rect": {
+      "x": 137,
+      "y": 11610,
+      "w": 223,
+      "h": 51
+     },
+     "computedBackground": "rgb(1, 97, 244)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(255, 255, 255)",
+       "boxShadow": "none",
+       "border": "2px solid rgb(1, 97, 244)",
+       "backgroundColor": "rgb(1, 97, 244)",
+       "color": "rgb(255, 255, 255)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Naxonify Transform Grow Lead",
+     "text": "",
+     "selector": "div.et_pb_module.et_pb_image.et_pb_image_0_tb_footer > a",
+     "selectorUnique": true,
+     "domPath": "div.et_builder_inner_content > div.et_pb_section > div.et_pb_row > div.et_pb_column > div.et_pb_module > a",
+     "href": "https://naxonify.com/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 137,
+      "y": 11938,
+      "w": 180,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Follow",
+     "text": "Follow",
+     "selector": "a[href=\"https://www.instagram.com/naxonify/\"]",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_section > div.et_pb_row > div.et_pb_column > ul.et_pb_module > li.et_pb_section_video_on_hover > a.icon",
+     "href": "https://www.instagram.com/naxonify/",
+     "classes": [
+      "icon",
+      "et_pb_with_border"
+     ],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 137,
+      "y": 12142,
+      "w": 32,
+      "h": 32
+     },
+     "computedBackground": "rgb(51, 57, 72)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Follow",
+     "text": "Follow",
+     "selector": "a[href=\"https://www.facebook.com/Naxonify/\"]",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_section > div.et_pb_row > div.et_pb_column > ul.et_pb_module > li.et_pb_section_video_on_hover > a.icon",
+     "href": "https://www.facebook.com/Naxonify/",
+     "classes": [
+      "icon",
+      "et_pb_with_border"
+     ],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 177,
+      "y": 12142,
+      "w": 32,
+      "h": 32
+     },
+     "computedBackground": "rgb(51, 57, 72)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Follow",
+     "text": "Follow",
+     "selector": "a[href=\"https://www.linkedin.com/company/naxonify/\"]",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_section > div.et_pb_row > div.et_pb_column > ul.et_pb_module > li.et_pb_section_video_on_hover > a.icon",
+     "href": "https://www.linkedin.com/company/naxonify/",
+     "classes": [
+      "icon",
+      "et_pb_with_border"
+     ],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 217,
+      "y": 12142,
+      "w": 32,
+      "h": 32
+     },
+     "computedBackground": "rgb(51, 57, 72)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px solid rgb(51, 51, 51)",
+       "backgroundColor": "rgba(255, 255, 255, 0.15)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "White-Label Services",
+     "text": "White-Label Services",
+     "selector": "#menu-for-agencies-menu > li:nth-of-type(1) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-for-agencies-menu > li#menu-item-198 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_0_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 425,
+      "y": 11966,
+      "w": 134,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Agency Partnership Plans",
+     "text": "Agency Partnership Plans",
+     "selector": "#menu-for-agencies-menu > li:nth-of-type(2) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-for-agencies-menu > li#menu-item-200 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_0_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 425,
+      "y": 11996,
+      "w": 161,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Dedicated Expert Teams",
+     "text": "Dedicated Expert Teams",
+     "selector": "#menu-for-agencies-menu > li:nth-of-type(3) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-for-agencies-menu > li#menu-item-201 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_0_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 425,
+      "y": 12026,
+      "w": 155,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "White-Label Reporting",
+     "text": "White-Label Reporting",
+     "selector": "#menu-for-agencies-menu > li:nth-of-type(4) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-for-agencies-menu > li#menu-item-202 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_0_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 425,
+      "y": 12056,
+      "w": 143,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Become a Partner",
+     "text": "Become a Partner",
+     "selector": "#menu-for-agencies-menu > li:nth-of-type(5) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-for-agencies-menu > li#menu-item-203 > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_0_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 425,
+      "y": 12086,
+      "w": 112,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "AI Visibility Services",
+     "text": "AI Visibility Services",
+     "selector": "#menu-services > li:nth-of-type(1) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-services > li.et_pb_menu_page_id-1228 > a",
+     "href": "https://naxonify.com/services/generative-engine-optimization-services/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_1_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 713,
+      "y": 11966,
+      "w": 123,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Graphic Design & Video",
+     "text": "Graphic Design & Video",
+     "selector": "#menu-services > li:nth-of-type(2) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-services > li.et_pb_menu_page_id-1237 > a",
+     "href": "https://naxonify.com/services/graphic-design-video-services/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_1_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 713,
+      "y": 11996,
+      "w": 146,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "White Label PPC Services",
+     "text": "White Label PPC Services",
+     "selector": "#menu-services > li:nth-of-type(3) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-services > li.et_pb_menu_page_id-1233 > a",
+     "href": "https://naxonify.com/services/white-label-ppc-services/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_1_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 713,
+      "y": 12026,
+      "w": 161,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Social Media Marketing",
+     "text": "Social Media Marketing",
+     "selector": "#menu-services > li:nth-of-type(4) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-services > li.et_pb_menu_page_id-1235 > a",
+     "href": "https://naxonify.com/services/social-media-marketing-services/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_1_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 713,
+      "y": 12056,
+      "w": 146,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "White Label Website Design Agency",
+     "text": "White Label Website Design Agency",
+     "selector": "#menu-services > li:nth-of-type(5) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-services > li.et_pb_menu_page_id-1230 > a",
+     "href": "https://naxonify.com/services/white-label-website-design-agency/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_1_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 713,
+      "y": 12086,
+      "w": 226,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "About Us",
+     "text": "About Us",
+     "selector": "#menu-company-menu > li:nth-of-type(1) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-company-menu > li.et_pb_menu_page_id-233 > a",
+     "href": "https://naxonify.com/about-naxonify/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_2_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 1001,
+      "y": 11966,
+      "w": 59,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Contact Us",
+     "text": "Contact Us",
+     "selector": "#menu-company-menu > li:nth-of-type(2) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-company-menu > li.et_pb_menu_page_id-263 > a",
+     "href": "https://naxonify.com/contact-us/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_2_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 1001,
+      "y": 11996,
+      "w": 72,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Blog",
+     "text": "Blog",
+     "selector": "#menu-company-menu > li:nth-of-type(3) > a",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_menu__wrap > div.et_pb_menu__menu > nav.et-menu-nav > ul#menu-company-menu > li.et_pb_menu_page_id-6594 > a",
+     "href": "https://naxonify.com/blog/",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "div.et_pb_module.et_pb_menu.et_pb_menu_2_tb_footer > div > div > div:nth-of-type(1) > nav",
+      "role": "nav"
+     },
+     "rect": {
+      "x": 1001,
+      "y": 12026,
+      "w": 28,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(148, 163, 184)",
+       "boxShadow": "none",
+       "border": "0px none rgb(148, 163, 184)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(148, 163, 184)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Privacy Policy",
+     "text": "Privacy Policy",
+     "selector": "p > a:nth-of-type(1)",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_with_border > div.et_pb_column > div.et_pb_module > div.et_pb_text_inner > p > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 405,
+      "y": 12239,
+      "w": 97,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    },
+    {
+     "tag": "a",
+     "role": "link",
+     "accessibleName": "Terms of Service",
+     "text": "Terms of Service",
+     "selector": "p > a:nth-of-type(2)",
+     "selectorUnique": true,
+     "domPath": "div.et_pb_with_border > div.et_pb_column > div.et_pb_module > div.et_pb_text_inner > p > a",
+     "href": "#",
+     "classes": [],
+     "tabindex": null,
+     "container": {
+      "selector": "footer.et-l.et-l--footer",
+      "role": "footer"
+     },
+     "rect": {
+      "x": 515,
+      "y": 12239,
+      "w": 120,
+      "h": 22
+     },
+     "computedBackground": "rgb(15, 22, 40)",
+     "focusIndicator": {
+      "status": "missing",
+      "reason": "no_visual_change_on_focus",
+      "signals": [],
+      "before": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "after": {
+       "outline": "none",
+       "outlineWidth": "0px",
+       "outlineStyle": "none",
+       "outlineColor": "rgb(9, 190, 240)",
+       "boxShadow": "none",
+       "border": "0px none rgb(9, 190, 240)",
+       "backgroundColor": "rgba(0, 0, 0, 0)",
+       "color": "rgb(9, 190, 240)",
+       "textDecoration": "none"
+      },
+      "focusRuleFound": true,
+      "focusRules": [
+       {
+        "selector": ":focus",
+        "stylesheet": "inline <style>",
+        "declares": [
+         "outline"
+        ]
+       }
+      ],
+      "suppressingRule": {
+       "selector": "a, abbr, acronym, address, applet, b, big, blockquote, body, center, cite, code, dd, del, dfn, div, dl, dt, em, fieldse…",
+       "stylesheet": "inline <style>",
+       "onFocus": false
+      }
+     }
+    }
+   ],
+   "listTruncated": false
+  }
+ ],
+ "intentionalTrap": null
+}

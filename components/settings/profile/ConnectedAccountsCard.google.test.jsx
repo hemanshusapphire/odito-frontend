@@ -100,9 +100,15 @@ beforeEach(() => {
   }
 })
 
+/** Google Services (like the WordPress plugin list) is collapsed by default behind a chevron toggle — expand it before asserting on any of its rows. */
+function renderExpanded() {
+  render(<ConnectedAccountsCard />)
+  fireEvent.click(screen.getByRole("button", { name: /Google Services/i }))
+}
+
 describe("ConnectedAccountsCard — Google Services", () => {
   test("renders all four services, each with its own connected account", () => {
-    render(<ConnectedAccountsCard />)
+    renderExpanded()
 
     expect(screen.getByText("Google Services")).toBeInTheDocument()
     expect(screen.getByText("Google Ads")).toBeInTheDocument()
@@ -115,7 +121,7 @@ describe("ConnectedAccountsCard — Google Services", () => {
   })
 
   test("a disconnected service shows 'Not Connected' and a Connect button; an independent connected service is unaffected", () => {
-    render(<ConnectedAccountsCard />)
+    renderExpanded()
 
     expect(screen.getAllByText("Not Connected").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Connect Google Account").length).toBeGreaterThan(0)
@@ -127,7 +133,7 @@ describe("ConnectedAccountsCard — Google Services", () => {
   })
 
   test("Connect only starts OAuth for the clicked service, not any other", async () => {
-    render(<ConnectedAccountsCard />)
+    renderExpanded()
 
     const analyticsHeading = screen.getByText("Analytics")
     const analyticsRow = analyticsHeading.closest("li")
@@ -142,7 +148,7 @@ describe("ConnectedAccountsCard — Google Services", () => {
   })
 
   test("Disconnect confirmation names only the clicked service and disconnecting it never touches the others", async () => {
-    render(<ConnectedAccountsCard />)
+    renderExpanded()
 
     const adsHeading = screen.getByText("Google Ads")
     const adsRow = adsHeading.closest("li")
@@ -163,7 +169,7 @@ describe("ConnectedAccountsCard — Google Services", () => {
   })
 
   test("Change Account is offered for a connected service and starts that service's OAuth flow again", () => {
-    render(<ConnectedAccountsCard />)
+    renderExpanded()
 
     const searchConsoleHeading = screen.getByText("Search Console")
     const searchConsoleRow = searchConsoleHeading.closest("li")

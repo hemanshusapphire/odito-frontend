@@ -36,7 +36,6 @@ import {
   Megaphone,
   Users,
   Share2,
-  Server,
   Sparkles,
 } from "lucide-react"
 
@@ -181,18 +180,6 @@ export const sidebarSections = [
         label: "GEO Hub",
         href: "/app/geo-hub",
         icon: Globe,
-      },
-    ],
-  },
-  {
-    id: "wordpress-management",
-    label: "WordPress",
-    items: [
-      {
-        id: "wordpress-management-dashboard",
-        label: "WordPress Management",
-        href: "/app/wordpress",
-        icon: Server,
       },
     ],
   },

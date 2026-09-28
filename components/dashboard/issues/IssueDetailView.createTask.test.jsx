@@ -1,0 +1,65 @@
+import { vi } from "vitest"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { QueryClientProvider } from "@tanstack/react-query"
+import IssueDetailView from "./IssueDetailView"
+import apiService from "@/lib/apiService"
+import { defineCreateTaskScenarios } from "@/test-utils/createTaskScenarios"
+
+/**
+ * IssueDetailView is the On-Page issue screen (/app/onpage) — also used by
+ * Accessibility and Dashboard → Issues. Its Create Task already worked; this
+ * pins it to the same contract as every other screen, incl. the in-flight guard.
+ */
+
+const PROJECT = { _id: "project-1", main_url: "https://example.com" }
+let pageResolutionData
+
+vi.mock("@/contexts/ProjectContext", () => ({ useProject: () => ({ activeProject: PROJECT }) }))
+vi.mock("@/lib/socketService", () => ({
+  default: { onTaskImplemented: vi.fn(), onTaskVerified: vi.fn(), onTaskReopened: vi.fn(), offTaskImplemented: vi.fn(), offTaskVerified: vi.fn(), offTaskReopened: vi.fn(), joinProject: vi.fn() },
+}))
+vi.mock("@/components/recommendations/RecommendationCodeBlock", () => ({ default: () => null }))
+vi.mock("@/components/recommendations/RecommendationDiffViewer", () => ({ default: () => null }))
+vi.mock("@/components/recommendations/RecommendationLoadingState", () => ({ default: () => null }))
+vi.mock("@/components/issue-context/CurrentStateRenderer", () => ({ default: () => null }))
+vi.mock("@/components/diy/DIYRenderer", () => ({ default: () => null }))
+
+let taskMapData
+vi.mock("@/hooks/useDashboardQueries", () => ({
+  useIssueUrls: () => ({ data: null, isLoading: false }),
+  useActiveTaskUrls: () => ({ data: { data: { taskMap: taskMapData, fixedUrls: [], fixedCount: 0 } } }),
+  useWordPressCapabilities: () => ({ data: { data: { connected: false } } }),
+  useWordPressSiteSchema: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+  // Page-content (H1) eligibility — not exercised by this file (its issues are not h1_missing).
+  useWordPressPageResolution: () => ({ data: pageResolutionData, isLoading: false, isError: false }),
+  useWordPressH1Context: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+  useWordPressSeoData: () => ({ data: undefined, isLoading: false, isError: false }),
+  useLinkTaskRecommendation: () => ({ mutate: vi.fn(), isPending: false }),
+  useRecommendationById: () => ({ data: null, isLoading: false }),
+}))
+vi.mock("@/lib/apiService", () => ({
+  default: {
+    getIssueContext: vi.fn().mockResolvedValue({ success: true, data: null }),
+    request: vi.fn(), createTask: vi.fn(), updateTaskStatus: vi.fn(), applyWordPressFix: vi.fn(), linkTaskRecommendation: vi.fn(), getRecommendationById: vi.fn(),
+  },
+}))
+
+const PAGE = "https://example.com/about"
+
+defineCreateTaskScenarios({
+  label: "On-Page issues (IssueDetailView)",
+  apiService,
+  pageUrl: PAGE,
+  expectedPayload: { projectId: "project-1", issueKey: "missing_h1", issueName: "H1 missing", issueCategory: "On-Page Issues" },
+  setTaskMap: (map) => { taskMapData = map },
+  renderScreen: (queryClient) => render(
+    <QueryClientProvider client={queryClient}>
+      <IssueDetailView issue={{ issue_code: "missing_h1", title: "H1 missing", affected_urls: [PAGE] }} onBack={() => {}} />
+    </QueryClientProvider>
+  ),
+  generate: async () => {
+    fireEvent.click(await screen.findByText(PAGE))
+    fireEvent.click(await screen.findByRole("button", { name: /Generate AI Recommendation/ }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /Regenerate/ })).toBeInTheDocument())
+  },
+})

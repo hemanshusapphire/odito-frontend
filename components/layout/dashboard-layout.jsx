@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation"
 import { ElevenSidebar } from "@/components/sidebar/ElevenSidebar"
-import WordPressSidebar from "@/components/wordpress/WordPressSidebar"
 import SocialMediaSidebar from "@/components/social-media/SocialMediaSidebar"
 import { SocialMediaHeader } from "@/components/social-media/SocialMediaHeader"
 import { SiteHeader } from "@/components/site-header"
@@ -18,10 +17,6 @@ export function DashboardLayout({
   const { user: authUser, isLoading } = useAuth()
   const { isSwitchingProject } = useProject()
   const pathname = usePathname()
-  // WordPress Management is a self-contained module with its own sidebar,
-  // deliberately independent from the Audit sidebar - see
-  // components/wordpress/WordPressSidebar.jsx.
-  const isWordPressModule = pathname?.startsWith('/app/wordpress')
   // Social Media AI is a separate, frontend-only mock module (see
   // components/social-media/**) with its own sidebar AND its own header
   // (SocialMediaHeader, rendered right here as SiteHeader's sibling so it
@@ -68,9 +63,7 @@ export function DashboardLayout({
       )}
 
       <div className={`flex min-h-screen w-full ${isSocialMediaModule ? 'bg-[#f7f7fb]' : ''}`}>
-        {isWordPressModule ? (
-          <WordPressSidebar />
-        ) : isSocialMediaModule ? (
+        {isSocialMediaModule ? (
           <SocialMediaSidebar />
         ) : (
           <ElevenSidebar user={currentUser} />

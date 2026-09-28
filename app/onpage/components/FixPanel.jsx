@@ -7,6 +7,8 @@ import DIYRenderer from "@/components/diy/DIYRenderer"
 import CurrentStateRenderer from "@/components/issue-context/CurrentStateRenderer"
 import { useIssueContext } from "@/hooks/useIssueContext"
 import apiService from "@/lib/apiService"
+import TaskToast from "@/components/dashboard/issues/TaskToast"
+import { useCreateIssueTask } from "@/hooks/useCreateIssueTask"
 
 /**
  * Renders the "DETECTED ISSUE / CURRENT STATE" section above the recommendation tabs.
@@ -90,6 +92,18 @@ export default function FixPanel({ issue, url, projectId, onFixed, onClose }) {
   const recommendation = data?.data;
   const meta = data?.meta;
 
+  // "Create Task" — shared hook (hooks/useCreateIssueTask.js): duplicate guard,
+  // POST /tasks for (project, this issue, this page), list refresh, toast.
+  const [toast, setToast] = useState(null)
+  const { taskMap, createTask, isCreating } = useCreateIssueTask({
+    projectId,
+    issueKey: issueId,
+    issueName: issue.title || issue.issue_message || issue.issue,
+    issueCategory: issue.category,
+    recommendationId: recommendation?.id,
+    onFeedback: setToast,
+  })
+
   console.log(`[RECOMMENDATION_UI] FixPanel opened | issue=${issueId} | url=${url} | projectId=${projectId}`)
 
   return (
@@ -171,6 +185,9 @@ export default function FixPanel({ issue, url, projectId, onFixed, onClose }) {
               selUrl={url}
               issue={issue}
               onMarkFixed={onFixed}
+              onCreateTask={() => createTask(url)}
+              isCreatingTask={isCreating}
+              task={url ? taskMap[url] ?? null : null}
               // Pass mutation state as props (panel becomes pure render component)
               mutationState={{
                 isIdle,
@@ -277,6 +294,8 @@ export default function FixPanel({ issue, url, projectId, onFixed, onClose }) {
           )}
         </div>
       </div>
+
+      <TaskToast toast={toast} onClose={() => setToast(null)} />
     </div>
   )
 }

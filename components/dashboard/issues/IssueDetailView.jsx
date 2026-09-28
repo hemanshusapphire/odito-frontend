@@ -1,15 +1,22 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 
 function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
     const id = setTimeout(onClose, 3500)
     return () => clearTimeout(id)
   }, [onClose])
-  const bg     = type === 'success' ? 'rgba(0,245,160,0.12)'  : 'rgba(255,56,96,0.12)'
-  const border = type === 'success' ? 'rgba(0,245,160,0.28)'  : 'rgba(255,56,96,0.28)'
-  const color  = type === 'success' ? '#00f5a0'               : '#ff3860'
+  // 'warning' is distinct from both 'success' and 'error': used when
+  // WordPress accepted a write (HTTP 200, no thrown error) but the
+  // immediate read-back could not confirm the value actually persisted as
+  // sent — a real, distinct outcome from a confirmed success, and must
+  // never be shown with the same green checkmark (see the applyWordPress
+  // FixMutation success handler below).
+  const bg     = type === 'success' ? 'rgba(0,245,160,0.12)'  : type === 'warning' ? 'rgba(255,184,0,0.12)' : 'rgba(255,56,96,0.12)'
+  const border = type === 'success' ? 'rgba(0,245,160,0.28)'  : type === 'warning' ? 'rgba(255,184,0,0.28)' : 'rgba(255,56,96,0.28)'
+  const color  = type === 'success' ? '#00f5a0'               : type === 'warning' ? '#ffb800'              : '#ff3860'
+  const icon   = type === 'success' ? '✓' : type === 'warning' ? '⚠' : '✕'
   return (
     <div style={{
       position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
@@ -18,7 +25,7 @@ function Toast({ message, type = 'success', onClose }) {
       display: 'flex', alignItems: 'center', gap: 8,
       backdropFilter: 'blur(8px)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
     }}>
-      <span>{type === 'success' ? '✓' : '✕'}</span>
+      <span>{icon}</span>
       {message}
     </div>
   )
@@ -32,24 +39,81 @@ import { IssueRecommendationPanel } from "@/components/recommendations"
 import DIYRenderer from "@/components/diy/DIYRenderer"
 import CurrentStateRenderer from "@/components/issue-context/CurrentStateRenderer"
 import { useIssueContext } from "@/hooks/useIssueContext"
-import { useIssueUrls, useActiveTaskUrls, useWordPressCapabilities, useWordPressSeoData } from "@/hooks/useDashboardQueries"
+import { useIssueUrls, useActiveTaskUrls, useWordPressCapabilities, useWordPressSeoData, useWordPressSiteSchema, useWordPressH1Context, useWordPressPageResolution, useLinkTaskRecommendation, useRecommendationById } from "@/hooks/useDashboardQueries"
 import { useTaskRealtimeSync } from "@/hooks/useTaskRealtimeSync"
 import { describeApplyError } from "./wordPressApplyError"
+import FaqSchemaApplyDialog from "./FaqSchemaApplyDialog"
+import RatingSchemaApplyDialog from "./RatingSchemaApplyDialog"
+import SameAsApplyDialog from "./SameAsApplyDialog"
+import H1ApplyDialog from "./H1ApplyDialog"
+import { FAQ_ISSUE_ID, getFaqDetection } from "@/components/issue-context/faqDetection"
+import { RATING_ISSUE_ID, getRatingDetection } from "@/components/issue-context/ratingDetection"
 
 // issueKey -> the field WordPress fixes can target, mirrored from the
-// backend's own src/modules/tasks/service/issueSnapshotTypes.js. Kept in
+// backend's own providerCapabilityRegistry.js/issueSnapshotTypes.js. Kept in
 // sync manually (no shared package between frontend/backend exists) —
-// deliberately only the 3 types wordPressSeoFixService.js currently
-// supports (title, meta_description, canonical), NOT the full 5-type set
-// TaskVerificationService verifies (h1 and image_alt are excluded from the
-// WordPress apply flow itself — see the Phase 4 report's limitations).
+// deliberately only the types wordPressSeoFixService.js currently supports,
+// NOT the full snapshot-type set TaskVerificationService verifies (image_alt
+// and multiple_h1_tags are not auto-applied; Organization's individual
+// fields and Person remain architecturally scaffolded but not yet
+// implemented — see providerCapabilityRegistry.js). h1_missing is the one
+// page-CONTENT fix (see CONTENT_FIELD_TYPES below).
 const WORDPRESS_FIXABLE_ISSUE_TYPES = {
   title_missing: "title", title_too_short: "title", title_too_long: "title",
   meta_description_missing: "meta_description", meta_description_too_short: "meta_description", meta_description_too_long: "meta_description",
   canonical_tag_errors: "canonical",
+  noindex_key_pages: "robots", noindex_tags: "robots",
+  sameas_array: "same_as",
+  breadcrumblist_schema: "breadcrumb",
+  // Page-scoped, applied through the Bridge's own FAQ-schema route (not an SEO
+  // plugin field) — see wordPressSeoFixService.js's `channel: 'faq_schema'`.
+  faq_schema: "faq_schema",
+  aggregate_rating_schema: "aggregate_rating",
+  // PAGE CONTENT, not an SEO-plugin field: only h1_missing (never multiple_h1_tags), and only offered
+  // when the backend's content adapter reports the page as safely changeable — see CONTENT_CHANNELS.
+  h1_missing: "h1",
 }
-const WORDPRESS_CAPABILITY_KEY = { title: "title", meta_description: "metaDescription", canonical: "canonical" }
-const WORDPRESS_FIELD_LABEL = { title: "Title", meta_description: "Meta description", canonical: "Canonical URL" }
+// Page-content fixes (the H1): eligibility is decided PER PAGE by the backend's builder adapter
+// (GET /wordpress/h1-context), not by the SEO plugin or the Bridge. The dialog shows exactly what
+// would change; the only thing sent back is the fingerprint of the page state that was reviewed.
+const CONTENT_FIELD_TYPES = new Set(["h1"])
+// Schema fixes applied through the Bridge's own routes (not an SEO plugin field):
+// capability comes from the Bridge itself, the dialog previews the exact JSON-LD,
+// and nothing is read from / compared against an SEO plugin's live value.
+const SCHEMA_CHANNELS = {
+  faq_schema: { capabilityFlag: "faqSchemaSupported", requirementKey: "faq_schema", regenerateToast: "Regenerating the FAQ schema from the current page — review it, then apply again." },
+  aggregate_rating: { capabilityFlag: "ratingSchemaSupported", requirementKey: "rating_schema", regenerateToast: "Regenerating the AggregateRating schema from the current page — review it, then apply again." },
+}
+const WORDPRESS_CAPABILITY_KEY = { title: "title", meta_description: "metaDescription", canonical: "canonical", robots: "robots" }
+const WORDPRESS_FIELD_LABEL = { title: "Title", meta_description: "Meta description", canonical: "Canonical URL", robots: "Robots meta", same_as: "Organization sameAs", breadcrumb: "Breadcrumbs", faq_schema: "FAQ schema", aggregate_rating: "AggregateRating schema", h1: "H1 heading" }
+
+// same_as/breadcrumb write to WordPress OPTIONS (one site-wide state),
+// never post meta — mirrors providerCapabilityRegistry.js's `scope: 'site'`
+// marker exactly. Drives which capability-detection hook and which
+// confirmation dialog this component uses for a given field type (Section
+// 13's capability-driven-UI requirement: provider -> bridge version ->
+// capability -> scope -> issue type, never a hardcoded "if rank_math show
+// everything").
+const SITE_SCOPED_FIELD_TYPES = new Set(["same_as", "breadcrumb"])
+
+// robots is the only WordPress-fixable field whose wire value (what's sent
+// to/from the backend as expectedCurrentValue — see oditoSeoBridgeService.js's
+// toLegacySeoShape) isn't already human-readable text: the Bridge only ever
+// lists RESTRICTIVE directives, alphabetically sorted ("", "noindex",
+// "nofollow", "nofollow, noindex" — see valueNormalization.js's
+// robotsValueToWireString), while the
+// recommendation's own recommendedVersion text (the "New" value, generated
+// per PromptBuilder.js's strict 4-string mandate) always spells out both
+// axes explicitly ("index, follow", "noindex, follow", ...). This renders the
+// CURRENT value in that same explicit vocabulary for display only — the raw
+// wire string (wpLiveValue) is still what's sent back as expectedCurrentValue,
+// unchanged.
+function formatRobotsWireValueForDisplay(wire) {
+  if (typeof wire !== "string") return wire
+  const noindex = wire.includes("noindex")
+  const nofollow = wire.includes("nofollow")
+  return `${noindex ? "noindex" : "index"}, ${nofollow ? "nofollow" : "follow"}`
+}
 
 /**
  * Apply-via-WordPress confirmation modal. Deliberately shows the CURRENT
@@ -59,15 +123,25 @@ const WORDPRESS_FIELD_LABEL = { title: "Title", meta_description: "Meta descript
  * backend's read-before-write check compares against (see
  * wordPressSeoFixService.js's CONFLICT handling).
  */
-function WordPressApplyConfirmDialog({ open, onOpenChange, fieldLabel, siteLabel, providerLabel, currentValue, currentValueLoading, newValue, onConfirm, onRefreshLiveValue, isApplying, errorInfo }) {
+function WordPressApplyConfirmDialog({ open, onOpenChange, fieldLabel, siteLabel, providerLabel, currentValue, currentValueLoading, currentValueUnavailable, newValue, onConfirm, onRefreshLiveValue, isApplying, errorInfo }) {
   if (!open) return null
   // A conflict (live value changed, or the WordPress write succeeded but
   // recording it on the Task lost a concurrency race) must be explicitly
   // acknowledged by refreshing the live value before trying again — never
   // silently re-fetched, and the primary button is replaced (not just
   // re-enabled) so re-clicking "Apply Fix" blindly with the same stale
-  // expectedCurrentValue can't just conflict again in a loop.
-  const showRefreshAction = errorInfo?.requiresRefresh
+  // expectedCurrentValue can't just conflict again in a loop. A failed
+  // live-read gets the SAME "must explicitly retry" treatment, for the
+  // same reason: applying with expectedCurrentValue silently defaulted to
+  // null (because the read failed, not because the field is empty) is
+  // exactly how a real value gets misread as "(empty)".
+  const showRefreshAction = errorInfo?.requiresRefresh || currentValueUnavailable
+  // Bug fix: a RECOMMENDATION_REQUIRED rejection (or any other
+  // nonRetryable error) previously left "Apply Fix" fully clickable —
+  // retrying the identical request against the identical missing-link
+  // state can never succeed, so the primary action is disabled outright
+  // rather than inviting a guaranteed-repeat failure.
+  const applyDisabledByError = !!errorInfo?.nonRetryable
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
       <div style={{ width: "min(440px, 92vw)", background: "var(--card, var(--s))", border: "1px solid var(--b)", borderRadius: 14, padding: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.4)" }}>
@@ -81,8 +155,12 @@ function WordPressApplyConfirmDialog({ open, onOpenChange, fieldLabel, siteLabel
             <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
               Current {fieldLabel}
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--t)", padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b)", minHeight: 20 }}>
-              {currentValueLoading ? "Loading current value…" : (currentValue || "(empty)")}
+            <div style={{ fontSize: 12.5, color: currentValueUnavailable ? "#ff3860" : "var(--t)", padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b)", minHeight: 20 }}>
+              {currentValueLoading
+                ? "Loading current value…"
+                : currentValueUnavailable
+                  ? "Unable to read the current WordPress value. Refresh and try again."
+                  : (currentValue || "(empty)")}
             </div>
           </div>
           <div>
@@ -131,10 +209,94 @@ function WordPressApplyConfirmDialog({ open, onOpenChange, fieldLabel, siteLabel
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isApplying || currentValueLoading}
-              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "linear-gradient(135deg,#7730ed,#00dfff)", color: "#fff", cursor: (isApplying || currentValueLoading) ? "not-allowed" : "pointer", opacity: (isApplying || currentValueLoading) ? 0.7 : 1 }}
+              disabled={isApplying || currentValueLoading || applyDisabledByError}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "linear-gradient(135deg,#7730ed,#00dfff)", color: "#fff", cursor: (isApplying || currentValueLoading || applyDisabledByError) ? "not-allowed" : "pointer", opacity: (isApplying || currentValueLoading || applyDisabledByError) ? 0.5 : 1 }}
             >
               {isApplying ? "Applying…" : "Apply Fix"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Breadcrumbs confirmation dialog — a single site-wide toggle, not a value
+ * replacement. Explicitly does NOT claim "breadcrumb schema fixed" from the
+ * write alone (Section 12): a successful write only confirms Rank Math's
+ * OWN setting flipped, never that BreadcrumbList JSON-LD actually renders —
+ * that's TaskVerificationService's job after the next recrawl, same
+ * two-layer distinction as canonical.
+ */
+function BreadcrumbApplyDialog({ open, onOpenChange, siteLabel, providerLabel, breadcrumbs, breadcrumbsLoading, breadcrumbsUnavailable, onConfirm, onRefreshLiveValue, isApplying, errorInfo }) {
+  if (!open) return null
+  const showRefreshAction = errorInfo?.requiresRefresh || breadcrumbsUnavailable
+  const applyDisabledByError = !!errorInfo?.nonRetryable
+  const alreadyEnabled = breadcrumbs?.enabled === true
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+      <div style={{ width: "min(440px, 92vw)", background: "var(--card, var(--s))", border: "1px solid var(--b)", borderRadius: 14, padding: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.4)" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t)", marginBottom: 4 }}>Enable Rank Math Breadcrumbs?</div>
+        <div style={{ fontSize: 11.5, color: "var(--t3)", marginBottom: 4 }}>
+          {siteLabel ? `Website: ${siteLabel}` : null}{providerLabel ? ` · Provider: ${providerLabel}` : null}
+        </div>
+        <div style={{ fontSize: 11, color: "#f5a623", marginBottom: 14, lineHeight: 1.4 }}>
+          This changes Rank Math's global breadcrumb setting — it affects every page on this site, not just this one.
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+            Rank Math Breadcrumbs — Current Status
+          </div>
+          <div style={{ fontSize: 12.5, padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b)", display: "flex", alignItems: "center", gap: 8 }}>
+            {breadcrumbsLoading ? (
+              <span style={{ color: "var(--t3)" }}>Loading current status…</span>
+            ) : breadcrumbsUnavailable ? (
+              <span style={{ color: "#ff3860" }}>Unable to read the current setting. Refresh and try again.</span>
+            ) : (
+              <>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: alreadyEnabled ? "#00f5a0" : "#ff3860", display: "inline-block" }} />
+                <span style={{ color: "var(--t)", fontWeight: 600 }}>{alreadyEnabled ? "Enabled" : "Disabled"}</span>
+              </>
+            )}
+          </div>
+          {alreadyEnabled && (
+            <div style={{ fontSize: 11, color: "#f5a623", marginTop: 6 }}>
+              Already enabled in Rank Math. Applying will be a no-op — the actual BreadcrumbList schema on this page still depends on crawler verification, not this setting alone.
+            </div>
+          )}
+        </div>
+
+        {errorInfo && (
+          <div style={{
+            fontSize: 11.5, lineHeight: 1.5, marginBottom: 12, padding: "8px 10px", borderRadius: 8,
+            color: errorInfo.isConflict ? "#f5a623" : "#ff3860",
+            background: errorInfo.isConflict ? "rgba(245,166,35,0.1)" : "rgba(255,56,96,0.08)",
+          }}>
+            {errorInfo.wordpressWriteSucceeded
+              ? "The WordPress change may have already been applied, but Odito couldn't record it because the task changed at the same time. Refresh and check WordPress before trying again."
+              : errorInfo.isConflict
+                ? "This value changed on WordPress before the fix was applied. Refresh and review before applying again."
+                : errorInfo.message}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => onOpenChange(false)} disabled={isApplying}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "1px solid var(--b)", background: "var(--s2)", color: "var(--t2)", cursor: isApplying ? "not-allowed" : "pointer" }}>
+            Cancel
+          </button>
+          {showRefreshAction ? (
+            <button type="button" onClick={onRefreshLiveValue} disabled={breadcrumbsLoading}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "#f5a623", color: "#1a1a1a", cursor: breadcrumbsLoading ? "not-allowed" : "pointer", opacity: breadcrumbsLoading ? 0.7 : 1 }}>
+              {breadcrumbsLoading ? "Refreshing…" : "Refresh Live Value"}
+            </button>
+          ) : (
+            <button type="button" onClick={onConfirm} disabled={isApplying || breadcrumbsLoading || applyDisabledByError}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, border: "none", background: "linear-gradient(135deg,#7730ed,#00dfff)", color: "#fff", cursor: (isApplying || breadcrumbsLoading || applyDisabledByError) ? "not-allowed" : "pointer", opacity: (isApplying || breadcrumbsLoading || applyDisabledByError) ? 0.5 : 1 }}>
+              {isApplying ? "Applying…" : "Enable Breadcrumbs"}
             </button>
           )}
         </div>
@@ -160,7 +322,8 @@ export default function IssueDetailView({
   // Closes the pre-existing gap where a task silently verified/reopened in
   // the background (a routine recrawl) never reached this view without a
   // manual refresh — see useTaskRealtimeSync.js.
-  useTaskRealtimeSync(activeProject?._id)
+  // onNotice: the crawler's verdict on an automated sameAs fix (see describeVerificationNotice).
+  useTaskRealtimeSync(activeProject?._id, { onNotice: setToast })
 
   // Resolve issueId once for reuse in both the issue context hook and mutation
   const issueId = issue.issue_code || issue.rule_id || issue.issue
@@ -186,7 +349,14 @@ export default function IssueDetailView({
         pageUrl: url,
         status: 'task_created',
         origin: 'ai_fix',
-        recommendationId: recommendation?._id || null,
+        // Bug fix: recommendationService._formatOutput() (the actual shape
+        // /recommendations/generate returns) names this field `id`, never
+        // `_id` — confirmed by reading that function directly, not
+        // assumed. `recommendation._id` was always undefined here, so
+        // every task created alongside a freshly-generated recommendation
+        // silently got recommendationId: null from day one, regardless of
+        // anything else in this file.
+        recommendationId: recommendation?.id || null,
       })
     },
     onSuccess: (result) => {
@@ -335,6 +505,11 @@ export default function IssueDetailView({
   });
 
   const { data, isIdle, isPending, isSuccess, isError, error } = recommendationMutation;
+  // Local, ephemeral result of THIS component instance's own "Generate
+  // Recommendation" click — NOT the source of truth for whether a
+  // recommendation is linked to the task. Kept only to (a) display
+  // freshly-generated content immediately, before the by-id fetch below
+  // has round-tripped, and (b) drive the auto-link effect further down.
   const recommendation = data?.data;
   const meta = data?.meta;
 
@@ -345,48 +520,216 @@ export default function IssueDetailView({
   // linked to it — otherwise the existing "Mark as Implemented" (DIY) flow
   // is the only option, unchanged.
   const wordPressFieldType = WORDPRESS_FIXABLE_ISSUE_TYPES[issueId] || null
+  const isSiteScoped = wordPressFieldType ? SITE_SCOPED_FIELD_TYPES.has(wordPressFieldType) : false
+  // FAQ schema has no "current value → new value" to compare and needs no live
+  // SEO-plugin read: capability comes from the Bridge itself (faqSchemaSupported)
+  // and the dialog previews the exact schema to be written instead.
+  const isFaqSchema = wordPressFieldType === "faq_schema"
+  const isRatingSchema = wordPressFieldType === "aggregate_rating"
+  const schemaChannel = wordPressFieldType ? SCHEMA_CHANNELS[wordPressFieldType] || null : null
+  const isSchemaChannel = !!schemaChannel
+  const isContentChannel = wordPressFieldType ? CONTENT_FIELD_TYPES.has(wordPressFieldType) : false
+  // Enabled regardless of scope — site-scoped fields don't use its
+  // per-field write flags (see wpFieldSupported below), but its
+  // connected/providerLabel data is shared display info both dialogs use.
   const { data: wpCapabilitiesResponse } = useWordPressCapabilities(activeProject?._id, { enabled: !!wordPressFieldType })
   const wpCapabilities = wpCapabilitiesResponse?.data
   const wpCapabilityKey = wordPressFieldType ? WORDPRESS_CAPABILITY_KEY[wordPressFieldType] : null
-  const wpFieldSupported = !!(
-    wordPressFieldType &&
-    wpCapabilities?.connected &&
-    !wpCapabilities?.ambiguous &&
-    wpCapabilities?.capabilities?.[wpCapabilityKey]?.write
+  // Site-scoped fields (same_as, breadcrumb) have no per-post capability
+  // entry at all — the per-post /capabilities endpoint only ever reports
+  // title/meta_description/canonical/robots. Capability for these instead
+  // comes from a dedicated site-schema read (Section 13: capability ->
+  // scope -> issue type, never hardcoded).
+  const { data: wpSiteSchemaResponse, isLoading: wpSiteSchemaLoading, isError: wpSiteSchemaError, refetch: refetchWpSiteSchema } = useWordPressSiteSchema(
+    activeProject?._id, { enabled: isSiteScoped }
   )
+  const wpSiteSchema = wpSiteSchemaResponse?.data
+  const wpFieldSupportedBase = !!(
+    wordPressFieldType &&
+    !isContentChannel &&
+    (isSchemaChannel
+      // Independent of which SEO plugin(s) are active — the Bridge renders the JSON-LD itself.
+      ? (wpCapabilities?.connected && wpCapabilities?.[schemaChannel.capabilityFlag])
+      : isSiteScoped
+        ? wpSiteSchema?.supported
+        : (wpCapabilities?.connected && !wpCapabilities?.ambiguous && wpCapabilities?.capabilities?.[wpCapabilityKey]?.write))
+  )
+  // Specific, capability-driven reason shown instead of an Apply option when
+  // the connected site's Bridge can't apply FAQ schema (never a generic message).
+  // The minimum version is NEVER hardcoded here: it comes from the backend's
+  // BRIDGE_CAPABILITY_MIN_VERSIONS (capabilities.bridgeRequirements), the same
+  // table the Bridge changelog is tested against, so this text cannot drift.
+  const requiredBridgeVersion = isSchemaChannel ? wpCapabilities?.bridgeRequirements?.[schemaChannel.requirementKey] || null : null
+  const installedBridgeVersion = wpCapabilities?.bridgeVersion || null
+  const wpSchemaChannelUnsupportedReason = (isSchemaChannel && wpCapabilities?.connected && !wpCapabilities?.[schemaChannel.capabilityFlag])
+    ? (wpCapabilities?.bridgeInstalled
+      ? `Applying ${WORDPRESS_FIELD_LABEL[wordPressFieldType]} through WordPress requires ${requiredBridgeVersion ? `Odito SEO Bridge ${requiredBridgeVersion} or newer` : "a newer version of Odito SEO Bridge"}${installedBridgeVersion ? ` (this site has ${installedBridgeVersion})` : ""}. Update the plugin on this WordPress site, then try again.`
+      : `Applying ${WORDPRESS_FIELD_LABEL[wordPressFieldType]} through WordPress requires the Odito SEO Bridge plugin. Install and activate it on this WordPress site, then try again.`)
+    : null
+  // Shown next to the (hidden) Apply option when the Bridge is simply too
+  // old — the exact naxonify.com situation found during live verification:
+  // deployed Bridge reports installed+active but predates site_schema.
+  const wpSiteSchemaUnsupportedReason = (isSiteScoped && wpSiteSchema && !wpSiteSchema.supported) ? wpSiteSchema.reason : null
 
   const [wpConfirmOpen, setWpConfirmOpen] = useState(false)
+  // Schema fixes apply to ONE page, so that page must resolve to a WordPress page/post first — the
+  // same shared resolver the write uses. Read only while the dialog is open; a failed resolution
+  // keeps Apply disabled and explains why (different site, blog-index homepage, unsupported type...).
+  const {
+    data: wpPageResolutionResponse, isLoading: wpPageResolutionLoading, isError: wpPageResolutionError,
+  } = useWordPressPageResolution(activeProject?._id, selUrl, { enabled: wpConfirmOpen && isSchemaChannel })
+  const wpPageResolution = wpPageResolutionResponse?.data
   const selectedTask = selUrl ? taskMap[selUrl] : null
-  // Requires a linked recommendation too — wordPressSeoFixService.js
-  // derives the value it writes from Task.recommendationId server-side and
-  // rejects the request outright if none is set, so the button is hidden
-  // rather than offered-then-guaranteed-to-fail.
-  const canOfferWordPressApply = !!(wpFieldSupported && selUrl && selectedTask && recommendation)
+
+  // Bug fix: this used to gate on the local `recommendation` (this
+  // component instance's own last "Generate Recommendation" result) —
+  // which has no relationship whatsoever to whether the SELECTED TASK
+  // actually has a recommendation linked server-side. A task created
+  // before any recommendation existed (e.g. via the DIY flow) keeps
+  // recommendationId: null forever unless explicitly linked (see
+  // linkRecommendationMutation below); the old check would still show
+  // "Apply via WordPress" as soon as a recommendation was generated for
+  // this ISSUE, regardless of whether IT was ever attached to THIS task,
+  // and the backend would then correctly reject with
+  // RECOMMENDATION_REQUIRED — exactly the inconsistent state a production
+  // screenshot surfaced. selectedTask.recommendationId (now included by
+  // getActiveTaskUrls — see taskController.js) is the only field that
+  // reflects the actual persisted link.
+  const linkedRecommendationId = selectedTask?.recommendationId || null
+
+  const linkRecommendationMutation = useLinkTaskRecommendation(activeProject?._id, issueId)
+
+  // Auto-link: if the task already exists but has no recommendation linked
+  // (or is linked to a stale/different one) and this component just
+  // generated one for the same issue, complete the link server-side —
+  // the "Persist Recommendation -> Receive recommendationId -> Task has
+  // recommendationId" sequence, just completed retroactively for a task
+  // that predates the recommendation rather than at task-creation time.
+  // Never fires more than once per (task, recommendation) pair.
+  //
+  // Bug fix: this used `recommendation._id` (always undefined — see the
+  // matching fix in createTaskMutation above for why: the recommendation
+  // API names this field `id`), so this effect's very first guard bailed
+  // out on every single run and the auto-link never fired at all. Caught
+  // only by reading recommendationService._formatOutput()'s actual return
+  // shape directly, not by assuming the field name.
+  useEffect(() => {
+    if (!selectedTask?._id || !recommendation?.id) return
+    if (linkedRecommendationId === recommendation.id) return
+    if (linkRecommendationMutation.isPending) return
+    linkRecommendationMutation.mutate({ taskId: selectedTask._id, recommendationId: recommendation.id })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTask?._id, recommendation?.id, linkedRecommendationId])
+
+  // The AUTHORITATIVE recommendation content — fetched by the id the task
+  // actually persists, never assumed to be whatever this component's local
+  // generation mutation happens to hold (that could belong to a different
+  // task, or no longer exist after a page reload with no local state at
+  // all). This is what canOfferWordPressApply and the dialog's preview
+  // both key off from here on.
+  const { data: linkedRecommendationResponse, isLoading: linkedRecommendationLoading } = useRecommendationById(
+    activeProject?._id, linkedRecommendationId, { enabled: !!linkedRecommendationId }
+  )
+  const linkedRecommendation = linkedRecommendationResponse?.data || null
+
+  // Page-content (H1) eligibility, decided per page by the backend's builder adapter. Fetched once the
+  // task's linked recommendation (if any) is known so the backend can preview it in the same call —
+  // `recommended` is display-only; what is written is derived server-side from the task's own
+  // Recommendation.
+  const wpH1RecommendedText = isContentChannel
+    ? (linkedRecommendation?.sections?.contentRewrite?.optimized || linkedRecommendation?.sections?.recommendedVersion || null)
+    : null
+  const {
+    data: wpH1ContextResponse, isLoading: wpH1ContextLoading, isError: wpH1ContextError, refetch: refetchWpH1Context,
+  } = useWordPressH1Context(activeProject?._id, selUrl, wpH1RecommendedText, {
+    enabled: isContentChannel && !!selUrl && !!selectedTask && (!linkedRecommendationId || (!!linkedRecommendation && !linkedRecommendationLoading)),
+  })
+  const wpH1Context = wpH1ContextResponse?.data
+  const wpFieldSupported = isContentChannel
+    ? !!(wpCapabilities?.connected && wpH1Context?.supported)
+    : wpFieldSupportedBase
+  // The specific reason this page's H1 cannot be applied automatically (builder not supported, an H1
+  // already exists, ...) — shown instead of an Apply option, never a generic message.
+  const wpContentUnsupportedReason = (isContentChannel && wpCapabilities?.connected && wpH1Context)
+    ? (!wpH1Context.supported
+      ? wpH1Context.reason
+      : (wpH1Context.recommended && !wpH1Context.recommended.ok
+        ? `The recommended H1 cannot be applied automatically: ${wpH1Context.recommended.message}`
+        : null))
+    : null
+
+  // ALL of: field supported, a task exists, that task has a real persisted
+  // recommendationId, AND the recommendation it points to has actually
+  // loaded (never offer Apply while still confirming the link is real).
+  // For an H1 the recommendation must also be applicable as plain text.
+  const canOfferWordPressApply = !!(
+    wpFieldSupported && selUrl && selectedTask && linkedRecommendationId &&
+    linkedRecommendation && !linkedRecommendationLoading &&
+    (!isContentChannel || wpH1Context?.recommended?.ok)
+  )
 
   // Live current value, fetched only while the confirmation dialog is open
   // — never cached/displayed stale, and re-sent back to the server as
   // expectedCurrentValue so the backend's read-before-write conflict check
   // compares against exactly what this dialog showed.
-  const { data: wpSeoDataResponse, isLoading: wpSeoDataLoading } = useWordPressSeoData(
-    activeProject?._id, selUrl, { enabled: wpConfirmOpen && !!selUrl }
+  const { data: wpSeoDataResponse, isLoading: wpSeoDataLoading, isError: wpSeoDataError } = useWordPressSeoData(
+    activeProject?._id, selUrl, { enabled: wpConfirmOpen && !!selUrl && !isSiteScoped && !isSchemaChannel && !isContentChannel }
   )
   const wpLiveValue = wordPressFieldType
     ? wpSeoDataResponse?.data?.seo?.[wpCapabilityKey] ?? null
     : null
+  // Display-only reformat for robots (see formatRobotsWireValueForDisplay's
+  // own comment) — wpLiveValue itself stays the raw wire string, since
+  // that's what's sent back as expectedCurrentValue below. Also fixes a
+  // real "(empty)" bug of its own: robots' confirmed "no restriction" wire
+  // value is the empty string "", which is falsy and would otherwise render
+  // as "(empty)" — indistinguishable from a genuinely unknown value — via
+  // the dialog's `currentValue || "(empty)"` check.
+  const wpLiveValueDisplay = (wordPressFieldType === "robots" && typeof wpLiveValue === "string")
+    ? formatRobotsWireValueForDisplay(wpLiveValue)
+    : wpLiveValue
+  // Bug fix: a failed live-read (network error, WordPress unreachable) and
+  // a page that genuinely has no meta description were both funneled into
+  // the same `?? null` -> "(empty)" display — indistinguishable to the
+  // user, and unsafe to Apply against since expectedCurrentValue would
+  // silently be null instead of a real read. Tracked separately so the
+  // dialog can tell them apart and refuse to offer Apply when the read
+  // itself failed, rather than only when the value happens to be empty.
+  const wpLiveValueUnavailable = wpConfirmOpen && !wpSeoDataLoading && wpSeoDataError
 
   // Same source TaskHistoryService.resolveExpectedValue() reads server-side
   // (sections.contentRewrite.optimized, falling back to recommendedVersion)
   // — shown here for the user's approval, but the backend re-derives it
-  // independently rather than trusting anything sent from this dialog.
+  // independently, BY THE SAME task.recommendationId, rather than trusting
+  // anything sent from this dialog. Sourced from linkedRecommendation (the
+  // by-id fetch above), never the local generation-mutation state.
   const newValueForWordPress = wordPressFieldType
-    ? (recommendation?.sections?.contentRewrite?.optimized || recommendation?.sections?.recommendedVersion || null)
+    ? (linkedRecommendation?.sections?.contentRewrite?.optimized || linkedRecommendation?.sections?.recommendedVersion || null)
     : null
 
   const applyWordPressFixMutation = useMutation({
-    mutationFn: async () => {
+    // `profiles` is only ever set by the sameAs dialog: the site owner's own
+    // URLs ({ additionalProfiles, removeProfiles, expectedAdditionalProfiles }).
+    // Every other fix passes nothing and the backend derives the value itself.
+    mutationFn: async (profiles) => {
       if (!selectedTask?._id) throw new Error('No task exists for this URL yet.')
+      // The H1 fix carries only the fingerprint of the page state the dialog showed.
+      if (isContentChannel && !wpH1Context?.fingerprint) throw new Error('The page state could not be read. Refresh and try again.')
       return apiService.applyWordPressFix(selectedTask._id, {
-        expectedCurrentValue: wpLiveValue,
+        ...(isContentChannel ? { expectedContentFingerprint: wpH1Context.fingerprint } : {}),
+        ...(wordPressFieldType === 'same_as' && profiles ? profiles : {}),
+        // Site-scoped fixes (same_as add, breadcrumb enable) are additive/
+        // idempotent by construction server-side (see
+        // RankMathProvider::update_same_as's membership check and the
+        // breadcrumbs toggle) — there's no single prior "current value" a
+        // stale-value conflict check would compare against the way there is
+        // for a per-post replace-value field, so expectedCurrentValue is
+        // simply never sent for these.
+        // Schema fixes (FAQ, AggregateRating) likewise send no expectedCurrentValue: the backend re-derives
+        // the schema from the task's own recommendation and re-checks it against
+        // the page's latest crawled FAQ, so there is no client-held "current
+        // value" to conflict-check.
+        ...((isSiteScoped || isSchemaChannel || isContentChannel) ? {} : { expectedCurrentValue: wpLiveValue }),
         approved: true,
       })
     },
@@ -394,18 +737,90 @@ export default function IssueDetailView({
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.activeUrls(activeProject._id, issueId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all(activeProject._id) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.summary(activeProject._id) })
+      // Site-scoped writes change state that isn't keyed by pageUrl at all —
+      // invalidate the one site-schema query (not any per-page seo-data
+      // query) so the dialog's "Current Social Profiles"/breadcrumb status
+      // reflects the real post-write state next time it's opened, on ANY
+      // page's issue detail view, not just this one (Section 14: invalidate
+      // only the affected queries, avoid global cache resets).
+      if (isSiteScoped && activeProject?._id) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.siteSchema(activeProject._id) })
+      }
+      if (isContentChannel && activeProject?._id) {
+        queryClient.invalidateQueries({ queryKey: ['wordpress', activeProject._id, 'h1-context'] })
+      }
       setWpConfirmOpen(false)
       // Idempotent re-apply (backend detected the live value already
       // matched — no WordPress write occurred) is still a SUCCESS, worded
       // distinctly rather than repeating "Applied" as if a new write just
       // happened (Section 10 of the Phase 3 spec).
       const alreadyApplied = result?.data?.alreadyApplied
-      setToast({
-        message: alreadyApplied
-          ? 'This value was already correct on WordPress — no change needed. Pending verification on next recrawl.'
-          : 'Applied via WordPress — pending verification on next recrawl',
-        type: 'success',
-      })
+      // Bug fix (production): this toast used to always say "Applied via
+      // WordPress" with a green success icon whenever the request returned
+      // HTTP 200 — even when the backend's own immediate read-after-write
+      // check (wordPressSeoFixService.applyFix's `immediateVerification`)
+      // came back 'failed' or 'unknown'. That is exactly how a canonical
+      // value could get written as a literal HTML string, "succeed" (the
+      // write and the read-back agreed on the same garbage value), and
+      // still show the user a plain, unqualified success toast. The
+      // malformed-value case itself is now rejected upstream before any
+      // write happens (see valueNormalization.extractCanonicalUrlValue /
+      // TaskHistoryService._deriveExpectedAfterValue), but a GENUINE
+      // mismatch — WordPress accepted the write, yet the immediate re-read
+      // did not match what was sent — is still possible (a slow-propagating
+      // cache, a conflicting plugin, etc.) and must never be reported as an
+      // unqualified success either. `implemented` here always means "a
+      // real WordPress write was attempted and recorded" — the ONLY
+      // authoritative confirmation remains TaskVerificationService after
+      // the next recrawl, in every branch below.
+      const immediateVerification = result?.data?.immediateVerification
+      if (isContentChannel) {
+        // The page's content was edited: say what happened, and that only the next crawl can verify it.
+        if (immediateVerification === 'success') {
+          setToast({ message: 'H1 added to your page via WordPress — pending verification on next recrawl', type: 'success' })
+        } else {
+          setToast({
+            message: 'The H1 was saved to WordPress, but Odito could not confirm it on the live page yet (a cache may still be serving the old page). It will be re-checked on the next recrawl.',
+            type: 'warning',
+          })
+        }
+      } else if (wordPressFieldType === 'same_as') {
+        // Never "SEO issue fixed": WordPress accepted the profiles, and only the
+        // next crawl of the rendered Organization JSON-LD can confirm them
+        // (TaskVerificationService is the sole authority for verified_fixed).
+        const sameAs = result?.data?.sameAs
+        const count = sameAs?.added?.length || 0
+        if (alreadyApplied) {
+          setToast({ message: 'These profiles are already in your Organization schema — no change needed. Verification pending.', type: 'success' })
+        } else if (immediateVerification === 'success') {
+          setToast({ message: count === 1 ? 'Social profile added to WordPress. Verification pending.' : 'Social profiles added to WordPress. Verification pending.', type: 'success' })
+        } else {
+          setToast({
+            message: 'Sent to WordPress, but Odito could not confirm the saved profiles match what you entered. The Organization schema output will be checked on the next recrawl.',
+            type: 'warning',
+          })
+        }
+      } else if (alreadyApplied) {
+        setToast({
+          message: 'This value was already correct on WordPress — no change needed. Pending verification on next recrawl.',
+          type: 'success',
+        })
+      } else if (immediateVerification === 'success') {
+        setToast({ message: 'Applied via WordPress — pending verification on next recrawl', type: 'success' })
+      } else if (immediateVerification === 'failed') {
+        setToast({
+          message: 'Sent to WordPress, but the immediate re-check did not confirm the value was saved as expected. This will be re-checked on the next recrawl.',
+          type: 'warning',
+        })
+      } else {
+        // 'unknown' — the write was sent but the immediate re-read itself
+        // failed (network error, etc.), so nothing here confirms or denies
+        // the value actually persisted.
+        setToast({
+          message: 'Sent to WordPress, but Odito could not immediately confirm it was saved. This will be checked on the next recrawl.',
+          type: 'warning',
+        })
+      }
     },
     onError: () => {
       // Error is rendered inline in the confirmation dialog (conflict,
@@ -419,6 +834,18 @@ export default function IssueDetailView({
     if (canOfferWordPressApply) setWpConfirmOpen(true)
   }, [canOfferWordPressApply])
 
+  // The backend refuses a schema whose content is no longer what the page shows
+  // (FAQ_CONTENT_CHANGED / RATING_CONTENT_CHANGED). The only fix is a new
+  // recommendation built from the current crawl; the auto-link effect above
+  // re-links it to this task.
+  const onRegenerateSchema = useCallback(() => {
+    setWpConfirmOpen(false)
+    applyWordPressFixMutation.reset()
+    recommendationMutation.mutate()
+    setToast({ message: schemaChannel?.regenerateToast || 'Regenerating from the current page — review it, then apply again.', type: 'success' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applyWordPressFixMutation, recommendationMutation, schemaChannel])
+
   const applyErrorInfo = useMemo(
     () => (applyWordPressFixMutation.isError ? describeApplyError(applyWordPressFixMutation.error) : null),
     [applyWordPressFixMutation.isError, applyWordPressFixMutation.error]
@@ -431,10 +858,27 @@ export default function IssueDetailView({
   // useWordPressSeoData query the dialog already reads.
   const onRefreshLiveValue = useCallback(() => {
     applyWordPressFixMutation.reset()
-    if (activeProject?._id && selUrl) {
+    if (!activeProject?._id) return
+    if (isContentChannel) {
+      refetchWpH1Context()
+    } else if (isSiteScoped) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.siteSchema(activeProject._id) })
+    } else if (selUrl) {
       queryClient.invalidateQueries({ queryKey: queryKeys.wordpress.seoData(activeProject._id, selUrl) })
     }
-  }, [applyWordPressFixMutation, queryClient, activeProject?._id, selUrl])
+  }, [applyWordPressFixMutation, queryClient, activeProject?._id, selUrl, isSiteScoped, isContentChannel, refetchWpH1Context])
+
+  // Site-schema freshness on dialog open — mirrors useWordPressSeoData's own
+  // "never cached/displayed stale" guarantee for the per-post dialog. The
+  // site-schema query itself stays always-enabled while isSiteScoped (it
+  // also drives wpFieldSupported, the capability gate), so this refetches
+  // rather than toggling `enabled`.
+  useEffect(() => {
+    if (wpConfirmOpen && isSiteScoped) refetchWpSiteSchema()
+    // The H1 fingerprint the user approves must be as fresh as the dialog they are looking at.
+    if (wpConfirmOpen && isContentChannel) refetchWpH1Context()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wpConfirmOpen, isSiteScoped, isContentChannel])
 
   // Recommendation mutation state is lifted to this parent (see comment
   // above) specifically so it survives tab switches — but that same lift
@@ -520,9 +964,13 @@ export default function IssueDetailView({
     )
   }
 
+  // isPending only flips on the next render — the ref makes rapid repeated clicks
+  // send exactly one request.
+  const createTaskInFlight = useRef(false)
   const onCreateTask = useCallback(() => {
-    if (selUrl && !createTaskMutation.isPending) {
-      createTaskMutation.mutate(selUrl)
+    if (selUrl && !createTaskInFlight.current) {
+      createTaskInFlight.current = true
+      createTaskMutation.mutate(selUrl, { onSettled: () => { createTaskInFlight.current = false } })
     }
   }, [selUrl, createTaskMutation])
 
@@ -945,6 +1393,8 @@ export default function IssueDetailView({
                   onCreateTask={onCreateTask}
                   isCreatingTask={createTaskMutation.isPending}
                   task={selUrl ? taskMap[selUrl] : null}
+                  faqDetection={issueId === FAQ_ISSUE_ID ? getFaqDetection(issueContextData) : null}
+                  ratingDetection={issueId === RATING_ISSUE_ID ? getRatingDetection(issueContextData) : null}
                   mutationState={{
                     isIdle,
                     isPending,
@@ -959,10 +1409,18 @@ export default function IssueDetailView({
                 />
               )}
 
-              {/* Tab 2: DIY Guide — Uses shared recommendation intelligence */}
-              {mode === "diy" && recommendation && (
+              {/* Tab 2: DIY Guide — Uses shared recommendation intelligence.
+                  Falls back to linkedRecommendation (the task's own
+                  persisted recommendation, fetched by id) when this
+                  component instance hasn't generated one itself this
+                  session — e.g. after a page reload, where `recommendation`
+                  (the local generation-mutation result) is empty but the
+                  task already has a real one linked. Without this fallback,
+                  a correctly-gated canOfferWordPressApply:true could never
+                  actually be reached, since this tab wouldn't render at all. */}
+              {mode === "diy" && (recommendation || linkedRecommendation) && (
                 <DIYRenderer
-                  recommendation={recommendation}
+                  recommendation={recommendation || linkedRecommendation}
                   issue={issue}
                   task={selUrl ? taskMap[selUrl] : null}
                   selUrl={selUrl}
@@ -971,13 +1429,26 @@ export default function IssueDetailView({
                   canApplyViaWordPress={canOfferWordPressApply}
                   wordPressFieldLabel={wordPressFieldType ? WORDPRESS_FIELD_LABEL[wordPressFieldType] : null}
                   wordPressProviderLabel={wpCapabilities?.providerLabel}
-                  wordPressBridgeRequired={!!(wordPressFieldType && wpCapabilities?.connected && !wpCapabilities?.ambiguous && wpCapabilities?.bridgeRequired && !wpFieldSupported)}
+                  wordPressBridgeRequired={!!(wordPressFieldType && !isContentChannel && wpCapabilities?.connected && !wpCapabilities?.ambiguous && wpCapabilities?.bridgeRequired && !wpFieldSupported)}
+                  wordPressUnsupportedReason={wpSiteSchemaUnsupportedReason || wpSchemaChannelUnsupportedReason || wpContentUnsupportedReason}
+                  wordPressUserInputHint={wordPressFieldType === "same_as"
+                    ? "Enter your own verified social profile URLs and Odito will add them to your Organization schema in WordPress. Odito never guesses profile URLs."
+                    : (isContentChannel && wpH1Context?.supported
+                      ? `Odito can add the H1 to this page directly in WordPress (${wpH1Context.builder?.label || "page builder"}). You will review exactly what changes before anything is written.`
+                      : null)}
+                  wordPressRecommendationMissing={!!(wpFieldSupported && selUrl && selectedTask && !linkedRecommendationId)}
+                  onGenerateRecommendation={() => recommendationMutation.mutate()}
                   onApplyViaWordPress={onApplyViaWordPress}
                 />
               )}
 
-              {/* Tab 2: DIY Guide — Fallback when no recommendation */}
-              {mode === "diy" && !recommendation && (
+              {/* Tab 2: DIY Guide — Fallback when no recommendation. Uses the
+                  SAME "no recommendation linked" wording the backend/dialog
+                  use (Section 7, State A) when this field would otherwise
+                  be eligible for Apply via WordPress, so the message is
+                  identical regardless of whether the DIY guide has other
+                  content to show yet. */}
+              {mode === "diy" && !recommendation && !linkedRecommendation && (
                 <div style={{
                   padding: "20px",
                   textAlign: "center",
@@ -985,7 +1456,25 @@ export default function IssueDetailView({
                   fontSize: "11.5px",
                   lineHeight: 1.65
                 }}>
-                  Generate an AI recommendation first to access the DIY guide.
+                  {wpFieldSupported && selUrl && selectedTask
+                    ? "No AI recommendation is linked to this task yet — generate one before applying a WordPress fix."
+                    : "Generate an AI recommendation first to access the DIY guide."}
+                  {wpFieldSupported && selUrl && selectedTask && (
+                    <div style={{ marginTop: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => recommendationMutation.mutate()}
+                        disabled={recommendationMutation.isPending}
+                        style={{
+                          padding: "8px 14px", borderRadius: 8, fontSize: 11.5, fontWeight: 600,
+                          border: "1px solid var(--b)", background: "var(--s2)", color: "var(--t)",
+                          cursor: recommendationMutation.isPending ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {recommendationMutation.isPending ? "Generating…" : "Generate Recommendation"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1193,15 +1682,106 @@ export default function IssueDetailView({
         </div>
       </div>
 
-      {wpConfirmOpen && createPortal(
+      {wpConfirmOpen && wordPressFieldType === "same_as" && createPortal(
+        <SameAsApplyDialog
+          open={wpConfirmOpen}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          providerLabel={wpCapabilities?.providerLabel}
+          organization={wpSiteSchema?.organization}
+          organizationLoading={wpSiteSchemaLoading}
+          organizationUnavailable={wpConfirmOpen && !wpSiteSchemaLoading && wpSiteSchemaError}
+          unavailableReason={wpSiteSchemaUnsupportedReason}
+          onConfirm={(profiles) => applyWordPressFixMutation.mutate(profiles)}
+          onRefreshLiveValue={onRefreshLiveValue}
+          isApplying={applyWordPressFixMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
+
+      {wpConfirmOpen && wordPressFieldType === "breadcrumb" && createPortal(
+        <BreadcrumbApplyDialog
+          open={wpConfirmOpen}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          providerLabel={wpCapabilities?.providerLabel}
+          breadcrumbs={wpSiteSchema?.breadcrumbs}
+          breadcrumbsLoading={wpSiteSchemaLoading}
+          breadcrumbsUnavailable={wpConfirmOpen && !wpSiteSchemaLoading && wpSiteSchemaError}
+          onConfirm={() => applyWordPressFixMutation.mutate()}
+          onRefreshLiveValue={onRefreshLiveValue}
+          isApplying={applyWordPressFixMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
+
+      {wpConfirmOpen && isFaqSchema && createPortal(
+        <FaqSchemaApplyDialog
+          open={wpConfirmOpen}
+          resolution={wpPageResolution}
+          resolutionLoading={wpPageResolutionLoading}
+          resolutionError={wpPageResolutionError}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          pageUrl={selUrl}
+          jsonLd={newValueForWordPress}
+          onConfirm={() => applyWordPressFixMutation.mutate()}
+          onRegenerate={onRegenerateSchema}
+          isApplying={applyWordPressFixMutation.isPending}
+          isRegenerating={recommendationMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
+
+      {wpConfirmOpen && isRatingSchema && createPortal(
+        <RatingSchemaApplyDialog
+          open={wpConfirmOpen}
+          resolution={wpPageResolution}
+          resolutionLoading={wpPageResolutionLoading}
+          resolutionError={wpPageResolutionError}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          pageUrl={selUrl}
+          jsonLd={newValueForWordPress}
+          onConfirm={() => applyWordPressFixMutation.mutate()}
+          onRegenerate={onRegenerateSchema}
+          isApplying={applyWordPressFixMutation.isPending}
+          isRegenerating={recommendationMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
+
+      {wpConfirmOpen && isContentChannel && createPortal(
+        <H1ApplyDialog
+          open={wpConfirmOpen}
+          onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
+          siteLabel={activeProject?.main_url || activeProject?.project_name}
+          pageUrl={selUrl}
+          context={wpH1Context}
+          contextLoading={wpH1ContextLoading}
+          contextUnavailable={wpConfirmOpen && !wpH1ContextLoading && wpH1ContextError}
+          onConfirm={() => applyWordPressFixMutation.mutate()}
+          onRefreshContext={onRefreshLiveValue}
+          isApplying={applyWordPressFixMutation.isPending}
+          errorInfo={applyErrorInfo}
+        />,
+        document.body
+      )}
+
+      {wpConfirmOpen && !isSiteScoped && !isSchemaChannel && !isContentChannel && createPortal(
         <WordPressApplyConfirmDialog
           open={wpConfirmOpen}
           onOpenChange={(open) => { setWpConfirmOpen(open); if (!open) applyWordPressFixMutation.reset() }}
           fieldLabel={wordPressFieldType ? WORDPRESS_FIELD_LABEL[wordPressFieldType] : ""}
           siteLabel={activeProject?.main_url || activeProject?.project_name}
           providerLabel={wpCapabilities?.providerLabel}
-          currentValue={wpLiveValue}
+          currentValue={wpLiveValueDisplay}
           currentValueLoading={wpSeoDataLoading}
+          currentValueUnavailable={wpLiveValueUnavailable}
           newValue={newValueForWordPress}
           onConfirm={() => applyWordPressFixMutation.mutate()}
           onRefreshLiveValue={onRefreshLiveValue}

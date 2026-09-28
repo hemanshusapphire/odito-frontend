@@ -51,10 +51,8 @@ function NavList({ pathname, onNavigate }) {
 
 /**
  * Standalone Social Media AI sidebar - deliberately independent from the
- * Audit sidebar (components/sidebar/ElevenSidebar.jsx) and from the
- * WordPress Management sidebar, same isolation pattern as
- * components/wordpress/WordPressSidebar.jsx. Swapped in by DashboardLayout
- * for any /app/social-media* route.
+ * Audit sidebar (components/sidebar/ElevenSidebar.jsx). Swapped in by
+ * DashboardLayout for any /app/social-media* route.
  */
 export default function SocialMediaSidebar() {
   const pathname = usePathname()

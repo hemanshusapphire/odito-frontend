@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Globe } from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
 import { useProject } from "@/contexts/ProjectContext"
@@ -8,6 +8,8 @@ import apiService from "@/lib/apiService"
 import { IssueRecommendationPanel } from "@/components/recommendations"
 import DIYRenderer from "@/components/diy/DIYRenderer"
 import IssueDetailView from "@/components/dashboard/issues/IssueDetailView"
+import TaskToast from "@/components/dashboard/issues/TaskToast"
+import { useCreateIssueTask } from "@/hooks/useCreateIssueTask"
 
 const DIFFICULTY_MAP = {
   critical: "Hard",
@@ -82,6 +84,23 @@ function DomainIssueDetailView({ issue, onBack, issueTypeName }) {
   const { data, isIdle, isPending, isSuccess, isError, error } = recommendationMutation
   const recommendation = data?.data
   const meta           = data?.meta
+
+  // A domain-level issue has no page list, but a task still needs a URL: the ai_issues
+  // document for a domain rule is attached to the domain root (scheme://host — see
+  // issue_engine.py), so that is the URL the task is created (and later verified) for.
+  const domainRootUrl = useMemo(() => {
+    try { return activeProject?.main_url ? new URL(activeProject.main_url).origin : null } catch { return null }
+  }, [activeProject?.main_url])
+
+  const [toast, setToast] = useState(null)
+  const { taskMap, createTask, isCreating } = useCreateIssueTask({
+    projectId:        activeProject?._id,
+    issueKey:         issueId,
+    issueName:        issue.issue_title,
+    issueCategory:    issue.card ?? "AISO",
+    recommendationId: recommendation?.id,
+    onFeedback:       setToast,
+  })
 
   // Normalised issue shape expected by IssueRecommendationPanel / DIYRenderer
   const normalizedForPanel = {
@@ -265,11 +284,11 @@ function DomainIssueDetailView({ issue, onBack, issueTypeName }) {
               projectId={activeProject?._id}
               issueId={issueId}
               issueSource="ai_visibility"
-              selUrl={null}
+              selUrl={domainRootUrl}
               issue={normalizedForPanel}
-              onCreateTask={() => {}}
-              isCreatingTask={false}
-              task={null}
+              onCreateTask={() => createTask(domainRootUrl)}
+              isCreatingTask={isCreating}
+              task={domainRootUrl ? taskMap[domainRootUrl] ?? null : null}
               mutationState={{ isIdle, isPending, isSuccess, isError, error, recommendation, meta }}
               onGenerate={() => recommendationMutation.mutate()}
               onReset={() => recommendationMutation.reset()}
@@ -387,6 +406,8 @@ function DomainIssueDetailView({ issue, onBack, issueTypeName }) {
           )}
         </div>
       </div>
+
+      <TaskToast toast={toast} onClose={() => setToast(null)} />
     </div>
   )
 }

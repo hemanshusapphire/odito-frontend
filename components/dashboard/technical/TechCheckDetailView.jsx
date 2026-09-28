@@ -34,6 +34,7 @@ import DIYRenderer from "@/components/diy/DIYRenderer";
 import CurrentStateRenderer from "@/components/issue-context/CurrentStateRenderer";
 import { useIssueContext } from "@/hooks/useIssueContext";
 import { useActiveTaskUrls } from "@/hooks/useDashboardQueries";
+import { useCreateIssueTask } from "@/hooks/useCreateIssueTask";
 
 export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
   const { activeProject } = useProject();
@@ -181,7 +182,13 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
           pageUrl: url,
           status: 'implemented',
           origin: recommendation ? 'ai_fix' : 'manual',
-          recommendationId: recommendation?._id || null,
+          // Bug fix: recommendationService._formatOutput() names this
+          // field `id`, never `_id` (confirmed by reading that function
+          // directly) — recommendation._id was always undefined here, so
+          // this task's recommendationId was silently null even when a
+          // real recommendation had just been generated. Same bug fixed
+          // in IssueDetailView.jsx's own createTaskMutation.
+          recommendationId: recommendation?.id || null,
         });
       }
     },
@@ -240,6 +247,19 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
   } = recommendationMutation;
   const recommendation = mutData?.data;
   const meta = mutData?.meta;
+
+  // "Create Task" (AI recommendation panel) — the shared hook every screen uses
+  // (see hooks/useCreateIssueTask.js): duplicate guard, POST /tasks, list
+  // refresh, toast feedback.
+  const { createTask, isCreating: isCreatingTask } = useCreateIssueTask({
+    projectId: activeProject?._id,
+    issueKey: check.id,
+    issueName: check.name,
+    issueCategory: check.category || 'Technical',
+    recommendationId: recommendation?.id,
+    onFeedback: ({ message, type }) => showToast(message, type),
+  });
+  const onCreateTask = useCallback(() => createTask(selUrl), [createTask, selUrl]);
 
   const openUrls = pages.filter((p) => !fixedUrlsSet.has(p.url));
 
@@ -1032,6 +1052,8 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                   }}
                   onMarkFixed={markFixed}
                   isMarkingFixed={fixMutation.isPending}
+                  onCreateTask={onCreateTask}
+                  isCreatingTask={isCreatingTask}
                   task={selUrl ? taskMap[selUrl] : null}
                   mutationState={{
                     isIdle,

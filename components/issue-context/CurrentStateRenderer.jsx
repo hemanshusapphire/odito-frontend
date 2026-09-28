@@ -2,6 +2,12 @@
 
 import React, { memo } from 'react'
 import dynamic from 'next/dynamic'
+import FaqDetectionPanel from './FaqDetectionPanel'
+import { getFaqDetection } from './faqDetection'
+import RatingDetectionPanel from './RatingDetectionPanel'
+import { getRatingDetection } from './ratingDetection'
+import AccessibilityAuditPanel from './AccessibilityAuditPanel'
+import { getAccessibilityAudit } from './accessibilityAudit'
 
 // Lazy-load renderers so unused display types don't bloat the initial bundle
 const TextRenderer        = dynamic(() => import('./renderers/TextRenderer'),        { ssr: false })
@@ -81,6 +87,15 @@ const CurrentStateRenderer = memo(function CurrentStateRenderer({ issueContext, 
   const { currentState, expectedState, identity, metadata } = issueContext
   const displayType = currentState?.displayType || 'absent'
   const Renderer = DISPLAY_TYPE_MAP[displayType] || AbsentRenderer
+  // faq_schema: the generic "Not detected — no FAQPage schema" card would hide
+  // the fact that FAQ *content* was found. Show content and schema separately.
+  const faqDetection = getFaqDetection(issueContext)
+  // aggregate_rating_schema: likewise — show the rating the page displays, the
+  // schema already on it and the entity the rating would attach to.
+  const ratingDetection = getRatingDetection(issueContext)
+  // keyboard_accessibility: the generic one-line summary cannot say WHICH elements fail.
+  // Show the exact audited elements, the focus-trap analysis and the detected technology.
+  const accessibilityAudit = getAccessibilityAudit(issueContext)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -130,7 +145,13 @@ const CurrentStateRenderer = memo(function CurrentStateRenderer({ issueContext, 
       </div>
 
       {/* Renderer */}
-      <Renderer currentState={currentState} expectedState={expectedState} />
+      {faqDetection
+        ? <FaqDetectionPanel detection={faqDetection} expectedState={expectedState} />
+        : ratingDetection
+          ? <RatingDetectionPanel detection={ratingDetection} expectedState={expectedState} />
+          : accessibilityAudit
+            ? <AccessibilityAuditPanel audit={accessibilityAudit} />
+            : <Renderer currentState={currentState} expectedState={expectedState} />}
 
       {/* Missing signals warning */}
       {metadata?.missingSignals?.length > 0 && (
