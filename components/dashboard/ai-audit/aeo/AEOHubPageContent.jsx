@@ -39,8 +39,8 @@ export default function AEOHubPageContent() {
   const router = useRouter()
   const projectId = activeProject?._id
 
-  const { data: hubResponse,    isLoading: hubLoading    } = useAEOHub(projectId)
-  const { data: issuesResponse, isLoading: issuesLoading } = useAEOHubIssues(projectId)
+  const { data: hubResponse,    isLoading: hubLoading,    isError: hubError    } = useAEOHub(projectId)
+  const { data: issuesResponse, isLoading: issuesLoading, isError: issuesError } = useAEOHubIssues(projectId)
 
   const hub    = hubResponse?.data
   const issues = issuesResponse?.data?.issues ?? []
@@ -58,10 +58,12 @@ export default function AEOHubPageContent() {
   const signalsArray = hub
     ? Object.entries(hub.signals).map(([id, sig]) => ({
         id,
-        label:       SIGNAL_META[id]?.label       ?? id,
-        description: SIGNAL_META[id]?.description ?? '',
-        status:      sig.status,
-        score:       sig.score,
+        label:           SIGNAL_META[id]?.label       ?? id,
+        description:     SIGNAL_META[id]?.description ?? '',
+        status:          sig.status,
+        score:           sig.score,
+        applicablePages: sig.applicable_pages,
+        pagesFailing:    sig.pages_failing,
       }))
     : []
 
@@ -124,6 +126,18 @@ export default function AEOHubPageContent() {
             <div key={i} className="h-40 skeleton-base skeleton-shimmer rounded-xl" />
           ))}
         </div>
+      </div>
+    )
+  }
+
+  // An API/network failure must never look like "no audit run yet" — see
+  // the identical fix in GeoHubPageContent.jsx.
+  if (hubError || issuesError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-96 gap-3">
+        <p className="text-sm" style={{ color: "var(--color-status-error)" }}>
+          Failed to load AEO Hub data. Please try again.
+        </p>
       </div>
     )
   }

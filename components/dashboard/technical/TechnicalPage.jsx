@@ -132,10 +132,7 @@ export default function TechnicalPage() {
           onOpenUrl={handleUrlSelect}
         />
       ) : (
-        <div className="two-col" style={{
-          gridTemplateColumns: "1fr 320px",
-          alignItems: "start"
-        }}>
+        <div className="split-aside-320">
           <CheckList
             onSelectCheck={setSelectedCheck}
             technicalData={technicalData}

@@ -12,7 +12,7 @@ export default function DashboardPage() {
     <Suspense fallback={
       <div className="flex-1 space-y-6 skeleton-fade-in">
         {/* Score grid skeleton */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 @min-[641px]/main:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="rounded-xl border p-6 space-y-3">
               <div className="w-20 h-3 skeleton-base skeleton-shimmer rounded" />
@@ -27,7 +27,7 @@ export default function DashboardPage() {
           <div className="w-full h-20 skeleton-base skeleton-shimmer rounded" />
         </div>
         {/* Two column skeleton */}
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 @min-[701px]/main:grid-cols-2 gap-5">
           <div className="rounded-xl border p-6 space-y-3">
             <div className="w-28 h-4 skeleton-base skeleton-shimmer rounded" />
             <div className="w-full h-32 skeleton-base skeleton-shimmer rounded" />

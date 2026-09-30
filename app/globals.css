@@ -33,6 +33,7 @@
 
 /* ── Theme ─────────────────────────────────────────────────────── */
 @import "../styles/themes/dark.css";
+@import "../styles/themes/locked-dark.css";
 
 /* ── Utilities ─────────────────────────────────────────────────── */
 @import "../styles/utilities/glass.css";
@@ -40,6 +41,7 @@
 @import "../styles/utilities/gradients.css";
 @import "../styles/utilities/pills.css";
 @import "../styles/utilities/layout.css";
+@import "../styles/utilities/touch.css";
 @import "../styles/utilities/effects.css";
 @import "../styles/utilities/scrollbar.css";
 @import "../styles/utilities/skeleton.css";
@@ -49,6 +51,7 @@
 @import "../styles/components/chat.css";
 @import "../styles/components/cards.css";
 @import "../styles/components/tables.css";
+@import "../styles/components/detail-view.css";
 @import "../styles/components/fix-panel.css";
 @import "../styles/components/tabs.css";
 @import "../styles/components/pagespeed.css";

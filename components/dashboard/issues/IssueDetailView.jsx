@@ -41,6 +41,7 @@ import CurrentStateRenderer from "@/components/issue-context/CurrentStateRendere
 import { useIssueContext } from "@/hooks/useIssueContext"
 import { useIssueUrls, useActiveTaskUrls, useWordPressCapabilities, useWordPressSeoData, useWordPressSiteSchema, useWordPressH1Context, useWordPressPageResolution, useLinkTaskRecommendation, useRecommendationById } from "@/hooks/useDashboardQueries"
 import { useTaskRealtimeSync } from "@/hooks/useTaskRealtimeSync"
+import { useScrollIntoViewWhenStacked } from "@/hooks/useScrollIntoViewWhenStacked"
 import { describeApplyError } from "./wordPressApplyError"
 import FaqSchemaApplyDialog from "./FaqSchemaApplyDialog"
 import RatingSchemaApplyDialog from "./RatingSchemaApplyDialog"
@@ -317,6 +318,8 @@ export default function IssueDetailView({
   const queryClient = useQueryClient()
   const [mode, setMode] = useState(initialMode)
   const [selUrl, setSelUrl] = useState(initialSelUrl)
+  const fixPanelRef = useRef(null)
+  useScrollIntoViewWhenStacked(fixPanelRef, selUrl)
   const [toast, setToast] = useState(null)
 
   // Closes the pre-existing gap where a task silently verified/reopened in
@@ -983,22 +986,22 @@ export default function IssueDetailView({
   return (
     <div className="fi">
       {/* Breadcrumb */}
-      <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "18px" }}>
+      <div className="detail-breadcrumb">
         <button
-          className="task-btn secondary"
+          className="task-btn secondary tap-target"
           style={{ fontSize: "11.5px" }}
           onClick={onBack}
         >
           ← {issueTypeName}
         </button>
         <span style={{ color: "var(--t3)", fontSize: "12px" }}>›</span>
-        <span style={{ fontSize: "12px", color: "var(--t2)", fontWeight: "500" }}>
+        <span className="detail-breadcrumb__current" style={{ fontSize: "12px", color: "var(--t2)", fontWeight: "500" }}>
           {issue.title || issue.issue || issue.issue_message}
         </span>
       </div>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="detail-title-row">
         <div style={{
           width: 50,
           height: 50,
@@ -1016,16 +1019,13 @@ export default function IssueDetailView({
         }}>
           {issue.severity === "high" ? "⚠" : issue.severity === "medium" ? "⚡" : "✓"}
         </div>
-        <h2 style={{
+        <h2 className="detail-title-row__title" style={{
           fontFamily: "/dashboard",
-          fontSize: 28,
-          fontWeight: 800,
-          flex: 1,
           color: "var(--t)"
         }}>
           {issue.title || issue.issue || issue.issue_message}
         </h2>
-        <span style={{
+        <span className="detail-title-row__pill" style={{
           background: "var(--color-brand-cyan-surface)",
           border: "1px solid var(--color-brand-cyan-border)",
           color: "var(--cy)",
@@ -1037,12 +1037,7 @@ export default function IssueDetailView({
       </div>
 
       {/* 4 Stat Tiles */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 12,
-        marginBottom: 20
-      }}>
+      <div className="detail-stat-grid">
         <div style={{
           background: "var(--s)",
           border: "1px solid var(--b)",
@@ -1174,9 +1169,9 @@ export default function IssueDetailView({
       </div>
 
       {/* Two Column Layout */}
-      <div className="flex flex-col lg:flex-row gap-5 mt-1 min-w-0">
+      <div className="detail-split">
         {/* Left Column - URLs */}
-        <div className="flex-1 min-w-0">
+        <div className="detail-split__main">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
               <div className="font-dashboard text-base font-bold text-foreground">
@@ -1228,19 +1223,20 @@ export default function IssueDetailView({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center flex-wrap gap-1.5 min-w-0">
                     <div
-                      className="font-dashboard text-[var(--cy)] font-medium truncate"
+                      className="font-dashboard text-[var(--cy)] font-medium min-w-0 [overflow-wrap:anywhere]"
                       style={{ fontSize: "13px" }}
+                      title={url}
                     >
                       {url}
                     </div>
                     {badge}
                   </div>
-                  <div className="text-[10.5px] mt-0.5 truncate" style={{ color: 'var(--t2)' }}>
+                  <div className="text-[10.5px] mt-0.5 [overflow-wrap:anywhere]" style={{ color: 'var(--t2)' }}>
                     {pageIssueMessage || issue.issue || issue.issue_message || 'Issue detected on this page'}
                   </div>
                 </div>
                 <button
-                  className="bg-[var(--color-status-error-surface)] text-[var(--re)] border border-[var(--color-status-error-border)]
+                  className="tap-target bg-[var(--color-status-error-surface)] text-[var(--re)] border border-[var(--color-status-error-border)]
                            text-[10px] font-medium px-2.5 py-1 rounded-md flex-shrink-0 mr-1.5
                            transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
                   onClick={(e) => {
@@ -1251,7 +1247,7 @@ export default function IssueDetailView({
                   Open
                 </button>
                 <button
-                  className="bg-gradient-to-r from-[#7730ed] to-[#00dfff] text-white border-none
+                  className="tap-target bg-gradient-to-r from-[#7730ed] to-[#00dfff] text-white border-none
                            text-[10px] font-bold px-3 py-1 rounded-md flex-shrink-0
                            shadow-[0_0_12px_rgba(0,223,255,0.2)] transition-all duration-200
                            hover:-translate-y-px hover:shadow-[0_3px_16px_rgba(0,223,255,0.3)]"
@@ -1288,7 +1284,7 @@ export default function IssueDetailView({
         </div>
 
         {/* Right Column - Fix Panel */}
-        <div className={`w-full ${selUrl ? "lg:w-[500px] xl:w-[600px]" : "lg:w-96 xl:w-[460px]"} flex-shrink-0 transition-all duration-200`}>
+        <div ref={fixPanelRef} className="detail-split__aside" data-selected={selUrl ? "true" : "false"}>
           <div className="bg-card border border-border rounded-2xl overflow-hidden sticky top-0">
             {/* Panel Header */}
             <div className="px-4.5 py-4 border-b border-border flex items-center justify-between">
@@ -1299,7 +1295,7 @@ export default function IssueDetailView({
               </div>
               {selUrl && (
                 <button
-                  className="bg-muted border border-border 
+                  className="tap-target bg-muted border border-border 
                            rounded-md px-2 py-0.5 text-xs text-muted-foreground cursor-pointer
                            hover:bg-accent transition-colors"
                   onClick={() => setSelUrl(null)}
@@ -1329,6 +1325,7 @@ export default function IssueDetailView({
                 marginBottom: 18
               }}>
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
                     fontSize: 11,
@@ -1346,6 +1343,7 @@ export default function IssueDetailView({
                   ✦ Fix with AI
                 </button>
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
                     fontSize: 11,
@@ -1364,6 +1362,7 @@ export default function IssueDetailView({
                   🛠 DIY Guide
                 </button>
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
                     fontSize: 11,

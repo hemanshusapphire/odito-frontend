@@ -39,7 +39,14 @@ export default function KeywordDashboard() {
   // the US. rankingData.country already carries the real value (see
   // SeoRankingCurrent's country field / getProjectRankings) — no change to
   // any ranking/location logic, this only corrects what the label displays.
-  const trackingCountryLabel = rankingData?.country || 'US';
+  //
+  // The `|| 'US'` that used to sit here was the same bug one layer down:
+  // a project with no keywords checked yet (rankingData null, or a
+  // canonical doc predating the location-resolution fixes in
+  // seoOnboardingController.js) has no real country to show — falling back
+  // to 'US' made that indistinguishable from a real US-targeted project.
+  // Distinguish it explicitly instead.
+  const trackingCountryLabel = rankingData?.country ?? null;
 
   const handleRescanKeyword = useCallback(async (keyword) => {
     if (!projectId || rescanningKeywords.has(keyword)) return;
@@ -88,10 +95,9 @@ export default function KeywordDashboard() {
     <div className="keyword-dashboard" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
 
       {/* TOP BAR */}
-      <div style={{
+      <div className="kw-topbar" style={{
         background: 'var(--bg2)',
         borderBottom: '1px solid var(--border)',
-        padding: '14px 20px',
         flexShrink: 0
       }}>
         <div style={{
@@ -123,7 +129,7 @@ export default function KeywordDashboard() {
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase'
               }}>
-                MANUAL TRACKING · GOOGLE {trackingCountryLabel}
+                MANUAL TRACKING{trackingCountryLabel ? ` · GOOGLE ${trackingCountryLabel}` : ' · LOCATION NOT YET SET'}
               </span>
             </div>
             <div style={{
@@ -168,6 +174,7 @@ export default function KeywordDashboard() {
           )}
 
           <button
+            className="tap-target"
             onClick={() => setIsAddModalOpen(true)}
             disabled={atLimit}
             title={atLimit ? 'Maximum keywords reached for your current plan. Upgrade your subscription to track more keywords.' : undefined}
@@ -203,6 +210,7 @@ export default function KeywordDashboard() {
           }}>
             <span>{deleteError}</span>
             <button
+              className="tap-target"
               onClick={() => setDeleteError(null)}
               style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: 0 }}
             >
@@ -218,6 +226,7 @@ export default function KeywordDashboard() {
           }}>
             <span>Scan failed for "{rescanError.keyword}": {rescanError.message}</span>
             <button
+              className="tap-target"
               onClick={() => setRescanError(null)}
               style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: 0 }}
             >

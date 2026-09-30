@@ -11,11 +11,14 @@ export default function ContentStructureSection({ structure }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        {/* Question Coverage */}
+        {/* This is a live H2-heading ratio (question-phrased H2s / total H2s),
+            a different metric from the AEO hero's "Question Coverage Score"
+            (a precomputed composite). Both are real; only the label used to
+            collide. */}
         <div className="glass-card rounded-xl p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
-              Question Coverage
+              Question H2 Ratio
             </span>
             <BarChart2 size={16} style={{ color: "var(--color-brand-violet)" }} />
           </div>
@@ -67,7 +70,7 @@ export default function ContentStructureSection({ structure }) {
             >
               {faq_intelligence.schema_match_pct}%
             </span>
-            <span className="text-xs mb-1" style={{ color: "var(--color-text-tertiary)" }}>Schema Match</span>
+            <span className="text-xs mb-1" style={{ color: "var(--color-text-tertiary)" }}>FAQ Schema Match</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

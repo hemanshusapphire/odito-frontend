@@ -21,7 +21,7 @@ const FEATURE_LABELS = {
   urlSelection: "URL Selection",
   failedUrlRetry: "Failed URL Retry",
   pdfReport: "PDF Reports",
-  weeklyRecrawl: "Weekly Recrawl",
+  weeklyRecheck: "Weekly Recheck",
   apiAccess: "API Access",
   whiteLabel: "White-label Reports",
 }

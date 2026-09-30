@@ -381,11 +381,18 @@ export default function PageSpeedPageContent() {
     currentDeviceData.diagnostics?.forEach(d => { if (d.score >= 0.9) passed.push(d.title) })
     currentDeviceData.opportunities?.forEach(o => { if (o.score >= 0.9) passed.push(o.title) })
     if (passed.length === 0) {
+      // Real, verified fallbacks only — each gated on an actual real score
+      // ≥90. Previously, if a page genuinely had zero passing audits AND
+      // every score was below 90, this unconditionally pushed three
+      // fabricated claims ("Valid HTML structure", "No critical errors
+      // found", "Basic optimizations applied") with no basis in the real
+      // PageSpeed data — rendered next to a ✔ as if genuinely verified.
+      // A page with real problems can legitimately have 0 passing audits;
+      // that's now just an empty list, handled honestly by the caller.
       if (currentDeviceData.performance_score >= 90) passed.push("Performance optimized")
       if (currentDeviceData.accessibility >= 90)     passed.push("Accessibility compliant")
       if (currentDeviceData.best_practices >= 90)    passed.push("Best practices followed")
       if (currentDeviceData.seo >= 90)               passed.push("SEO optimized")
-      if (passed.length === 0) passed.push("Valid HTML structure", "No critical errors found", "Basic optimizations applied")
     }
     return passed
   }
@@ -549,12 +556,18 @@ export default function PageSpeedPageContent() {
         </div>
       </div>
       <div className="pass-grid">
-        {getPassedAudits().map((audit, i) => (
-          <div key={i} className="pass-item">
-            <span style={{ color: "var(--green)" }}>✔</span>
-            {audit}
+        {getPassedAudits().length > 0 ? (
+          getPassedAudits().map((audit, i) => (
+            <div key={i} className="pass-item">
+              <span style={{ color: "var(--green)" }}>✔</span>
+              {audit}
+            </div>
+          ))
+        ) : (
+          <div className="pass-item" style={{ color: "var(--t3)" }}>
+            No audits passed yet — see the opportunities and diagnostics above.
           </div>
-        ))}
+        )}
       </div>
       </>
       )}

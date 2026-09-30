@@ -102,8 +102,8 @@ function AccessibilityContent() {
         />
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold">Accessibility Issues</h1>
               <p className="text-muted-foreground">
                 {summary
@@ -112,12 +112,12 @@ function AccessibilityContent() {
               </p>
             </div>
             {issues.length > 0 && (
-              <span className="text-xs font-bold px-2 py-1 rounded bg-primary/10 text-primary">
+              <span className="text-xs font-bold px-2 py-1 rounded bg-primary/10 text-primary whitespace-nowrap shrink-0">
                 {issues.length} FOUND
               </span>
             )}
           </div>
-          <div className="bg-card rounded-lg border p-6">
+          <div className="bg-card rounded-lg border p-3 sm:p-6">
             {issues.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No accessibility issues found. Your site looks great!

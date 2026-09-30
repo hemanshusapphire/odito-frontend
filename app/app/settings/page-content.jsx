@@ -2,7 +2,7 @@
 
 import { useProject } from "@/contexts/ProjectContext"
 import RecrawlCard from "@/components/settings/RecrawlCard"
-import WeeklyRecrawlCard from "@/components/settings/WeeklyRecrawlCard"
+import WeeklyRecheckCard from "@/components/settings/WeeklyRecheckCard"
 import DangerZoneCard from "@/components/settings/DangerZoneCard"
 import SettingsTabs from "@/components/settings/SettingsTabs"
 
@@ -17,7 +17,7 @@ export default function SettingsPageContent() {
       <div className="border-b pb-4">
         <h1 className="text-foreground text-2xl font-bold tracking-tight">Project Settings</h1>
         <p className="text-muted-foreground">
-          {activeProject?.project_name || activeProject?.name || "Manage recrawl and scheduling for this project"}
+          {activeProject?.project_name || activeProject?.name || "Manage recrawls and rechecks for this project"}
         </p>
       </div>
 
@@ -27,8 +27,9 @@ export default function SettingsPageContent() {
         </div>
       ) : (
         <div className="space-y-6 max-w-2xl">
-          <RecrawlCard project={activeProject} />
-          <WeeklyRecrawlCard project={activeProject} />
+          {/* Keyed by project so a previous project's recrawl error/progress state never leaks into the next one. */}
+          <RecrawlCard key={activeProject._id} project={activeProject} />
+          <WeeklyRecheckCard project={activeProject} />
           <DangerZoneCard project={activeProject} />
         </div>
       )}

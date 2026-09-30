@@ -93,10 +93,16 @@
    --color-brand-purple-border: #f3e8ff;
 }
 
-:root {
+:root,
+.theme-locked-dark {
    /* ═══════════════════════════════════════════════════════════════
      LEGACY ALIASES — For backward compatibility
      These map old variable names to new semantic tokens.
+
+     Also scoped to .theme-locked-dark (styles/themes/locked-dark.css):
+     var() aliases are resolved where they are declared, so a subtree
+     forced to .dark must re-declare them or it inherits the light
+     values computed at <html>.
      ═══════════════════════════════════════════════════════════════ */
    --bg: var(--color-bg-base);
    --bg2: var(--color-bg-elevated);

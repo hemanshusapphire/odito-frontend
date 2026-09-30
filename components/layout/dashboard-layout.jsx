@@ -71,7 +71,7 @@ export function DashboardLayout({
 
         <div className="flex flex-1 flex-col min-w-0">
           {showHeader && (isSocialMediaModule ? <SocialMediaHeader /> : <SiteHeader user={currentUser} {...headerProps} />)}
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="flex flex-1 flex-col gap-4 p-2 pt-0 sm:p-4 sm:pt-0">
             {children}
           </div>
         </div>

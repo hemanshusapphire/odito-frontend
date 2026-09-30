@@ -19,15 +19,25 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog"
 import { useAuditTrigger } from "@/hooks/useAuditTrigger"
+import { useSubscription } from "@/hooks/useDashboardQueries"
 
 /**
- * Recrawl Project card — reuses the same audit-trigger logic (socket
- * handling, progress polling, cache invalidation) as the dashboard's
- * Recrawl button via useAuditTrigger. Does not call a new API.
+ * Manual Recrawl card — reuses the same audit-trigger logic (socket
+ * handling, progress polling, cache invalidation) via useAuditTrigger and
+ * the existing full-audit endpoint. Each run consumes one of the plan's
+ * manual recrawl credits; the remaining count comes from the shared
+ * useSubscription() query (a per-account allowance, never derived from the
+ * selected project), and is refreshed by useAuditTrigger after a start.
  */
 export default function RecrawlCard({ project }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const { isRecrawling, recrawlError, startRecrawl } = useAuditTrigger(project?._id)
+  const { data: subscriptionResponse, isLoading: quotaLoading, isError: quotaErrored } = useSubscription()
+
+  const recrawls = subscriptionResponse?.data?.recrawls
+  const remaining = recrawls?.remaining
+  const hasQuota = remaining != null
+  const outOfRecrawls = hasQuota && remaining <= 0
 
   const isRunning = isRecrawling || project?.crawl_status === "running"
 
@@ -41,20 +51,36 @@ export default function RecrawlCard({ project }) {
       <CardHeader>
         <CardTitle className="text-lg">Recrawl Project</CardTitle>
         <CardDescription>
-          Run a fresh audit to refresh SEO, AI Visibility, Accessibility, Performance, and Technical findings for this project.
+          Run a full audit to refresh SEO, AI Visibility, Accessibility, Performance, and Technical findings.
         </CardDescription>
+        <p className="text-sm text-muted-foreground" data-testid="recrawl-credit-info">
+          Uses 1 manual recrawl credit.{" "}
+          {quotaLoading ? (
+            "Checking your balance…"
+          ) : quotaErrored || !hasQuota ? null : (
+            <span className="font-medium text-foreground">
+              {remaining === 1 ? "1 manual recrawl remaining" : `${remaining} manual recrawls remaining`}
+            </span>
+          )}
+        </p>
       </CardHeader>
 
-      {recrawlError && (
+      {recrawlError ? (
         <CardContent>
           <p className="text-sm text-destructive">{recrawlError}</p>
         </CardContent>
-      )}
+      ) : outOfRecrawls ? (
+        <CardContent>
+          <p className="text-sm text-destructive">
+            You have no manual recrawls remaining. Upgrade your plan or wait for your next billing period.
+          </p>
+        </CardContent>
+      ) : null}
 
       <CardFooter>
         <Button
           onClick={() => setConfirmOpen(true)}
-          disabled={isRunning || !project?._id}
+          disabled={isRunning || !project?._id || outOfRecrawls}
           variant="outline"
           className="gap-2"
         >
@@ -87,6 +113,12 @@ export default function RecrawlCard({ project }) {
               <TriangleAlert className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
               <p className="text-sm leading-relaxed text-amber-500">
                 Running a recrawl may reset issue tracking and replace existing audit results.
+              </p>
+            </div>
+            <div className="mt-3 rounded-lg border border-border bg-muted/40 px-3.5 py-3">
+              <p className="text-sm leading-relaxed text-foreground">
+                This uses 1 manual recrawl credit
+                {hasQuota ? ` (${remaining} remaining before this run)` : ""}.
               </p>
             </div>
           </div>

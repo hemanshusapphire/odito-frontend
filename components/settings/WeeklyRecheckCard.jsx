@@ -14,13 +14,13 @@ import { useProject } from "@/contexts/ProjectContext"
 import { useUpdateScrapeFrequency } from "@/hooks/useDashboardQueries"
 
 /**
- * Weekly Recrawl card — toggles scrape_frequency ('manual' | 'weekly') on
+ * Weekly Recheck card — toggles scrape_frequency ('manual' | 'weekly') on
  * the existing SeoProject document via the existing project update
- * endpoint. The Weekly Recrawl scheduler and credit policy already run
- * server-side (Project Trash & Restore's sibling Weekly Recrawl work) — this
- * card only reflects and edits the stored preference, unchanged.
+ * endpoint. The scheduled operation is the Quick Recheck pipeline (refreshes
+ * SEO, Accessibility and AI Visibility) and never uses manual recrawl
+ * credits — this card only reflects and edits the stored preference.
  */
-export default function WeeklyRecrawlCard({ project }) {
+export default function WeeklyRecheckCard({ project }) {
   const { refreshProjects } = useProject()
   const [isWeekly, setIsWeekly] = useState(project?.scrape_frequency === "weekly")
   const mutation = useUpdateScrapeFrequency(project?._id)
@@ -37,7 +37,7 @@ export default function WeeklyRecrawlCard({ project }) {
       await mutation.mutateAsync(checked ? "weekly" : "manual")
       await refreshProjects()
     } catch (error) {
-      console.error("Failed to update weekly recrawl setting:", error)
+      console.error("Failed to update weekly recheck setting:", error)
       setIsWeekly(previous) // rollback
     }
   }
@@ -47,20 +47,21 @@ export default function WeeklyRecrawlCard({ project }) {
       <CardHeader className="flex flex-row items-start justify-between gap-6">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">Weekly Recrawl</CardTitle>
+            <CardTitle className="text-lg">Weekly Recheck</CardTitle>
             <Badge variant={isWeekly ? "success" : "secondary"}>
               {isWeekly ? "ON" : "OFF"}
             </Badge>
           </div>
           <CardDescription>
-            When enabled, ODITO automatically performs a project recrawl every 7 days.
+            When enabled, ODITO automatically refreshes SEO, Accessibility and AI Visibility every 7 days.
+            It runs automatically and does not use manual recrawl credits.
           </CardDescription>
         </div>
         <Switch
           checked={isWeekly}
           onCheckedChange={handleToggle}
           disabled={mutation.isPending || !project?._id}
-          aria-label="Toggle weekly recrawl"
+          aria-label="Toggle weekly recheck"
         />
       </CardHeader>
 

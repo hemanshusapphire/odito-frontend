@@ -19,9 +19,9 @@ export default function PricingIntro() {
             <strong className="text-on-surface">page-crawl quota</strong>, the total number of pages Odito can
             crawl across your account in a billing cycle; and a{" "}
             <strong className="text-on-surface">keyword tracking limit</strong>, the number of keywords each
-            individual project can monitor for ranking changes. Re-running an existing project — through
-            a manual recrawl or a quick recheck of previously flagged issues — doesn&apos;t use up another
-            credit, since credits are only spent when a new project is created.
+            individual project can monitor for ranking changes. Audit credits are only spent when a new
+            project is created. Re-running a full audit on an existing project uses one of your plan&apos;s
+            monthly manual recrawls, while quick rechecks and the automatic weekly recheck are free.
           </p>
         </div>
       </div>

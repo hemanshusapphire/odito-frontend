@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "Can I run additional recrawls?",
     answer:
-      "Manual recrawls and quick rechecks of an existing project don't use a credit — credits are only spent when you create a new project. Projects can also be set to recrawl automatically on a recurring schedule.",
+      "Each plan includes a monthly allowance of manual recrawls — full audits of an existing project — and each one uses a single manual recrawl. Quick rechecks and the optional automatic weekly recheck don't use manual recrawls, and audit credits are only spent when you create a new project.",
   },
   {
     question: "What happens when I reach a plan limit?",

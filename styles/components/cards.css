@@ -22,6 +22,10 @@
   position: relative;
   overflow: hidden;
   transition: var(--transition);
+  /* Card-level container so the delta badge can react to the card's own
+     width (a 4-up grid and a 2-up grid give very different card sizes). */
+  container: score / inline-size;
+  min-width: 0;
 }
 
 .score-card::before {
@@ -37,6 +41,33 @@
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--color-border-strong);
+}
+
+/* Delta badge: pinned to the top-right corner while the card is wide enough
+   for it not to collide with the centred label; below that it drops into
+   normal flow under the ring. */
+.score-delta {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* Container queries measure the CONTENT box (card minus 2x20px padding and
+   borders): 200px here = a ~242px card, i.e. where the badge starts to overlap
+   the label. Wider cards (1440px+ desktop) keep the original corner badge. */
+@container score (max-width: 200px) {
+  .score-delta {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
 }
 
 .score-label {
@@ -110,6 +141,7 @@
 
 /* ── Stat Tile ─────────────────────────────────────────────────── */
 .stat-tile {
+  min-width: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg, 14px);
@@ -141,6 +173,7 @@
 
 /* ── Summary Tile ──────────────────────────────────────────────── */
 .sum-tile {
+  min-width: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg, 14px);
@@ -194,6 +227,7 @@
 
 /* ── ARIA Card ─────────────────────────────────────────────────── */
 .aria-card {
+  min-width: 0;
   background: linear-gradient(135deg, rgba(119, 48, 237, 0.11), rgba(0, 223, 255, 0.05));
   border: 1px solid rgba(119, 48, 237, 0.22);
   border-radius: var(--radius-lg, 14px);
@@ -252,6 +286,7 @@
   overflow: hidden;
 }
 
+.check-card { min-width: 0; overflow-wrap: anywhere; }
 .check-card:hover                { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
 .check-card.critical             { border-color: rgba(255, 56, 96, 0.2); }
 .check-card.critical:hover       { border-color: rgba(255, 56, 96, 0.4); box-shadow: 0 4px 24px rgba(255, 56, 96, 0.1); }

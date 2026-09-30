@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import apiService from '@/lib/apiService'
 import socketService from '@/lib/socketService'
-import { invalidateProject, refetchProject } from '@/lib/query/keys'
+import { invalidateProject, refetchProject, queryKeys } from '@/lib/query/keys'
 
 const POLL_INTERVAL_MS = 5000 // fallback status poll every 5s
 
 /**
- * Shared audit-trigger logic (Full Recrawl + Quick Recheck): starts the audit,
+ * Shared audit-trigger logic (manual Full Recrawl + manual Quick Recheck): starts the audit,
  * subscribes to socket completion/error events, joins the project's socket
  * room, and runs a polling fallback in case a socket event is missed.
  * On completion, invalidates + refetches all cached project queries.
@@ -129,6 +129,10 @@ export function useAuditTrigger(projectId) {
         throw new Error(response.message || 'Failed to start recrawl')
       }
 
+      // A manual Recrawl consumes one manual-recrawl credit server-side —
+      // refresh the shared subscription query so every counter is current.
+      queryClient.invalidateQueries({ queryKey: queryKeys.subscription.mine() })
+
       socketService.onAuditCompleted(onAuditFinished)
       socketService.onAuditError(onAuditFailed)
       socketService.joinProject(pid)
@@ -143,10 +147,18 @@ export function useAuditTrigger(projectId) {
       router.push(`/processing/${pid}`)
     } catch (error) {
       console.error('[RECRAWL] Failed to start:', error)
-      setRecrawlError(error.message || 'Failed to start recrawl. Please try again.')
+      if (error.code === 'INSUFFICIENT_RECRAWLS') {
+        // Nothing was started or reset — keep the counter honest.
+        queryClient.invalidateQueries({ queryKey: queryKeys.subscription.mine() })
+        setRecrawlError('You have no manual recrawls remaining. Upgrade your plan or wait for your next billing period.')
+      } else if (error.code === 'SUBSCRIPTION_NOT_ACTIVE') {
+        setRecrawlError(error.message || 'Your subscription is not active. Resolve this via the Billing Portal to run a recrawl.')
+      } else {
+        setRecrawlError(error.message || 'Failed to start recrawl. Please try again.')
+      }
       setIsRecrawling(false)
     }
-  }, [onAuditFinished, onAuditFailed, startPolling, router])
+  }, [onAuditFinished, onAuditFailed, startPolling, router, queryClient])
 
   const startQuickRecheck = useCallback(async () => {
     const pid = projectIdRef.current

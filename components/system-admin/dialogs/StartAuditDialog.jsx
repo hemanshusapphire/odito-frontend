@@ -14,8 +14,8 @@ import { useStartProjectAudit } from "@/hooks/system-admin/projects"
 /**
  * Same AlertDialog shell as SuspendUserDialog.jsx. Calls the backend's
  * start-audit endpoint, which reuses startProjectAudit(projectId,
- * {source:'scheduled'}) verbatim — the exact call the Weekly Recrawl
- * scheduler already makes in production. Audit-logged.
+ * {source:'admin_recrawl'}) — the full-audit pipeline, never billed against
+ * the owner's manual recrawls. Audit-logged.
  */
 export function StartAuditDialog({ project, open, onOpenChange, onSuccess }) {
   const [reason, setReason] = useState("")

@@ -971,8 +971,9 @@ const ARIAChat = ({ onComplete }) => {
       });
 
       // Background task 2: Start audit (non-blocking). The project credit was
-      // already spent at project creation — starting an audit never checks
-      // or consumes credits, so no credit-specific error can occur here.
+      // already spent at project creation — a project's first audit is free
+      // (the backend treats it as 'initial_audit' and never consumes a manual
+      // recrawl credit), so no credit-specific error can occur here.
       apiService.startAudit(projectId).then(auditResponse => {
         console.log('🔍 DEBUG: Audit start response:', {
           projectId,

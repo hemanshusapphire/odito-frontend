@@ -1,0 +1,28 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Touch Targets
+
+   .tap-target keeps a control's visual size but extends its hit area to at
+   least 44x44px (WCAG 2.5.5 / Apple HIG) on touch-sized screens, via an
+   invisible centred ::after that belongs to the element (clicks on it hit
+   the element). Desktop pointers are unaffected.
+
+   Use on small controls whose visual size we don't want to change
+   (inline "Fix" / "Open" chips, compact buttons). Not for elements that
+   already need `position: absolute` or `overflow: hidden`.
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1023px), (pointer: coarse) {
+  .tap-target {
+    position: relative;
+  }
+
+  .tap-target::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

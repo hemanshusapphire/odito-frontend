@@ -152,7 +152,7 @@ function AuditTimeline() {
 
               {runs.length > INITIAL_VISIBLE && !showAll && (
                 <button
-                  className="timeline-expand-btn"
+                  className="timeline-expand-btn tap-target"
                   onClick={() => setShowAll(true)}
                 >
                   <ChevronDown size={13} />
@@ -163,7 +163,7 @@ function AuditTimeline() {
 
               {showAll && runs.length > INITIAL_VISIBLE && (
                 <button
-                  className="timeline-expand-btn"
+                  className="timeline-expand-btn tap-target"
                   onClick={() => setShowAll(false)}
                 >
                   <ChevronUp size={13} />

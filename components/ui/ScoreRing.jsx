@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 
-export default function ScoreRing({ val, color, color2, size = 90 }) {
+// `fluid` makes the ring scale down with its container (viewBox + 100% width,
+// capped at `size`) instead of staying a fixed `size`px square, so it can
+// never be wider than the card that holds it. Default (false) keeps the
+// original fixed-size SVG for every other caller.
+export default function ScoreRing({ val, color, color2, size = 90, fluid = false }) {
   const [current, setCurrent] = useState(0);
   useEffect(() => { const t = setTimeout(() => setCurrent(val), 300); return () => clearTimeout(t); }, [val]);
   const r = (size / 2) - 8;
@@ -10,9 +14,10 @@ export default function ScoreRing({ val, color, color2, size = 90 }) {
   const offset = circ - (current / 100) * circ;
   return (
     <svg
-      width={size}
-      height={size}
-      style={{ transform: "rotate(-90deg)" }}
+      width={fluid ? undefined : size}
+      height={fluid ? undefined : size}
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ transform: "rotate(-90deg)", ...(fluid ? { width: "100%", height: "auto" } : null) }}
       role="img"
       aria-label={`Score ${val} out of 100`}
     >

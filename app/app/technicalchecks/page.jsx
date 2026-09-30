@@ -6,7 +6,7 @@ export default function TechnicalChecksPage() {
     <Suspense fallback={
       <div className="space-y-4 skeleton-fade-in">
         <div className="w-48 h-8 skeleton-base skeleton-shimmer rounded" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 @min-[561px]/main:grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="rounded-xl border p-5 space-y-3">
               <div className="w-16 h-8 skeleton-base skeleton-shimmer rounded" />

@@ -217,3 +217,132 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Tracked-keywords table — responsive
+   `main` is the content-area container declared in app/app/layout.jsx, so
+   these breakpoints already exclude the 260px sidebar and page padding.
+
+   >= 980px  Full 11-column table (unchanged look). It needs ~890px plus the
+             page's own ~90px of padding, so it never scrolls here; .kw-table-scroll is only a safety net.
+   <= 979px  Each keyword becomes a card: name row, then its metrics in a
+             labelled grid (8 / 4 / 2 columns as space allows), then the
+             actions. Nothing is hidden and every button stays reachable -
+             previously the table was clipped by overflow:hidden with no way
+             to scroll, hiding Status and the rescan/delete buttons.
+   ═══════════════════════════════════════════════════════════════ */
+.kw-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kw-table { min-width: 890px; }
+
+.kw-grid {
+  display: grid;
+  grid-template-columns: 36px minmax(110px, 1fr) 80px 80px 76px 90px 90px 80px 76px 80px 60px;
+}
+
+.kw-grid--row { padding: 12px 16px; align-items: center; }
+.kw-grid--head { padding: 8px 16px; }
+
+.kw-c-name { min-width: 0; overflow-wrap: anywhere; }
+.kw-idx-inline { display: none; }
+
+.kw-c-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.kw-actions-row { display: flex; gap: 4px; }
+
+.kw-expand {
+  padding: 0 16px 12px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kw-ru-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kw-info-meta {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  gap: 20px;
+}
+
+.kw-topbar { padding: 14px 20px; }
+
+@container main (max-width: 700px) {
+  .kw-topbar { padding: 12px; }
+  .kw-info-meta { margin-left: 0; text-align: left; flex-basis: 100%; }
+}
+
+@container main (max-width: 979px) {
+  .kw-table { min-width: 0; }
+
+  .kw-grid--head { display: none; }
+
+  .kw-grid--row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px 10px;
+    padding: 14px;
+  }
+
+  .kw-c-idx { display: none; }
+  .kw-idx-inline { display: inline; margin-right: 6px; color: var(--text3); font-weight: 400; }
+
+  .kw-c-name { grid-column: 1 / -1; }
+  .kw-c-name > div:first-child { font-size: 14px; line-height: 1.4; }
+
+  .kw-c-m { min-width: 0; }
+
+  .kw-c-m::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  /* Actions: their own row at the bottom of the card, at real touch size
+     (40px) instead of a hit-area overlay, since delete sits next to rescan. */
+  .kw-c-actions {
+    grid-column: 1 / -1;
+    order: 99;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .kw-actions-row { display: contents; }
+
+  .kw-c-actions button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .kw-expand { padding: 0 14px 14px; }
+  .kw-ru-link { white-space: normal; overflow-wrap: anywhere; }
+}
+
+@container main (min-width: 480px) and (max-width: 979px) {
+  .kw-grid--row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@container main (min-width: 900px) and (max-width: 979px) {
+  .kw-grid--row { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}

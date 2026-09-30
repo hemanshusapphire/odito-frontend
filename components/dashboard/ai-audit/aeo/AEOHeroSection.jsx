@@ -5,9 +5,15 @@ import { useState, useEffect } from "react"
 const RING_R    = 88
 const RING_CIRC = 2 * Math.PI * RING_R  // ≈ 552.9
 
+// "Question Coverage" was reused for two genuinely different metrics: this
+// hero card's precomputed composite score, and Content Structure's live
+// question-H2-to-total-H2 ratio (see ContentStructureSection.jsx). Both are
+// real, backend-computed values — the confusion was purely a shared label.
+// Renamed here to "Question Coverage Score" to disambiguate from the ratio;
+// the underlying API field (`question_coverage`) is unchanged.
 const CARD_CONFIGS = {
   answer_readiness:  { label: "Answer Readiness"  },
-  question_coverage: { label: "Question Coverage" },
+  question_coverage: { label: "Question Coverage Score" },
   faq_coverage:      { label: "FAQ Coverage"       },
   snippet_score:     { label: "Snippet Score"      },
   voice_search:      { label: "Voice Search"       },

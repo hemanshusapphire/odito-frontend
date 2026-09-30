@@ -25,6 +25,94 @@
 .issue-table tr:last-child td { border-bottom: none; }
 .issue-table tr:hover td      { background: var(--color-surface-hover); }
 
+/* ── Issue table: responsive behaviour ─────────────────────────────
+   Desktop: unchanged table.
+   Tablet / narrow: the table keeps every column and scrolls inside its own
+   wrapper, so it can never widen the page.
+   Phone (container <= 639px): each row reflows into a stacked card - title on
+   top, then a 2x2 grid of Severity / Pages / Impact / Difficulty, then a
+   full-width action. Nothing is hidden. The header row is visually hidden
+   (kept for assistive tech; labels are repeated per cell via data-label).
+   `main` is the content-area container declared in app/app/layout.jsx. */
+.issue-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 220px cap on the title column keeps the desktop table exactly as it was
+   (it used to be an inline maxWidth on the cell; browsers honour it when
+   sizing table columns). Lifted in the stacked-card layout below. */
+.issue-table .it-title {
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+@container main (max-width: 639px) {
+  .issue-table-wrap { overflow-x: visible; }
+
+  .issue-table,
+  .issue-table tbody { display: block; width: 100%; }
+
+  .issue-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .issue-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-lg, 14px);
+  }
+
+  .issue-table tbody tr:last-child { margin-bottom: 0; }
+  .issue-table tbody tr:hover { background: var(--color-surface-hover); }
+
+  .issue-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .issue-table tr:hover td { background: transparent; }
+
+  .issue-table td.it-title {
+    max-width: none;
+    grid-column: 1 / -1;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .issue-table td[data-label]:not(.it-title):not(.it-action)::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: var(--weight-semibold, 600);
+    letter-spacing: var(--tracking-wider, 0.07em);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .issue-table td.it-action { grid-column: 1 / -1; }
+
+  .issue-table td.it-action .fix-ai-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
 /* ── Check List ────────────────────────────────────────────────── */
 .card-header {
   display: flex;

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Sparkles, Menu, X, ChevronDown } from 'lucide-react'
+import { Sparkles, Menu, X, ChevronDown, ArrowLeft } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { useAuth } from '@/contexts/AuthContext'
 import { SOCIAL_MEDIA_NAV_ITEMS } from './socialMediaNav'
@@ -70,8 +70,16 @@ export default function SocialMediaSidebar() {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[15px] font-bold leading-tight tracking-tight text-slate-900">Social Media AI</span>
-            <span className="block truncate text-xs text-slate-400">Create. Engage. Grow.</span>
           </span>
+        </Link>
+
+        <Link
+          href="/app/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="mt-4 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0 text-slate-400" />
+          <span className="truncate">Back to Odito AI</span>
         </Link>
       </div>
 

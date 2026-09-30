@@ -87,8 +87,8 @@ export default function PageDetailView({ url, pageData, loading, error, onBack, 
         <button className="btn sm" onClick={onBack}>← Back</button>
         <div className="page-hd-div"></div>
         <div className="page-hd-title-block">
-          <div className="page-hd-name">{pageData.name}</div>
-          <div className="page-hd-url">{pageData.url}</div>
+          <div className="page-hd-name" title={pageData.name}>{pageData.name}</div>
+          <div className="page-hd-url" title={pageData.url}>{pageData.url}</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
           {startError && (

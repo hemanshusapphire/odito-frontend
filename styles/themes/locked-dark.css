@@ -1,0 +1,33 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Design System — Locked Dark Theme Boundary
+
+   Used by <LockedDarkTheme> (components/shared) for screens that must
+   stay dark whatever the global theme is (e.g. /processing).
+
+   Together with the `.dark` class it applies, this makes the subtree
+   resolve tokens exactly as <html class="dark"> would:
+     - `.dark` blocks (themes/dark.css, tokens/colors.css, tokens/shadows.css)
+       supply the ShadCN, --color-* and shadow tokens.
+     - The legacy alias block in tokens/colors.css is also scoped to this
+       class (":root, .theme-locked-dark"), so --text, --cyan, --grad1 ...
+       re-resolve against the dark tokens instead of inheriting the light
+       values computed at <html>.
+   ═══════════════════════════════════════════════════════════════ */
+
+.theme-locked-dark {
+  color-scheme: dark;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Keep the surface behind/around the boundary dark too (overscroll,
+   rubber-banding, viewport scrollbar), which otherwise shows the global
+   light body background. #000000 mirrors --background in themes/dark.css.
+   next-themes writes color-scheme inline on <html>, hence !important. */
+body:has(.theme-locked-dark) {
+  background-color: #000000;
+}
+
+html:has(.theme-locked-dark) {
+  color-scheme: dark !important;
+}

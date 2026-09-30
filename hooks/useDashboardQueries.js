@@ -272,7 +272,15 @@ export function useAISOHub(projectId) {
     queryKey: queryKeys.aisoHub.data(projectId),
     queryFn:  () => apiService.getAISOHubData(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    // Audit-result data (scores/issues), not general/static data — see
+    // stale-times.js's own doc comment on AUDIT_RESULT: must be short so a
+    // backend recalculation (or re-audit) is fetched fresh rather than
+    // served from the 24h-persisted localStorage cache. This hook (and its
+    // GEO/AEO siblings below) previously used STANDARD (5 min), which meant
+    // a fixed backend calculation could still render as the old, wrong
+    // value for up to 5 minutes — or indefinitely, if the tab was never
+    // remounted — after the fix shipped.
+    staleTime: staleTimes.AUDIT_RESULT,
   })
 }
 
@@ -281,7 +289,7 @@ export function useAISOHubIssues(projectId) {
     queryKey: queryKeys.aisoHub.issues(projectId),
     queryFn:  () => apiService.getAISOHubIssues(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    staleTime: staleTimes.AUDIT_RESULT, // see useAISOHub above
   })
 }
 
@@ -312,7 +320,7 @@ export function useGEOHub(projectId) {
     queryKey: queryKeys.geoHub.data(projectId),
     queryFn:  () => apiService.getGEOHubData(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    staleTime: staleTimes.AUDIT_RESULT, // see useAISOHub's comment above
   })
 }
 
@@ -321,7 +329,7 @@ export function useGEOHubIssues(projectId) {
     queryKey: queryKeys.geoHub.issues(projectId),
     queryFn:  () => apiService.getGEOHubIssues(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    staleTime: staleTimes.AUDIT_RESULT, // see useAISOHub's comment above
   })
 }
 
@@ -341,7 +349,7 @@ export function useAEOHub(projectId) {
     queryKey: queryKeys.aeoHub.data(projectId),
     queryFn:  () => apiService.getAEOHubData(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    staleTime: staleTimes.AUDIT_RESULT, // see useAISOHub's comment above
   })
 }
 
@@ -350,7 +358,7 @@ export function useAEOHubIssues(projectId) {
     queryKey: queryKeys.aeoHub.issues(projectId),
     queryFn:  () => apiService.getAEOHubIssues(projectId),
     enabled:  !!projectId,
-    staleTime: staleTimes.STANDARD,
+    staleTime: staleTimes.AUDIT_RESULT, // see useAISOHub's comment above
   })
 }
 

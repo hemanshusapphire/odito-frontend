@@ -218,9 +218,19 @@ export default function CheckList({ onSelectCheck, technicalData, error }) {
   const total = summary?.total ?? checks.length
   const healthScore = summary?.healthScore ?? 0
   
-  // Keep this calculation as it needs impact values from check objects
+  // `impact` mixes two different bases depending on the check (see
+  // technicalChecks.service.js's `impact_basis`): a real "% of pages
+  // affected" ratio for page-level checks, or a fixed 100/50/0 severity
+  // weight for site-wide checks (SSL/robots/sitemap). Summing them across
+  // checks and presenting the total as "% SEO potential recovery" was
+  // fabricating a ranking/traffic estimate that doesn't exist in the data —
+  // two site-wide critical checks alone would already sum to 200%. Replaced
+  // with the actual highest-impact critical check, named and quantified
+  // honestly instead.
   const criticalChecks = checks.filter(c => c.status === "critical" || c.status === "Critical")
-  const totalCriticalImpact = criticalChecks.reduce((sum, c) => sum + (c.impact || 0), 0)
+  const topCriticalCheck = criticalChecks.length > 0
+    ? [...criticalChecks].sort((a, b) => (b.impact || 0) - (a.impact || 0))[0]
+    : null
 
   if (error) {
     return (
@@ -336,10 +346,22 @@ export default function CheckList({ onSelectCheck, technicalData, error }) {
         <div className="aria-card">
           <div className="aria-label">✦ ARIA — Priority Analysis</div>
           <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--t2)" }}>
-            <strong style={{ color: "var(--red)" }}>{critical} critical issues</strong> require immediate action — 
-            These fixes can recover an estimated 
-            <strong style={{ color: "var(--cyan)" }}> +{totalCriticalImpact}% SEO potential</strong>. 
-            Start with the <strong style={{ color: "var(--t)" }}>Noindex fix</strong> (Easy, 30 min) for the fastest ranking recovery.
+            {critical > 0 ? (
+              <>
+                <strong style={{ color: "var(--red)" }}>{critical} critical {critical === 1 ? 'issue' : 'issues'}</strong> require immediate action.
+                {topCriticalCheck && (
+                  <>
+                    {' '}Start with <strong style={{ color: "var(--t)" }}>{topCriticalCheck.name}</strong>
+                    {topCriticalCheck.difficulty && <> ({topCriticalCheck.difficulty})</>}
+                    {topCriticalCheck.impact_basis === 'pages_affected_ratio' && (
+                      <> — affecting <strong style={{ color: "var(--cyan)" }}>{topCriticalCheck.impact || 0}%</strong> of crawled pages</>
+                    )}.
+                  </>
+                )}
+              </>
+            ) : (
+              <>No critical checks right now — nice work.</>
+            )}
           </div>
         </div>
       </div>
@@ -411,7 +433,7 @@ export default function CheckList({ onSelectCheck, technicalData, error }) {
                 <span className="ok-chip">✔ OK</span>
               ) : (
                 <button 
-                  className="fix-ai-btn"
+                  className="fix-ai-btn tap-target"
                   onClick={e => {
                     e.stopPropagation()
                     onSelectCheck(check)

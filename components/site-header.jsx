@@ -10,7 +10,7 @@ import { useExportPDF } from "@/hooks/useExportPDF"
 import { useProject } from "@/contexts/ProjectContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useSidebarStore } from "@/components/sidebar/sidebar-store"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsCompactNav } from "@/hooks/use-mobile"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,8 @@ export function SiteHeader({ user, onLogout }) {
   const { activeProjectId } = useProject()
   const { logout } = useAuth()
   const toggleMobile = useSidebarStore((s) => s.toggleMobile)
-  const isMobile = useIsMobile()
+  // Hamburger shows whenever the sidebar is an overlay drawer (< 1024px)
+  const isMobile = useIsCompactNav()
   const [showCreditDialog, setShowCreditDialog] = useState(false)
 
   const getPageTitle = () => {
@@ -39,6 +40,7 @@ export function SiteHeader({ user, onLogout }) {
     if (pathname === "/projects") return "Projects"
     if (pathname === "/app/analytics") return "Analytics"
     if (pathname === "/app/onpage") return "On-Page Issues"
+    if (pathname === "/app/accessibility") return "Accessibility Issues"
     if (pathname === "/app/technicalchecks") return "Technical Checks"
     if (pathname === "/app/pagespeed") return "PageSpeed Insights"
     if (pathname === "/app/keywords") return "Keywords"
@@ -78,26 +80,27 @@ export function SiteHeader({ user, onLogout }) {
   return (
     <header
       className="bg-card/95 text-foreground flex h-14 shrink-0 items-center gap-2 border-b border-border/40 backdrop-blur transition-[width,height] ease-linear">
-      <div className="flex w-full items-center justify-between gap-1 px-4 lg:gap-2 lg:px-6">
-        <div className="flex items-center gap-1">
+      <div className="flex w-full items-center justify-between gap-2 px-3 sm:px-4 lg:gap-2 lg:px-6">
+        {/* min-w-0 lets the title shrink/truncate instead of forcing the action cluster out */}
+        <div className="flex min-w-0 items-center gap-1">
           {/* Mobile menu trigger */}
           {isMobile && (
             <button
               onClick={toggleMobile}
-              className="-ml-1 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="tap-target -ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" />
             </button>
           )}
 
-          <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+          <Separator orientation="vertical" className="mx-1 shrink-0 sm:mx-2 data-[orientation=vertical]:h-4" />
 
-          <h1 className="text-base font-medium">{getPageTitle()}</h1>
+          <h1 className="min-w-0 truncate text-sm font-medium sm:text-base" title={getPageTitle()}>{getPageTitle()}</h1>
         </div>
 
-        <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => {
                   if (getRemainingCredits(user) <= 0) {
@@ -106,7 +109,7 @@ export function SiteHeader({ user, onLogout }) {
                     router.push("/onboarding");
                   }
                 }}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-transparent px-4 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="tap-target flex items-center gap-1.5 rounded-full border border-border bg-transparent px-2.5 py-2 text-sm font-bold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:px-4 sm:py-2.5"
                 style={{ fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap" }}
               >
                 <Plus size={18} strokeWidth={2.5} />
@@ -116,11 +119,11 @@ export function SiteHeader({ user, onLogout }) {
               <button
                 onClick={handleExport}
                 disabled={loading || !activeProjectId}
+                className="tap-target px-2.5 py-2 sm:px-4"
                 style={{
                   background: loading ? '#94a3b8' : 'linear-gradient(135deg,#7c3aed,#00e5ff)',
                   border: 'none',
                   borderRadius: 9,
-                  padding: '8px 16px',
                   color: '#fff',
                   fontSize: 12,
                   fontWeight: 700,
@@ -151,8 +154,8 @@ export function SiteHeader({ user, onLogout }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="cursor-pointer outline-none" aria-label="Open account menu">
-                    <Avatar className="h-12 w-12 rounded-full hover:opacity-80 transition-opacity border border-border">
+                  <button className="tap-target shrink-0 cursor-pointer outline-none" aria-label="Open account menu">
+                    <Avatar className="h-9 w-9 rounded-full hover:opacity-80 transition-opacity border border-border sm:h-12 sm:w-12">
                       <AvatarImage src={user.avatar || undefined} alt="" />
                       <AvatarFallback className="rounded-full text-base font-semibold bg-accent/40 text-foreground">
                         {`${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || 'U'}

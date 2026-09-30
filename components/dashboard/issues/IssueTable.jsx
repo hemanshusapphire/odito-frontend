@@ -15,11 +15,11 @@ function SevBadge({ sev }) {
 
 function DifficultyPill({ difficulty }) {
   const d = (difficulty || "medium").toLowerCase()
-  
+
   // Use same dots and CSS class as severity badges
   const dot = d === "hard" ? "● "
     : d === "medium" ? "◆ " : "▸ "
-  
+
   return (
     <span className={`sev-badge ${d === "hard" ? "high" : d === "medium" ? "medium" : "low"}`}>
       {dot}{d.charAt(0).toUpperCase() + d.slice(1)}
@@ -29,19 +29,26 @@ function DifficultyPill({ difficulty }) {
 
 // Memoized row: only re-renders when its own issue/selection/handler change,
 // so updating one selected row doesn't re-render the entire issue list.
+//
+// Cells carry `data-label` + an `it-*` class: on narrow containers the table
+// reflows into stacked cards (see .issue-table in styles/components/tables.css)
+// and the label is repeated per cell via CSS. ARIA roles are set explicitly
+// because switching table parts to display:block/grid drops their native
+// table semantics in some browsers.
 const IssueRow = memo(function IssueRow({ iss, index, isSelected, onSelect }) {
   return (
     <tr
+      role="row"
       onClick={() => onSelect?.(isSelected ? null : index)}
       style={{
         cursor: "pointer",
         background: isSelected ? "rgba(124,58,237,0.08)" : ""
       }}
     >
-      <td style={{ fontWeight: 500, maxWidth: 220 }}>{iss.title || iss.issue_message}</td>
-      <td><SevBadge sev={iss.severity} /></td>
-      <td style={{ color: "var(--text2)" }}>{iss.pages_affected}</td>
-      <td>
+      <td role="cell" className="it-title" data-label="Issue" style={{ fontWeight: 500 }}>{iss.title || iss.issue_message}</td>
+      <td role="cell" data-label="Severity"><SevBadge sev={iss.severity} /></td>
+      <td role="cell" data-label="Pages" style={{ color: "var(--text2)" }}>{iss.pages_affected}</td>
+      <td role="cell" data-label="Impact">
         <span style={{
           fontFamily: "var(--font-display)",
           fontWeight: 700,
@@ -50,12 +57,12 @@ const IssueRow = memo(function IssueRow({ iss, index, isSelected, onSelect }) {
           +{iss.impact_percentage}%
         </span>
       </td>
-      <td>
+      <td role="cell" data-label="Difficulty">
         <DifficultyPill difficulty={iss.difficulty} />
       </td>
-      <td>
+      <td role="cell" className="it-action" data-label="Action">
         <button
-          className="fix-ai-btn"
+          className="fix-ai-btn tap-target"
           onClick={(e) => {
             e.stopPropagation()
             onSelect?.(index)
@@ -74,28 +81,30 @@ export default function IssueTable({ issues = [], selected, onSelect }) {
   }
 
   return (
-    <table className="issue-table" style={{ width: "100%" }}>
-      <thead>
-        <tr>
-          <th>Issue</th>
-          <th>Severity</th>
-          <th>Pages</th>
-          <th>Impact %</th>
-          <th>Difficulty</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {issues.map((iss, i) => (
-          <IssueRow
-            key={`${iss.issue_code || 'issue'}-${i}`}
-            iss={iss}
-            index={i}
-            isSelected={selected === i}
-            onSelect={onSelect}
-          />
-        ))}
-      </tbody>
-    </table>
+    <div className="issue-table-wrap">
+      <table className="issue-table" role="table" style={{ width: "100%" }}>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader">Issue</th>
+            <th role="columnheader">Severity</th>
+            <th role="columnheader">Pages</th>
+            <th role="columnheader">Impact %</th>
+            <th role="columnheader">Difficulty</th>
+            <th role="columnheader">Action</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {issues.map((iss, i) => (
+            <IssueRow
+              key={`${iss.issue_code || 'issue'}-${i}`}
+              iss={iss}
+              index={i}
+              isSelected={selected === i}
+              onSelect={onSelect}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

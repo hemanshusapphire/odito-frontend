@@ -16,8 +16,8 @@ export default function GeoHubPageContent() {
   const { activeProject } = useProject()
   const projectId = activeProject?._id
 
-  const { data: hubResponse,    isLoading: hubLoading    } = useGEOHub(projectId)
-  const { data: issuesResponse, isLoading: issuesLoading } = useGEOHubIssues(projectId)
+  const { data: hubResponse,    isLoading: hubLoading,    isError: hubError    } = useGEOHub(projectId)
+  const { data: issuesResponse, isLoading: issuesLoading, isError: issuesError } = useGEOHubIssues(projectId)
 
   const handleFix = (ruleId) => {
     router.push(`/app/geo-hub?issue=${encodeURIComponent(ruleId)}`)
@@ -44,6 +44,20 @@ export default function GeoHubPageContent() {
         </div>
         <div className="h-72 skeleton-base skeleton-shimmer rounded-xl" />
         <div className="h-48 skeleton-base skeleton-shimmer rounded-xl" />
+      </div>
+    )
+  }
+
+  // An API/network failure must never look like "no audit run yet" — they
+  // need different user actions (retry vs. run an audit). Previously this
+  // component only checked `!data`, so a fetch error and a genuinely empty
+  // project rendered the exact same "run an audit" message.
+  if (hubError || issuesError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-96 gap-3">
+        <p className="text-sm" style={{ color: "var(--color-status-error)" }}>
+          Failed to load GEO Hub data. Please try again.
+        </p>
       </div>
     )
   }

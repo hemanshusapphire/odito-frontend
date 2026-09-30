@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════════
+   Odito Component Styles — Issue / Technical Check Detail Views
+
+   Shared by IssueDetailView (On-Page + Accessibility) and
+   TechCheckDetailView (Technical) so all three drill-downs get the same
+   responsive behaviour from one place.
+
+   Breakpoints are CONTAINER queries against the main content area
+   (`main`, declared in app/app/layout.jsx), not the viewport: the 260px
+   sidebar and page padding are already subtracted, so "is there room for
+   two columns?" is answered by the width that is actually available.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Breadcrumb ────────────────────────────────────────────────── */
+.detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+
+.detail-breadcrumb > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.detail-breadcrumb__current {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Title row: icon · title · category pill ───────────────────── */
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.detail-title-row__title {
+  flex: 1 1 16rem;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+@container main (max-width: 640px) {
+  /* Icon + pill share the first row; the title takes a full row below. */
+  .detail-title-row__title {
+    order: 3;
+    flex-basis: 100%;
+    font-size: 22px;
+  }
+
+  .detail-title-row__pill { margin-left: auto; }
+}
+
+/* ── Stat tiles: 2-up on phones, 4-up once there is room ───────── */
+.detail-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.detail-stat-grid > * { min-width: 0; }
+
+@container main (min-width: 560px) {
+  .detail-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ── Affected-URLs list + Fix Assistant panel ──────────────────────
+   Stacked until BOTH columns fit (list stays >= ~320px); side by side after
+   that. Widths (list | panel), measured on the main-content container:
+     < 900px   stacked
+     >= 900    URLs | 384  (500 with a URL selected)
+     >= 988    URLs | 460  (500 selected)
+     >= 1100   URLs | 460  (600 selected)
+   which matches the previous desktop layout on wide screens, while a
+   1024px viewport (~730px content next to the sidebar) stacks instead of
+   squeezing the URL column to 16px. */
+.detail-split {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 4px;
+  min-width: 0;
+}
+
+.detail-split__main {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.detail-split__aside {
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  transition: width 0.2s ease-in-out;
+}
+
+@container main (min-width: 900px) {
+  .detail-split { flex-direction: row; }
+  .detail-split__aside { width: 384px; }
+  .detail-split__aside[data-selected="true"] { width: 500px; }
+}
+
+@container main (min-width: 988px) {
+  .detail-split__aside { width: 460px; }
+}
+
+@container main (min-width: 1100px) {
+  .detail-split__aside[data-selected="true"] { width: 600px; }
+}

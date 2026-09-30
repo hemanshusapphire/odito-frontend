@@ -4,17 +4,15 @@ import { memo } from "react";
 import { useRouter } from "next/navigation";
 import ScoreRing from "@/components/ui/ScoreRing";
 
-// ── Delta badge pinned to bottom-right corner of the card ────────────────────
+// ── Delta badge: top-right corner on wide cards, in normal flow under the ring
+// on narrow ones (positioning lives in .score-delta, styles/components/cards.css) ─
 
 function DeltaCorner({ delta }) {
   if (!delta || delta.change == null) return null;
 
   if (delta.direction === 'unchanged') {
     return (
-      <div style={{
-        position: 'absolute', top: 10, right: 12,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
-      }}>
+      <div className="score-delta">
         <span style={{
           fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
           background: 'rgba(132,148,176,0.10)', borderRadius: 20,
@@ -37,10 +35,7 @@ function DeltaCorner({ delta }) {
     : null;
 
   return (
-    <div style={{
-      position: 'absolute', top: 10, right: 12,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
-    }}>
+    <div className="score-delta">
       <span style={{
         fontSize: 11, fontWeight: 700, color,
         background: bg, borderRadius: 20, padding: '2px 8px',
@@ -102,8 +97,8 @@ function ScoreGrid({ seoHealth = 0, aiVisibility = 0, performance = 0, technical
           <div className="score-label">{s.label}</div>
 
           {/* Ring + number overlaid */}
-          <div style={{ position: "relative" }}>
-            <ScoreRing val={s.val} color={s.color} color2={s.color2} />
+          <div style={{ position: "relative", width: "100%", maxWidth: 90 }}>
+            <ScoreRing val={s.val} color={s.color} color2={s.color2} fluid />
             <div style={{
               position: "absolute", inset: 0,
               display: "flex", flexDirection: "column",

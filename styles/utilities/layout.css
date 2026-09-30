@@ -2,12 +2,24 @@
    Odito Design System — Layout Utilities
    
    DEDUPLICATED: .two-col was defined 2x (lines 621, 750)
+
+   RESPONSIVE MODEL
+   These grids reflow against the width of the main content area, not the
+   viewport. app/app/layout.jsx makes that area a named container
+   (`@container/main` -> container-name: main), so `@container main (...)`
+   accounts for the sidebar and page padding automatically: a 1024px viewport
+   with the 260px sidebar open is a ~730px container, exactly what should
+   drive "how many columns fit". Outside that container (no /app layout) the
+   queries simply don't match and the desktop layout applies.
+
+   Tracks use minmax(0, 1fr) so a long URL / unbreakable string can never
+   stretch a track past its share (plain 1fr = minmax(auto, 1fr) can).
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Two Column Grid ───────────────────────────────────────────── */
 .two-col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5, 20px);
   margin-bottom: var(--space-6, 24px);
 }
@@ -15,7 +27,7 @@
 /* ── Score Grid ────────────────────────────────────────────────── */
 .score-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4, 16px);
   margin-bottom: var(--space-6, 24px);
 }
@@ -23,14 +35,14 @@
 /* ── Stat Grid ─────────────────────────────────────────────────── */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3, 12px);
 }
 
 /* ── Stats Row ─────────────────────────────────────────────────── */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 11px;
   margin-bottom: var(--space-5, 20px);
 }
@@ -38,7 +50,7 @@
 /* ── Summary Bar ───────────────────────────────────────────────── */
 .summary-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3, 12px);
   margin-bottom: var(--space-5_5, 22px);
 }
@@ -46,37 +58,42 @@
 /* ── Detail Layout ─────────────────────────────────────────────── */
 .detail-layout {
   display: grid;
-  grid-template-columns: 1fr 370px;
+  grid-template-columns: minmax(0, 1fr) 370px;
   gap: var(--space-5, 20px);
   align-items: start;
 }
 
 .detail-wrap {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--space-5, 20px);
   align-items: start;
 }
 
 /* ── Health Row ────────────────────────────────────────────────── */
 .health-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4, 16px);
   margin-bottom: var(--space-6, 24px);
 }
 
+/* Health card keeps its content width; the insight card takes the rest but
+   drops onto its own row instead of being squeezed below ~260px. */
+.health-row > .health-card { flex: 0 1 auto; max-width: 100%; }
+.health-row > .aria-card   { flex: 1 1 260px; }
+
 /* ── Check Grid ────────────────────────────────────────────────── */
 .check-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2_5, 10px);
 }
 
 /* ── Pass Grid ─────────────────────────────────────────────────── */
 .pass-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 
@@ -101,4 +118,53 @@
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+
+/* ── Main + fixed side column (e.g. Technical: checks + status panel) ──
+   Single column until there is room for the 320px side panel next to a
+   readable main column; replaces an inline `1fr 320px` that had no fallback. */
+.split-aside-320 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5, 20px);
+  align-items: start;
+  margin-bottom: var(--space-6, 24px);
+}
+
+/* ── Responsive reflow (container = main content area) ────────── */
+@container main (min-width: 840px) {
+  .split-aside-320 { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+
+@container main (max-width: 900px) {
+  .detail-layout,
+  .detail-wrap { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container main (max-width: 700px) {
+  .two-col { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container main (max-width: 640px) {
+  .score-grid,
+  .stats-row,
+  .summary-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .check-grid { grid-template-columns: minmax(0, 1fr); }
+
+  .health-row > .health-card { flex: 1 1 100%; }
+}
+
+/* Very narrow: the three summary tiles become compact label/value strips
+   instead of three ~100px columns with 4-line labels. */
+@container main (max-width: 520px) {
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+
+  .stat-grid .stat-tile {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px);
+  }
 }

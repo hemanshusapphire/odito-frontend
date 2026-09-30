@@ -1,20 +1,27 @@
 "use client"
 
-import { CheckCircle, AlertTriangle, XCircle } from "lucide-react"
+import { CheckCircle, AlertTriangle, XCircle, MinusCircle } from "lucide-react"
 
 const STATUS_CONFIG = {
-  pass:    { Icon: CheckCircle,   color: "var(--color-status-success)", label: "Pass",    barColor: "var(--color-status-success)" },
-  warning: { Icon: AlertTriangle, color: "var(--color-status-warning)", label: "Warning", barColor: "var(--color-status-warning)" },
-  fail:    { Icon: XCircle,       color: "var(--color-status-error)",   label: "Fail",    barColor: "var(--color-status-error)"   },
+  pass:           { Icon: CheckCircle,   color: "var(--color-status-success)", label: "Pass",    barColor: "var(--color-status-success)" },
+  warning:        { Icon: AlertTriangle, color: "var(--color-status-warning)", label: "Warning", barColor: "var(--color-status-warning)" },
+  fail:           { Icon: XCircle,       color: "var(--color-status-error)",   label: "Fail",    barColor: "var(--color-status-error)"   },
+  // A rule with zero applicable pages (every page on the project was the
+  // wrong type for it) is not a failure — showing it as red/Fail would be
+  // exactly the "0% presented as a real result" problem this status exists
+  // to avoid. See AEOHubPageContent.jsx / aiHubController.js buildSignal().
+  not_applicable: { Icon: MinusCircle,   color: "var(--color-text-tertiary)",  label: "N/A",     barColor: "var(--color-text-tertiary)" },
 }
 
-function ReadinessCard({ label, status, score, description }) {
+function ReadinessCard({ label, status, score, description, applicablePages, pagesFailing }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.fail
   const { Icon } = cfg
+  const isNA = status === 'not_applicable'
 
   return (
     <div
       className="glass-card rounded-xl p-4 flex flex-col gap-3 hover:scale-[1.01] transition-transform cursor-default"
+      title={isNA ? 'No pages on this project are the right type for this rule to apply to.' : `${applicablePages - pagesFailing} of ${applicablePages} applicable pages pass`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -30,7 +37,7 @@ function ReadinessCard({ label, status, score, description }) {
           className="text-lg font-bold"
           style={{ fontFamily: "var(--font-metric)", color: "var(--color-text-primary)" }}
         >
-          {score}%
+          {isNA ? 'N/A' : `${score}%`}
         </span>
       </div>
 
@@ -46,7 +53,7 @@ function ReadinessCard({ label, status, score, description }) {
       <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--color-score-ring-track)" }}>
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${score}%`, background: cfg.barColor }}
+          style={{ width: isNA ? '100%' : `${score}%`, background: cfg.barColor, opacity: isNA ? 0.3 : 1 }}
         />
       </div>
     </div>
@@ -66,6 +73,8 @@ export default function AnswerReadinessCenter({ signals }) {
             status={s.status}
             score={s.score}
             description={s.description}
+            applicablePages={s.applicablePages}
+            pagesFailing={s.pagesFailing}
           />
         ))}
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
@@ -35,6 +35,7 @@ import CurrentStateRenderer from "@/components/issue-context/CurrentStateRendere
 import { useIssueContext } from "@/hooks/useIssueContext";
 import { useActiveTaskUrls } from "@/hooks/useDashboardQueries";
 import { useCreateIssueTask } from "@/hooks/useCreateIssueTask";
+import { useScrollIntoViewWhenStacked } from "@/hooks/useScrollIntoViewWhenStacked";
 
 export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
   const { activeProject } = useProject();
@@ -43,6 +44,10 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
   const [mode, setMode] = useState("ai");
 
   const [selUrl, setSelUrl] = useState(null);
+
+  const fixPanelRef = useRef(null);
+
+  useScrollIntoViewWhenStacked(fixPanelRef, selUrl);
 
   const [toast, setToast] = useState(null);
 
@@ -485,22 +490,14 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
     <div className="slide-up">
       {/* Breadcrumb */}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <button onClick={onBack} className="tb-btn">
+      <div className="detail-breadcrumb">
+        <button onClick={onBack} className="tb-btn tap-target">
           ← Technical Checks
         </button>
 
         <span style={{ color: "var(--t3)", fontSize: 12 }}>›</span>
 
-        <span style={{ fontSize: 12, color: "var(--t2)", fontWeight: 500 }}>
+        <span className="detail-breadcrumb__current" style={{ fontSize: 12, color: "var(--t2)", fontWeight: 500 }}>
           {currentCheck.name}
         </span>
       </div>
@@ -508,14 +505,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
       {/* Header */}
 
       <div style={{ marginBottom: 20 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 14,
-          }}
-        >
+        <div className="detail-title-row" style={{ marginBottom: 14 }}>
           <div
             style={{
               width: 50,
@@ -544,11 +534,9 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
           </div>
 
           <h2
+            className="detail-title-row__title"
             style={{
               fontFamily: "var(--font-metric)",
-              fontSize: 28,
-              fontWeight: 800,
-              flex: 1,
               color: "var(--t)",
             }}
           >
@@ -556,6 +544,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
           </h2>
 
           <span
+            className="detail-title-row__pill"
             style={{
               background: "rgba(0,223,255,0.09)",
 
@@ -579,17 +568,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
 
       {/* 4 Stat Tiles */}
 
-      <div
-        style={{
-          display: "grid",
-
-          gridTemplateColumns: "repeat(4, 1fr)",
-
-          gap: 12,
-
-          marginBottom: 20,
-        }}
-      >
+      <div className="detail-stat-grid">
         <div
           style={{
             background: "var(--s)",
@@ -650,7 +629,11 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
               marginBottom: 8,
             }}
           >
-            SEO IMPACT
+            {/* Label matches what impact_percentage actually is: a real
+                pages-affected ratio for page-level checks, or a fixed
+                severity weight for site-wide checks (SSL/robots/sitemap) —
+                never an estimated ranking/traffic recovery figure. */}
+            {currentCheck.impact_basis === 'severity_tier' ? 'SITE-WIDE IMPACT' : '% OF PAGES AFFECTED'}
           </div>
 
           <div
@@ -666,7 +649,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
               color: "#00dfff",
             }}
           >
-            +{currentCheck.impact_percentage || 0}%
+            {currentCheck.impact_percentage || 0}%
           </div>
         </div>
 
@@ -814,9 +797,9 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
       </div>
 
       {/* Two Column Layout */}
-      <div className="flex flex-col lg:flex-row gap-5 mt-1 min-w-0">
+      <div className="detail-split">
         {/* Left Column - Affected URLs */}
-        <div className="flex-1 min-w-0">
+        <div className="detail-split__main">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
               <div className="font-dashboard text-base font-bold text-foreground">
@@ -868,19 +851,20 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center flex-wrap gap-1.5 min-w-0">
                     <div
-                      className="font-dm-mono text-[var(--cy)] font-medium truncate"
+                      className="font-dm-mono text-[var(--cy)] font-medium min-w-0 [overflow-wrap:anywhere]"
                       style={{ fontSize: "13px" }}
+                      title={page.url}
                     >
                       {page.url}
                     </div>
                     {badge}
                   </div>
-                  <div className="text-[10.5px] text-muted-foreground mt-0.5 truncate">
+                  <div className="text-[10.5px] text-muted-foreground mt-0.5 [overflow-wrap:anywhere]">
                     {page.issue || "Issue detected on this page"}
                   </div>
                 </div>
                 <button
-                  className="bg-[rgba(255,56,96,0.11)] text-[#ff3860] border border-[rgba(255,56,96,0.2)]
+                  className="tap-target bg-[rgba(255,56,96,0.11)] text-[#ff3860] border border-[rgba(255,56,96,0.2)]
                            text-[10px] font-medium px-2.5 py-1 rounded-md flex-shrink-0 mr-1.5
                            transition-all duration-200 hover:bg-[rgba(255,255,255,0.15)] hover:border-[rgba(255,255,255,0.3)]"
                   onClick={(e) => {
@@ -891,7 +875,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                   Open
                 </button>
                 <button
-                  className="bg-gradient-to-r from-[#7730ed] to-[#00dfff] text-white border-none
+                  className="tap-target bg-gradient-to-r from-[#7730ed] to-[#00dfff] text-white border-none
                            text-[10px] font-bold px-3 py-1 rounded-md flex-shrink-0
                            shadow-[0_0_12px_rgba(0,223,255,0.2)] transition-all duration-200
                            hover:-translate-y-px hover:shadow-[0_3px_16px_rgba(0,223,255,0.3)]"
@@ -928,7 +912,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
         </div>
 
         {/* Right Column - Fix Panel */}
-        <div className={`w-full ${selUrl ? "lg:w-[500px] xl:w-[600px]" : "lg:w-96 xl:w-[460px]"} flex-shrink-0 transition-all duration-200`}>
+        <div ref={fixPanelRef} className="detail-split__aside" data-selected={selUrl ? "true" : "false"}>
           <div className="bg-card border border-border rounded-2xl overflow-hidden sticky top-0">
             {/* Panel Header */}
             <div className="px-4.5 py-4 border-b border-border flex items-center justify-between">
@@ -937,7 +921,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
               </div>
               {selUrl && (
                 <button
-                  className="bg-muted border border-border
+                  className="tap-target bg-muted border border-border
                            rounded-md px-2 py-0.5 text-xs text-muted-foreground cursor-pointer
                            hover:bg-accent transition-colors"
                   onClick={() => {
@@ -972,6 +956,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                 }}
               >
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
 
@@ -998,6 +983,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                 </button>
 
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
                     fontSize: 11,
@@ -1017,6 +1003,7 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                 </button>
 
                 <button
+                  className="tap-target"
                   style={{
                     padding: "9px 6px",
                     fontSize: 11,
@@ -1328,9 +1315,10 @@ export default function TechCheckDetailView({ check, onBack, onOpenUrl }) {
                               >
                                 {fixingUrl}
                               </strong>
-                              . Estimated recovery:{" "}
+                              .{" "}
+                              {currentCheck.impact_basis === 'severity_tier' ? 'Site-wide impact:' : 'Pages affected:'}{" "}
                               <strong style={{ color: "#00f5a0" }}>
-                                +{currentCheck.impact_percentage || 0}% SEO
+                                {currentCheck.impact_percentage || 0}%
                               </strong>
                               . Difficulty:{" "}
                               <strong style={{ color: "#eef2ff" }}>

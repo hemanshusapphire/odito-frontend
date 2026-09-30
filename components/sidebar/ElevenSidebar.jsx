@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useCallback } from "react"
+import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -17,7 +18,7 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 import { SidebarNav } from "./SidebarNav"
 import { SidebarFooter } from "./SidebarFooter"
 import { sidebarSections } from "./sidebar-config"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsCompactNav } from "@/hooks/use-mobile"
 import { useProject } from "@/contexts/ProjectContext"
 
 const SIDEBAR_WIDTH = 260
@@ -26,8 +27,16 @@ const SIDEBAR_COLLAPSED_WIDTH = 64
 export function ElevenSidebar({ user }) {
   const { isCollapsed, isMobileOpen, toggleCollapse, setMobileOpen } =
     useSidebarStore()
-  const isMobile = useIsMobile()
+  // "mobile" here = compact nav: sidebar becomes an overlay drawer below 1024px
+  const isMobile = useIsCompactNav()
   const { activeProject } = useProject()
+  const pathname = usePathname()
+
+  // The drawer is the nav on phones AND tablets (< 1024px): close it once a
+  // navigation lands, otherwise it stays open over the page it just opened.
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname, setMobileOpen])
 
   const visibleSections = sidebarSections.map((section) => ({
     ...section,
@@ -108,7 +117,7 @@ export function ElevenSidebar({ user }) {
       <motion.aside
         className={cn(
           "eleven-sidebar fixed inset-y-0 left-0 z-30 flex flex-col sidebar-surface",
-          "hidden md:flex"
+          "hidden lg:flex"
         )}
         initial={false}
         animate={{
@@ -126,7 +135,7 @@ export function ElevenSidebar({ user }) {
 
       {/* Spacer to push main content */}
       <motion.div
-        className="hidden shrink-0 md:block"
+        className="hidden shrink-0 lg:block"
         initial={false}
         animate={{
           width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,

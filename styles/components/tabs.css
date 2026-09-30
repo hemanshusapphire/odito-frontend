@@ -40,9 +40,17 @@
   border: 1px solid var(--color-border-default);
   border-radius: 9px;
   width: fit-content;
+  /* Never wider than the container: scroll the strip itself, not the page. */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
+.tab-strip::-webkit-scrollbar { display: none; }
+
 .tab-item {
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 6px 16px;
   border-radius: 7px;
   font-size: 12px;

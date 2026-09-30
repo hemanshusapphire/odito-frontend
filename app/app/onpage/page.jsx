@@ -102,22 +102,30 @@ function OnPageContent() {
         />
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold">On-Page SEO Issues</h1>
               <p className="text-muted-foreground">
                 {summary
-                  ? `${summary.total_issue_types ?? 0} issue types · ${summary.total_issues_found ?? 0} total issues · ${summary.total_pages_analyzed ?? 0} pages analyzed`
+                  ? `${summary.total_issue_types ?? 0} issue types · ${summary.total_issues_found ?? 0} SEO issues · ${summary.total_pages_analyzed ?? 0} pages analyzed`
                   : "View and manage on-page SEO issues"}
+              </p>
+              {/* This total intentionally excludes Accessibility issues, which
+                  have their own dedicated audit surface — so it will legitimately
+                  differ from Overview's "Total Issues" (all categories). Both
+                  numbers are computed by the same canonical aggregation; only the
+                  category scope differs. */}
+              <p className="text-xs text-muted-foreground/70">
+                Excludes Accessibility issues — see the Accessibility tab for those
               </p>
             </div>
             {issues.length > 0 && (
-              <span className="text-xs font-bold px-2 py-1 rounded bg-primary/10 text-primary">
+              <span className="text-xs font-bold px-2 py-1 rounded bg-primary/10 text-primary whitespace-nowrap shrink-0">
                 {issues.length} FOUND
               </span>
             )}
           </div>
-          <div className="bg-card rounded-lg border p-6">
+          <div className="bg-card rounded-lg border p-3 sm:p-6">
             {error ? (
               <div className="text-center py-12 text-red-500">Failed to load issues: {error}</div>
             ) : issues.length === 0 ? (

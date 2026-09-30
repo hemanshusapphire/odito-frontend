@@ -153,6 +153,7 @@ function MapsListingCard({ listing }) {
 function RescanButton({ keyword, isRescanning, onRescan }) {
   return (
     <button
+      className="tap-target"
       onClick={() => onRescan(keyword)}
       disabled={isRescanning}
       title={isRescanning ? 'Rescanning…' : 'Re-scan this keyword'}
@@ -178,6 +179,7 @@ function RescanButton({ keyword, isRescanning, onRescan }) {
 function DeleteButton({ isDeleting, onRequestDelete }) {
   return (
     <button
+      className="tap-target"
       onClick={onRequestDelete}
       disabled={isDeleting}
       title={isDeleting ? 'Removing…' : 'Stop tracking this keyword'}
@@ -201,7 +203,8 @@ function DeleteButton({ isDeleting, onRequestDelete }) {
 
 // ─── Grid layout ─────────────────────────────────────────────────────────────
 // #(36) | Keyword(1fr) | Current(80) | Last Scan(80) | Best(76) | Prev Wk(90) | Prev Mo(90) | Benchmark(80) | Maps(76) | Status(80) | Actions(60)
-const GRID = '36px 1fr 80px 80px 76px 90px 90px 80px 76px 80px 60px';
+// Column template lives in styles/keywords.css (.kw-grid) so container queries can
+// re-flow it into stacked cards on narrow screens.
 
 /**
  * One table row, memoized — an add/delete/rescan on ONE keyword should not
@@ -258,18 +261,17 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
   return (
     <div style={{ borderBottom: isLast ? 'none' : '0.5px solid var(--border)' }}>
       {/* Main row */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: GRID,
-        padding: '12px 16px', alignItems: 'center',
+      <div className="kw-grid kw-grid--row" style={{
         opacity: (isRescanning || isDeleting) ? 0.6 : 1,
         transition: 'opacity 0.2s'
       }}>
         {/* # */}
-        <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{index + 1}</div>
+        <div className="kw-c-idx" style={{ fontSize: '12px', color: 'var(--text3)' }}>{index + 1}</div>
 
         {/* Keyword */}
-        <div>
+        <div className="kw-c-name">
           <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>
+            <span className="kw-idx-inline">{index + 1}.</span>
             {keyword.keyword}
           </div>
           {keyword.scan_count != null && (
@@ -286,7 +288,7 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Current Rank */}
-        <div>
+        <div className="kw-c-m" data-label="Current">
           {isScanning ? (
             <span title="Checking your Google ranking…" style={{ fontSize: '12px', color: 'var(--cyan)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ display: 'inline-block', animation: 'kwdash-spin 1s linear infinite' }}>⟳</span>
@@ -301,10 +303,10 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Last Scan Rank */}
-        <div><DeltaBadge currentRank={currentRank} compareRank={lastScanRank} /></div>
+        <div className="kw-c-m" data-label="Last Scan"><DeltaBadge currentRank={currentRank} compareRank={lastScanRank} /></div>
 
         {/* Best Rank (all-time) */}
-        <div>
+        <div className="kw-c-m" data-label="Best">
           {bestRank != null ? (
             <RankBadge
               rank={bestRank}
@@ -318,13 +320,13 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Prev Week */}
-        <div><DeltaBadge currentRank={currentRank} compareRank={prevWeekRank} /></div>
+        <div className="kw-c-m" data-label="Prev Week"><DeltaBadge currentRank={currentRank} compareRank={prevWeekRank} /></div>
 
         {/* Prev Month */}
-        <div><DeltaBadge currentRank={currentRank} compareRank={prevMonthRank} /></div>
+        <div className="kw-c-m" data-label="Prev Month"><DeltaBadge currentRank={currentRank} compareRank={prevMonthRank} /></div>
 
         {/* Benchmark */}
-        <div>
+        <div className="kw-c-m" data-label="Benchmark">
           {benchmarkRank != null ? (
             <span
               title="Rank when this keyword was first tracked"
@@ -344,10 +346,10 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Maps Rank */}
-        <div><MapsRankBadge mapsRank={mapsRank} /></div>
+        <div className="kw-c-m" data-label="Maps"><MapsRankBadge mapsRank={mapsRank} /></div>
 
         {/* Status */}
-        <div>
+        <div className="kw-c-m" data-label="Status">
           {isScanning ? (
             <span
               title="Checking your Google ranking…"
@@ -385,8 +387,8 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
         </div>
 
         {/* Actions: rescan + delete + expand */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '4px' }}>
+        <div className="kw-c-actions">
+          <div className="kw-actions-row">
             {/* While isScanning, this row is still the optimistic placeholder
                 from useAddKeyword — the real record may not exist server-side
                 yet, so rescan/delete are disabled rather than risking a
@@ -407,6 +409,7 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
           </div>
           {(hasUrls || hasMapsListing) && (
             <button
+              className="tap-target"
               onClick={() => setIsExpanded(e => !e)}
               style={{
                 background: 'var(--surface)', border: '1px solid var(--border)',
@@ -422,7 +425,7 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
 
       {/* Expanded section: ranking URLs + Maps listing */}
       {isExpanded && (hasUrls || hasMapsListing) && (
-        <div style={{ padding: '0 16px 12px 52px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="kw-expand">
           {hasMapsListing && <MapsListingCard listing={mapsListing} />}
           {rankingUrls.map((ru, ri) => (
             <div key={ri} style={{
@@ -450,10 +453,10 @@ const KeywordRow = memo(function KeywordRow({ keyword, index, isLast, isRescanni
                 href={ru.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="kw-ru-link"
                 style={{
                   fontSize: '12px', color: 'var(--text2)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  textDecoration: 'none', flex: 1
+                  textDecoration: 'none', flex: 1, minWidth: 0
                 }}
                 title={ru.url}
               >
@@ -528,17 +531,17 @@ function UserAddedKeywords({ data, loading, error, onRefresh, onRescan, onDelete
       <div style={{
         background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px',
         padding: '14px 16px', marginBottom: '16px',
-        display: 'flex', gap: '24px', alignItems: 'flex-start'
+        display: 'flex', flexWrap: 'wrap', rowGap: '12px', columnGap: '24px', alignItems: 'flex-start'
       }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Domain</div>
-          <div style={{ color: 'var(--cyan)', fontSize: '13px' }}>{domain}</div>
+          <div style={{ color: 'var(--cyan)', fontSize: '13px', overflowWrap: 'anywhere' }}>{domain}</div>
         </div>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Location</div>
           <div style={{ color: 'var(--text2)', fontSize: '12px', maxWidth: '380px', lineHeight: '1.5' }}>{location}</div>
         </div>
-        <div style={{ marginLeft: 'auto', textAlign: 'right', display: 'flex', gap: '20px' }}>
+        <div className="kw-info-meta">
           {scan_count != null && (
             <div>
               <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Scans</div>
@@ -567,10 +570,13 @@ function UserAddedKeywords({ data, loading, error, onRefresh, onRescan, onDelete
           </div>
         </div>
 
-        {/* Table header */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: GRID,
-          padding: '8px 16px', borderBottom: '0.5px solid var(--border)',
+        {/* Table header + rows scroll together (safety net) inside the card;
+            below ~980px of content width the rows re-flow into stacked cards
+            instead (see styles/keywords.css), so nothing is ever clipped. */}
+        <div className="kw-table-scroll">
+        <div className="kw-table">
+        <div className="kw-grid kw-grid--head" style={{
+          borderBottom: '0.5px solid var(--border)',
           fontSize: '10px', color: 'var(--text3)', fontWeight: 600,
           letterSpacing: '0.05em', textTransform: 'uppercase'
         }}>
@@ -601,6 +607,8 @@ function UserAddedKeywords({ data, loading, error, onRefresh, onRescan, onDelete
             onRequestDelete={onDelete ? handleRequestDelete : undefined}
           />
         ))}
+        </div>
+        </div>
 
         {/* Footer */}
         <div style={{

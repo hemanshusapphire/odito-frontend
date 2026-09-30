@@ -187,7 +187,10 @@ export default function GeoSchemaCoverageSection({ coverage = [] }) {
         <div>
           <h2 className="section-title">Schema Coverage</h2>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
-            Each schema type evaluated only on applicable pages — not total project pages
+            Each schema type evaluated only on applicable pages — not total project pages.
+            Measures AI-relevant schema per page type (LocalBusiness, Article, FAQPage, etc.) —
+            different from Technical Checks' "Structured Data" check, which just confirms
+            any valid schema exists on a page.
           </p>
         </div>
         <div className="text-right">
