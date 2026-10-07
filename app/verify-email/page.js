@@ -178,8 +178,8 @@ function EmailVerificationContent() {
         <footer className="w-full py-12 bg-black border-t border-[#45474b]/15 px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-[#aeb2b7] text-xs tracking-normal uppercase">© 2024 Odito AI. Precision Engineering for the Kinetic Nebula.</p>
           <div className="flex gap-8">
-            <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Privacy Policy</Link>
-            <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Terms of Service</Link>
+            <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="/privacy-policy">Privacy Policy</Link>
+            <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="/terms">Terms of Service</Link>
             <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Status</Link>
           </div>
         </footer>
@@ -353,8 +353,8 @@ function EmailVerificationContent() {
       <footer className="w-full py-12 bg-black border-t border-[#45474b]/15 px-8 flex flex-col md:flex-row justify-between items-center gap-6">
         <p className="text-[#aeb2b7] text-xs tracking-normal uppercase">© 2024 Odito AI. Precision Engineering for the Kinetic Nebula.</p>
         <div className="flex gap-8">
-          <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Privacy Policy</Link>
-          <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Terms of Service</Link>
+          <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="/privacy-policy">Privacy Policy</Link>
+          <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="/terms">Terms of Service</Link>
           <Link className="text-[#aeb2b7] hover:text-[#afc6ff] transition-colors text-xs tracking-normal uppercase" href="#">Status</Link>
         </div>
       </footer>

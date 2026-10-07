@@ -19,12 +19,13 @@ export function MonthDayCell({ day, posts, selectedPostId, onSelectPost }) {
 
       <div className="flex flex-1 flex-col gap-1">
         {visible.map((post) => {
-          const status = CALENDAR_STATUS_META[post.status]
+          const status = CALENDAR_STATUS_META[post.status] || CALENDAR_STATUS_META.scheduled
           const selected = post.id === selectedPostId
           return (
             <button
               key={post.id}
               type="button"
+              data-testid={`calendar-post-${post.id}`}
               onClick={() => onSelectPost(post.id)}
               aria-pressed={selected}
               className={`flex w-full items-center gap-1 truncate rounded-md px-1.5 py-1 text-left text-[11px] font-medium transition-colors ${

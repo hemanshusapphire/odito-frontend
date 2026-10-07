@@ -4,13 +4,20 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Sparkles, X, ArrowRight } from 'lucide-react'
 
-/** AI-generated strategy insight card, dismissible for this session. */
-export function AIInsightCard({ insight }) {
+/**
+ * Overview insight card. Its content is the first recommendation of the project's REAL AI strategy.
+ * There is no separate "insight" generator, so with no strategy (or no recommendations) it says so and
+ * points to AI Strategy instead of showing sample advice. Dismissible for this session.
+ */
+export function AIInsightCard({ state }) {
   const [dismissed, setDismissed] = useState(false)
   if (dismissed) return null
 
+  const recommendation = state?.strategy?.strategy?.recommendations?.[0]
+  const hasStrategy = !!state?.strategy
+
   return (
-    <div className="relative flex h-full flex-col rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50 to-emerald-50/40 p-5">
+    <div className="relative flex h-full flex-col rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50 to-emerald-50/40 p-5" data-testid="overview-insight">
       <button
         type="button"
         onClick={() => setDismissed(true)}
@@ -22,21 +29,30 @@ export function AIInsightCard({ insight }) {
 
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-700">
         <Sparkles className="h-4 w-4" />
-        AI insight
+        AI strategy
       </div>
 
-      <h3 className="pr-6 text-lg font-bold leading-snug text-slate-900">{insight.title}</h3>
-      <p className="mt-2.5 text-sm leading-relaxed text-slate-600">{insight.body}</p>
+      {recommendation ? (
+        <>
+          <h3 className="pr-6 text-lg font-bold leading-snug text-slate-900">Top recommendation</h3>
+          <p className="mt-2.5 text-sm leading-relaxed text-slate-600" data-testid="overview-insight-body">{recommendation}</p>
+        </>
+      ) : (
+        <>
+          <h3 className="pr-6 text-lg font-bold leading-snug text-slate-900">{hasStrategy ? 'No recommendations yet' : 'No AI strategy yet'}</h3>
+          <p className="mt-2.5 text-sm leading-relaxed text-slate-600" data-testid="overview-insight-body">
+            {hasStrategy ? 'Your strategy has no recommendations. Regenerate it after updating your Business profile.' : 'Generate an AI strategy from your Business profile to get tailored recommendations here.'}
+          </p>
+        </>
+      )}
 
       <Link
-        href={insight.ctaHref}
+        href="/app/social-media/ai-strategy"
         className="mt-4 flex items-center justify-between rounded-lg border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm transition-colors hover:bg-violet-50"
       >
-        {insight.ctaLabel}
+        {hasStrategy ? 'Review strategy' : 'Create strategy'}
         <ArrowRight className="h-4 w-4" />
       </Link>
-
-      <p className="mt-auto pt-5 text-xs italic leading-relaxed text-slate-500">{insight.quote}</p>
     </div>
   )
 }

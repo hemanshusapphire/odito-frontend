@@ -104,7 +104,10 @@ export default function BusinessProfilePage() {
   }
 
   useEffect(() => {
+    // Onboarding only: in the Change Location modal (`selected`) a lone
+    // location is the current one, so it must not be re-selected silently.
     if (
+      !selected &&
       selectedAccountId &&
       locations.length === 1 &&
       !selectMutation.isPending &&
@@ -231,6 +234,7 @@ export default function BusinessProfilePage() {
         locations={locations}
         onSelectLocation={(locationId) => selectLocationAndSync(selectedAccountId, locationId)}
         selecting={selectMutation.isPending}
+        currentLocationId={status?.businessLocationId}
       />
 
       <BusinessSummaryCard details={details} brandAsset={brandAsset} onOpenReviews={() => setReviewsOpen(true)} />

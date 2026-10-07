@@ -1,12 +1,12 @@
 import { ApprovalPostItem } from './ApprovalPostItem'
 
 /** Scrollable list of posts for the active approval tab. */
-export function ApprovalPostList({ posts, selectedPostId, onSelectPost }) {
+export function ApprovalPostList({ posts, selectedPostId, onSelectPost, emptyTitle = 'Nothing here right now', emptyMessage = 'Posts will show up here as they move through the workflow.' }) {
   if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center">
-        <p className="text-sm font-semibold text-slate-700">Nothing here right now</p>
-        <p className="text-sm text-slate-400">Posts will show up here as they move through the workflow.</p>
+        <p className="text-sm font-semibold text-slate-700">{emptyTitle}</p>
+        <p className="text-sm text-slate-400">{emptyMessage}</p>
       </div>
     )
   }

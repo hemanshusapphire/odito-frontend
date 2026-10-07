@@ -886,14 +886,77 @@ export function useBusinessProfileRating(projectId) {
   })
 }
 
-/** Paginated, searchable review list for the Reviews Drawer. */
-export function useBusinessProfileReviews(projectId, { page = 1, limit = 20, search = '' } = {}) {
+/**
+ * Paginated, searchable review list (Reviews Drawer + Reviews page). The
+ * optional rating / replied / sort filters are applied server-side.
+ */
+export function useBusinessProfileReviews(projectId, { page = 1, limit = 20, search = '', rating = '', replied = '', sort = '' } = {}) {
   return useQuery({
-    queryKey: queryKeys.businessProfile.reviews(projectId, { page, limit, search }),
-    queryFn: () => apiService.getBusinessProfileReviews(projectId, { page, limit, search }),
+    queryKey: queryKeys.businessProfile.reviews(projectId, { page, limit, search, rating, replied, sort }),
+    queryFn: () => apiService.getBusinessProfileReviews(projectId, { page, limit, search, rating, replied, sort }),
     enabled: !!projectId,
     staleTime: staleTimes.STANDARD,
     placeholderData: (previousData) => previousData, // keep prior page visible while the next page loads
+  })
+}
+
+/**
+ * Consolidated review analytics (cards, distributions, trends, response,
+ * sentiment) for ONE shared date range - a single request feeds every module.
+ * Keyed by project + location + range + timezone so switching range fetches
+ * only that range (and returns instantly when it was already loaded); the
+ * previous range stays on screen while the next one loads.
+ */
+export function useBusinessProfileReviewAnalytics(projectId, { locationId = '', range = '90d', tz = '' } = {}) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.reviewAnalytics(projectId, locationId, range, tz),
+    queryFn: () => apiService.getBusinessProfileReviewAnalytics(projectId, { range, tz }),
+    enabled: !!projectId,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+/**
+ * Posts a reply to a Google review. The cache is only touched with what the
+ * backend returns AFTER Google accepted the reply (or, for ALREADY_REPLIED,
+ * the reply Google already had) - never optimistically. Every cached review
+ * page is patched in place for an instant update, then reviews + rating
+ * (responded count) are refetched so filters like "Not responded" stay correct.
+ */
+export function useReplyToBusinessProfileReview(projectId) {
+  const queryClient = useQueryClient()
+
+  const patchCachedReview = (review) => {
+    if (!review?.google_review_id) return
+    queryClient.setQueriesData({ queryKey: ['business-profile', projectId, 'reviews'] }, (old) => {
+      const list = old?.data?.reviews
+      if (!Array.isArray(list)) return old
+      return {
+        ...old,
+        data: { ...old.data, reviews: list.map((r) => (r.google_review_id === review.google_review_id ? { ...r, ...review } : r)) },
+      }
+    })
+  }
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'reviews'] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.businessProfile.rating(projectId) })
+    // response-rate / treatment figures change with every reply
+    queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'review-analytics'] })
+  }
+
+  return useMutation({
+    mutationFn: ({ reviewId, reply }) => apiService.replyToBusinessProfileReview(projectId, reviewId, reply),
+    onSuccess: (res) => {
+      patchCachedReview(res?.data?.review)
+      refresh()
+    },
+    onError: (error) => {
+      if (error?.code === 'ALREADY_REPLIED') {
+        patchCachedReview(error.data?.review)
+        refresh()
+      }
+    },
   })
 }
 

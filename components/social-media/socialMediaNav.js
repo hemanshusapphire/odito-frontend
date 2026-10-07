@@ -1,6 +1,7 @@
 import {
   Home,
   Link2,
+  Building2,
   Sparkles,
   Calendar,
   CheckSquare,
@@ -15,6 +16,7 @@ import {
 export const SOCIAL_MEDIA_NAV_ITEMS = [
   { label: 'Overview', href: '/app/social-media', icon: Home },
   { label: 'Connect Accounts', href: '/app/social-media/connect-accounts', icon: Link2 },
+  { label: 'Business Profile', href: '/app/social-media/business-profile', icon: Building2 },
   { label: 'AI Strategy', href: '/app/social-media/ai-strategy', icon: Sparkles },
   { label: 'Content Calendar', href: '/app/social-media/content-calendar', icon: Calendar },
   { label: 'Content Approvals', href: '/app/social-media/content-approvals', icon: CheckSquare },

@@ -3,6 +3,7 @@
 import TimezoneSelect from './TimezoneSelect'
 import DatePicker from './DatePicker'
 import TimeSelector from './TimeSelector'
+import { todayInTimezone } from '@/lib/scheduleTime'
 
 /**
  * Timezone + Date on their own row (timezone labels are long, e.g.
@@ -23,7 +24,7 @@ export default function ScheduleSection({ schedule, onChange }) {
           <TimezoneSelect value={schedule.timezone} onChange={(v) => set('timezone', v)} />
         </div>
         <div className="flex-1 min-w-37.5">
-          <DatePicker value={schedule.date} onChange={(v) => set('date', v)} />
+          <DatePicker value={schedule.date} min={todayInTimezone(schedule.timezone)} onChange={(v) => set('date', v)} />
         </div>
       </div>
 

@@ -24,7 +24,7 @@ function formatWeekRange(monday, sunday) {
 }
 
 /** Weekly nav header (date range + Prev/Today) and the 7-column post grid. */
-export function WeekCalendar({ weekStart, posts, selectedPostId, onSelectPost, onPrevWeek, onToday }) {
+export function WeekCalendar({ weekStart, posts, selectedPostId, onSelectPost, onPrevWeek, onNextWeek, onToday }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(weekStart, i)
     return {
@@ -56,13 +56,25 @@ export function WeekCalendar({ weekStart, posts, selectedPostId, onSelectPost, o
 
         <h2 className="text-sm font-bold text-slate-900">{formatWeekRange(weekStart, weekEnd)}</h2>
 
-        <button
-          type="button"
-          onClick={onToday}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-        >
-          Today
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onToday}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            Today
+          </button>
+          {onNextWeek && (
+            <button
+              type="button"
+              onClick={onNextWeek}
+              aria-label="Next week"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex overflow-x-auto">

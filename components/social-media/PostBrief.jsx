@@ -1,4 +1,5 @@
 import { CALENDAR_PLATFORM_META, APPROVAL_BRIEF_ICONS } from '@/lib/socialMediaAIDummyData'
+import { objectiveLabel } from '@/lib/socialMedia/aiContent'
 
 function BriefRow({ icon, label, value }) {
   return (
@@ -12,32 +13,58 @@ function BriefRow({ icon, label, value }) {
   )
 }
 
-/** Right-side "Post brief" card summarizing the selected post's strategy context. */
+function plannedLabel(post) {
+  if (post.status === 'scheduled' && post.date) return `${post.date}${post.time ? ` · ${post.time}` : ''}`
+  return 'Not scheduled'
+}
+
+/**
+ * Right-side "Post brief": only facts the backend actually holds for the post
+ * (platform, format, schedule, workflow versions). The old Goal / Voice rows
+ * had no data behind them and are gone.
+ */
 export function PostBrief({ post }) {
   const platform = CALENDAR_PLATFORM_META[post.platform]
-  const PlatformIcon = platform.icon
-  const GoalIcon = APPROVAL_BRIEF_ICONS.goal
+  const PlatformIcon = platform?.icon
   const FormatIcon = APPROVAL_BRIEF_ICONS.format
   const DateIcon = APPROVAL_BRIEF_ICONS.plannedDate
-  const VoiceIcon = APPROVAL_BRIEF_ICONS.voice
+  const a = post.approval
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <h2 className="text-base font-bold text-slate-900">Post brief</h2>
       <div className="mt-3 flex flex-col">
-        <BriefRow icon={<GoalIcon className="h-4 w-4 text-slate-400" />} label="Goal" value={post.goal} />
-        <BriefRow
-          icon={
-            <span className={`flex h-4 w-4 items-center justify-center rounded-full ${platform.badgeClass}`}>
-              <PlatformIcon className="h-2.5 w-2.5" />
-            </span>
-          }
-          label="Platform"
-          value={platform.label}
-        />
+        {platform && (
+          <BriefRow
+            icon={
+              <span className={`flex h-4 w-4 items-center justify-center rounded-full ${platform.badgeClass}`}>
+                <PlatformIcon className="h-2.5 w-2.5" />
+              </span>
+            }
+            label="Platform"
+            value={platform.label}
+          />
+        )}
         <BriefRow icon={<FormatIcon className="h-4 w-4 text-slate-400" />} label="Format" value={post.format} />
-        <BriefRow icon={<DateIcon className="h-4 w-4 text-slate-400" />} label="Planned date" value={post.plannedDate} />
-        <BriefRow icon={<VoiceIcon className="h-4 w-4 text-slate-400" />} label="Voice" value={post.voice} />
+        <BriefRow icon={<DateIcon className="h-4 w-4 text-slate-400" />} label="Planned date" value={plannedLabel(post)} />
+        {post.generation && (
+          <>
+            <BriefRow label="Source" value="AI-generated" />
+            {post.generation.contentPillar && <BriefRow label="Content pillar" value={post.generation.contentPillar} />}
+            {post.generation.objective && <BriefRow label="Objective" value={objectiveLabel(post.generation.objective)} />}
+            {post.generation.strategyVersion != null && <BriefRow label="Strategy version" value={post.generation.strategyVersion} />}
+          </>
+        )}
+        {a.managed && (
+          <>
+            <BriefRow label="Content version" value={a.contentVersion} />
+            <BriefRow label="Design version" value={a.designVersion} />
+            {a.submittedByName && <BriefRow label="Submitted by" value={a.submittedByName} />}
+            {a.contentApprovedAt && (
+              <BriefRow label="Content approved" value={a.contentAutoApproved ? 'Automatically' : (a.contentApprovedByName || 'Approved')} />
+            )}
+          </>
+        )}
       </div>
     </div>
   )

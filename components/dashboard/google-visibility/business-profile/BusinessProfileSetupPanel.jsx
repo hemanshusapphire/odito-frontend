@@ -23,6 +23,7 @@ export default function BusinessProfileSetupPanel({
   locations,
   onSelectLocation,
   selecting,
+  currentLocationId,
 }) {
   if (loading) {
     return (
@@ -89,6 +90,24 @@ export default function BusinessProfileSetupPanel({
     )
   }
 
+  // Change-location flow only (currentLocationId is passed): the already
+  // connected location is the only one available, so there is nothing to
+  // switch to. Onboarding never passes currentLocationId and keeps its
+  // auto-select behaviour below.
+  const hasOtherLocation = !!locations?.some((loc) => loc.locationId !== currentLocationId)
+  if (currentLocationId && locations?.length > 0 && !hasOtherLocation) {
+    return (
+      <Card className="p-10 flex flex-col items-center text-center gap-3">
+        <Building2 className="h-6 w-6 text-muted-foreground" />
+        <p className="text-sm font-medium">No other locations found</p>
+        <p className="text-xs text-muted-foreground max-w-sm">
+          Your Google account only has this one Business Profile location, so there is nothing else to switch to.
+          If you add or get access to another location on Google, it will appear here.
+        </p>
+      </Card>
+    )
+  }
+
   // Multiple locations - inline picker (only path a user ever has to click through).
   if (locations?.length > 1) {
     return (
@@ -96,24 +115,30 @@ export default function BusinessProfileSetupPanel({
         <h3 className="text-sm font-semibold">Select a Business Profile location</h3>
         <p className="text-xs text-muted-foreground mt-0.5">Choose which location to show on this page.</p>
         <div className="mt-4 space-y-2">
-          {locations.map((loc) => (
-            <button
-              key={loc.locationId}
-              type="button"
-              onClick={() => onSelectLocation(loc.locationId)}
-              disabled={selecting}
-              className="w-full text-left px-4 py-3 rounded-lg border hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50"
-            >
-              <p className="text-sm font-medium">{loc.locationName}</p>
-              {loc.address && <p className="text-xs text-muted-foreground mt-0.5">{loc.address}</p>}
-            </button>
-          ))}
+          {locations.map((loc) => {
+            const isCurrent = !!currentLocationId && loc.locationId === currentLocationId
+            return (
+              <button
+                key={loc.locationId}
+                type="button"
+                onClick={() => onSelectLocation(loc.locationId)}
+                disabled={selecting || isCurrent}
+                className="w-full text-left px-4 py-3 rounded-lg border hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{loc.locationName}</p>
+                  {isCurrent && <span className="text-xs text-muted-foreground">Current</span>}
+                </div>
+                {loc.address && <p className="text-xs text-muted-foreground mt-0.5">{loc.address}</p>}
+              </button>
+            )
+          })}
         </div>
       </Card>
     )
   }
 
-  // Exactly one account/location - auto-selection is in flight, covered by
-  // the `loading`/`selecting` states above.
+  // Exactly one account/location during onboarding - auto-selection is in
+  // flight, covered by the `loading`/`selecting` states above.
   return null
 }

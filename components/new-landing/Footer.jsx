@@ -60,9 +60,9 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <a className="text-on-surface-variant/70 hover:text-secondary dark:hover:text-cyan-400 transition-colors hover:translate-x-1 inline-block" href="#">
+              <Link className="text-on-surface-variant/70 hover:text-secondary dark:hover:text-cyan-400 transition-colors hover:translate-x-1 inline-block" href="/terms">
                 Terms of Service
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

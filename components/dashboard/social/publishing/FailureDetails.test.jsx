@@ -98,3 +98,30 @@ describe('NOT_RETRYABLE_CODES', () => {
     expect(NOT_RETRYABLE_CODES.has('INSTAGRAM_PUBLISH_FAILED')).toBe(false)
   })
 })
+
+describe('P0 hardening failure codes', () => {
+  it('expired authentication and an unconfirmed (possibly already published) post are not retryable from the UI', () => {
+    for (const code of ['FACEBOOK_TOKEN_INVALID', 'INSTAGRAM_TOKEN_INVALID', 'ACCOUNT_RECONNECT_REQUIRED', 'PUBLISH_OUTCOME_UNKNOWN']) {
+      expect(NOT_RETRYABLE_CODES.has(code), code).toBe(true)
+    }
+  })
+
+  it('a missed schedule, exhausted retries and an interrupted publish stay retryable (the backend gates re-sending itself)', () => {
+    for (const code of ['SCHEDULE_MISSED', 'MAX_RETRIES_EXCEEDED', 'PUBLISH_INTERRUPTED']) {
+      expect(NOT_RETRYABLE_CODES.has(code), code).toBe(false)
+    }
+  })
+
+  it('shows a specific, actionable headline for an unknown publish outcome (warns about duplicates)', () => {
+    render({ status: 'failed', failureReason: 'Odito could not confirm whether this post was published.', failureCode: 'PUBLISH_OUTCOME_UNKNOWN', platform: 'facebook' })
+    act(() => { viewErrorButton().click() })
+    expect(document.body.textContent).toContain('could not confirm whether this post went out')
+    expect(document.body.textContent).toContain('delete this record')
+  })
+
+  it('shows a headline for a missed schedule', () => {
+    render({ status: 'failed', failureReason: 'This post was not published automatically ...', failureCode: 'SCHEDULE_MISSED', platform: 'instagram' })
+    act(() => { viewErrorButton().click() })
+    expect(document.body.textContent).toContain('too far past its scheduled time')
+  })
+})

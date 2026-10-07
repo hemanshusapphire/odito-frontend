@@ -225,10 +225,10 @@ function ForgotPasswordContent() {
             © 2024 Odito AI. Kinetic Nebula Design System.
           </p>
           <div className="flex gap-6 pointer-events-auto">
-            <Link className="text-[0.6875rem] uppercase tracking-wider font-bold text-slate-500 hover:text-[#afc6ff] transition-colors" href="#">
+            <Link className="text-[0.6875rem] uppercase tracking-wider font-bold text-slate-500 hover:text-[#afc6ff] transition-colors" href="/privacy-policy">
               Privacy Policy
             </Link>
-            <Link className="text-[0.6875rem] uppercase tracking-wider font-bold text-slate-500 hover:text-[#afc6ff] transition-colors" href="#">
+            <Link className="text-[0.6875rem] uppercase tracking-wider font-bold text-slate-500 hover:text-[#afc6ff] transition-colors" href="/terms">
               Terms of Service
             </Link>
           </div>

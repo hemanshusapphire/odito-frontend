@@ -1,61 +1,56 @@
 "use client"
 
-import { useState } from 'react'
-import { Loader2, Check } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { DateTime } from 'luxon'
 import { SchedulePreview } from './SchedulePreview'
-import { PlatformSelector } from './PlatformSelector'
 import { DateSelector } from './DateSelector'
 import { TimeSelector } from './TimeSelector'
 import { TimezoneSelector } from './TimezoneSelector'
-import { SCHEDULE_TIMEZONE_OPTIONS } from '@/lib/socialMediaAIDummyData'
+import { CALENDAR_PLATFORM_META, SCHEDULE_TIMEZONE_OPTIONS } from '@/lib/socialMediaAIDummyData'
+import { toScheduleFormValues, scheduleFormToUtcIso } from '@/lib/socialMedia/postMapper'
+import { todayInTimezone } from '@/lib/scheduleTime'
 
-function formatDateLong(iso) {
-  const [y, m, d] = iso.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+/** The selectable zones: the module's list + this post's own zone + the viewer's, de-duplicated. */
+function buildTimezoneOptions(postTimezone) {
+  const options = [...SCHEDULE_TIMEZONE_OPTIONS]
+  for (const zone of [postTimezone, DateTime.local().zoneName]) {
+    if (zone && !options.some((o) => o.value === zone)) options.push({ value: zone, label: zone })
+  }
+  return options
 }
 
 /**
- * Right-side "Confirm schedule" panel for the currently selected post.
- * Keyed by post.id from the parent, so every field naturally resets to
- * that post's own values when the selection changes (no effect needed).
+ * Right-side "Confirm schedule" panel for the currently selected, REAL
+ * scheduled post. Confirm sends the chosen wall-clock time (interpreted in the
+ * chosen timezone, converted to an explicit-offset UTC instant) to the
+ * scheduler API; "Save for later" clears the schedule (post becomes a draft).
+ * The backend is authoritative: its refusal (past date, bad timezone, post no
+ * longer editable, ...) is shown verbatim in `error`. Keyed by post.id from the
+ * parent, so every field resets to the newly selected post's own values.
  */
-export function ConfirmSchedulePanel({ post, onConfirm, onSaveForLater }) {
-  const [date, setDate] = useState(formatDateLong(post.date))
-  const [time, setTime] = useState(post.time)
-  const [timezone, setTimezone] = useState('Asia/Kolkata')
-  const [platforms, setPlatforms] = useState(() => new Set(['facebook', 'instagram']))
-  const [confirmState, setConfirmState] = useState('idle') // idle | confirming | confirmed
-  const [saveState, setSaveState] = useState('idle') // idle | saving | saved
+export function ConfirmSchedulePanel({ post, accountName, pendingAction = null, error = null, onConfirm, onSaveForLater, onClose = null }) {
+  const initial = useMemo(() => toScheduleFormValues(post), [post.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [date, setDate] = useState(initial.date)
+  const [time, setTime] = useState(initial.time)
+  const [timezone, setTimezone] = useState(initial.timezone)
+  const [localError, setLocalError] = useState(null)
 
-  function togglePlatform(id) {
-    setPlatforms((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  const timezoneOptions = useMemo(() => buildTimezoneOptions(post.timezone), [post.timezone])
+  const platform = CALENDAR_PLATFORM_META[post.platform]
+  const PlatformIcon = platform?.icon
+  const pending = pendingAction !== null
+  const unchanged = date === initial.date && time === initial.time && timezone === initial.timezone
 
   function handleConfirm() {
-    if (confirmState !== 'idle') return
-    setConfirmState('confirming')
-    setTimeout(() => {
-      onConfirm({ date, time, timezone })
-      setConfirmState('confirmed')
-      setTimeout(() => setConfirmState('idle'), 2000)
-    }, 900)
+    if (pending) return
+    const scheduledAt = scheduleFormToUtcIso({ date, time, timezone })
+    if (!scheduledAt) { setLocalError('Enter a valid date and time.'); return }
+    setLocalError(null)
+    onConfirm({ scheduledAt, timezone })
   }
 
-  function handleSaveForLater() {
-    if (saveState === 'saving') return
-    setSaveState('saving')
-    onSaveForLater()
-    setTimeout(() => {
-      setSaveState('saved')
-      setTimeout(() => setSaveState('idle'), 1800)
-    }, 500)
-  }
+  const shownError = localError || error
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -63,43 +58,63 @@ export function ConfirmSchedulePanel({ post, onConfirm, onSaveForLater }) {
       <p className="mt-1 text-sm text-slate-500">Review your post details and confirm the schedule.</p>
 
       <div className="mt-4">
-        <SchedulePreview post={post} />
+        <SchedulePreview post={post} accountName={accountName} />
       </div>
 
       <div className="mt-5 flex flex-col gap-4">
         <div>
           <p className="mb-2 text-sm font-medium text-slate-700">Post to</p>
-          <PlatformSelector platforms={['facebook', 'instagram']} selected={platforms} onToggle={togglePlatform} />
+          {platform && (
+            <span className="inline-flex items-center gap-2">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${platform.badgeClass}`}>
+                <PlatformIcon className="h-3.5 w-3.5" />
+              </span>
+              <span className="text-sm font-medium text-slate-700">{platform.label}</span>
+            </span>
+          )}
         </div>
 
-        <DateSelector value={date} onChange={setDate} />
-        <TimeSelector value={time} onChange={setTime} />
-        <TimezoneSelector options={SCHEDULE_TIMEZONE_OPTIONS} value={timezone} onChange={setTimezone} />
+        <DateSelector value={date} onChange={setDate} min={todayInTimezone(timezone)} disabled={pending} />
+        <TimeSelector value={time} onChange={setTime} disabled={pending} />
+        <TimezoneSelector options={timezoneOptions} value={timezone} onChange={setTimezone} />
       </div>
+
+      {shownError && (
+        <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{shownError}</p>
+      )}
 
       <div className="mt-5 flex flex-col gap-2.5">
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={confirmState !== 'idle'}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed ${
-            confirmState === 'confirmed' ? 'bg-emerald-600' : 'bg-violet-600 hover:bg-violet-700 active:bg-violet-800 disabled:opacity-80'
-          }`}
+          disabled={pending || unchanged}
+          title={unchanged ? 'Change the date, time or timezone to reschedule' : undefined}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {confirmState === 'confirming' && <Loader2 className="h-4 w-4 animate-spin" />}
-          {confirmState === 'confirmed' && <Check className="h-4 w-4" />}
-          {confirmState === 'confirmed' ? 'Schedule confirmed' : confirmState === 'confirming' ? 'Confirming…' : 'Confirm schedule'}
+          {pendingAction === 'confirm' && <Loader2 className="h-4 w-4 animate-spin" />}
+          {pendingAction === 'confirm' ? 'Confirming…' : 'Confirm schedule'}
         </button>
 
-        <button
+        {/* `onSaveForLater` omitted = the post is not scheduled yet, so there is nothing to "save for later" (Content Approvals). */}
+        {onClose && !onSaveForLater && (
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Cancel
+          </button>
+        )}
+        {onSaveForLater && <button
           type="button"
-          onClick={handleSaveForLater}
-          disabled={saveState === 'saving'}
+          onClick={onSaveForLater}
+          disabled={pending}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {saveState === 'saving' && <Loader2 className="h-4 w-4 animate-spin" />}
-          {saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving…' : 'Save for later'}
-        </button>
+          {pendingAction === 'save' && <Loader2 className="h-4 w-4 animate-spin" />}
+          {pendingAction === 'save' ? 'Saving…' : 'Save for later'}
+        </button>}
       </div>
     </div>
   )

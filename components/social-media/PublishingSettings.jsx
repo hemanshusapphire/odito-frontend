@@ -6,7 +6,7 @@ import { PublishingRules } from './PublishingRules'
 import { DEFAULT_PUBLISHING_PLATFORMS } from '@/lib/socialMediaAIDummyData'
 
 /** "Publishing" settings tab - default platforms + the shared approval/publishing rules. */
-export function PublishingSettings({ rules, onToggleRule, onTimezoneChange }) {
+export function PublishingSettings({ rules, onToggleRule, onTimezoneChange, persistedKeys = null, disabledKeys = [] }) {
   const [defaultPlatforms, setDefaultPlatforms] = useState(() => new Set(DEFAULT_PUBLISHING_PLATFORMS))
 
   function togglePlatform(id) {
@@ -30,7 +30,7 @@ export function PublishingSettings({ rules, onToggleRule, onTimezoneChange }) {
         </div>
       </div>
 
-      <PublishingRules rules={rules} onToggle={onToggleRule} onTimezoneChange={onTimezoneChange} />
+      <PublishingRules rules={rules} onToggle={onToggleRule} onTimezoneChange={onTimezoneChange} persistedKeys={persistedKeys} disabledKeys={disabledKeys} />
     </div>
   )
 }

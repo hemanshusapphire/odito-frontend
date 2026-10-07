@@ -1,5 +1,6 @@
 "use client"
 
+import Link from 'next/link'
 import { Facebook, Instagram, MoreVertical } from 'lucide-react'
 import {
   DropdownMenu,
@@ -14,14 +15,15 @@ const PLATFORM_META = {
   instagram: { Icon: Instagram, className: 'bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white' },
 }
 
-/** Horizontal card for one item in the "Upcoming posts" strip. */
+/** Card for one REAL upcoming scheduled post (mapped by lib/socialMedia/postMapper.js). Editing happens in Scheduled Posts. */
 export function UpcomingPostCard({ post }) {
   const meta = PLATFORM_META[post.platform]
   const PlatformIcon = meta?.Icon
+  const href = `/app/social-media/scheduled-posts?tab=scheduled&post=${encodeURIComponent(post.id)}`
 
   return (
-    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <SocialMediaImage imageId={post.imageId} className="h-32 w-full">
+    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md" data-testid={`upcoming-${post.id}`}>
+      <SocialMediaImage src={post.imageSrc} className="h-32 w-full">
         {PlatformIcon && (
           <span className={`absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full shadow-sm ${meta.className}`}>
             <PlatformIcon className="h-3.5 w-3.5" />
@@ -31,9 +33,9 @@ export function UpcomingPostCard({ post }) {
       <div className="flex items-start justify-between gap-2 p-4">
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-400">
-            {post.date} &middot; {post.time}
+            {post.date} &middot; {post.time}{post.zone ? ` ${post.zone}` : ''}
           </p>
-          <p className="mt-1 truncate text-sm font-semibold text-slate-800">{post.title}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-slate-800" title={post.title}>{post.title}</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -45,10 +47,10 @@ export function UpcomingPostCard({ post }) {
               <MoreVertical className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 border-slate-200 bg-white text-slate-700 shadow-lg">
-            <DropdownMenuItem className="text-sm focus:bg-violet-50 focus:text-violet-700">Edit</DropdownMenuItem>
-            <DropdownMenuItem className="text-sm focus:bg-violet-50 focus:text-violet-700">Reschedule</DropdownMenuItem>
-            <DropdownMenuItem className="text-sm text-red-500 focus:bg-red-50 focus:text-red-600">Cancel</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-44 border-slate-200 bg-white text-slate-700 shadow-lg">
+            <DropdownMenuItem asChild className="text-sm focus:bg-violet-50 focus:text-violet-700">
+              <Link href={href}>Edit schedule</Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { SidebarItem } from "./SidebarItem"
+import { SidebarGroupItem } from "./SidebarGroupItem"
 
 export function SidebarSection({ section, isCollapsed = false }) {
   return (
@@ -22,13 +23,17 @@ export function SidebarSection({ section, isCollapsed = false }) {
 
       {/* Nav items */}
       <nav className="flex flex-col gap-0" role="navigation" aria-label={section.label || "Navigation"}>
-        {section.items.map((item) => (
-          <SidebarItem
-            key={item.id}
-            item={item}
-            isCollapsed={isCollapsed}
-          />
-        ))}
+        {section.items.map((item) =>
+          item.children && !isCollapsed ? (
+            <SidebarGroupItem key={item.id} item={item} />
+          ) : (
+            <SidebarItem
+              key={item.id}
+              item={item}
+              isCollapsed={isCollapsed}
+            />
+          )
+        )}
       </nav>
     </div>
   )

@@ -41,7 +41,11 @@ const RETRYABLE_INSTAGRAM_REASONS = new Set(['ACCESS_DENIED', 'DISCOVERY_FAILED'
  * shell (the card grid, avatar/badge treatment, footer layout, loading/
  * error states) is shared, based on the original SwitchAccountDialog design.
  */
-export default function FacebookPageSelectorDialog({ open, onOpenChange, projectId, mode, onConnected, onSwitched, onConnectAnother }) {
+// `contentClassName` (optional) lets a host with its own always-light surface
+// (the Social Media AI module) scope local theme-variable overrides onto the
+// dialog, so it matches its page instead of following the dashboard theme.
+// Omitted everywhere else — the dialog is unchanged for existing callers.
+export default function FacebookPageSelectorDialog({ open, onOpenChange, projectId, mode, onConnected, onSwitched, onConnectAnother, contentClassName = '' }) {
   const isConnectMode = mode === 'connect'
 
   const [selectedId, setSelectedId] = useState(null)
@@ -156,7 +160,7 @@ export default function FacebookPageSelectorDialog({ open, onOpenChange, project
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className={`sm:max-w-2xl ${contentClassName}`}>
         <DialogHeader>
           <DialogTitle>{connectionResult ? 'Connection result' : isConnectMode ? 'Choose a Facebook Page' : 'Switch Facebook Account'}</DialogTitle>
           {!connectionResult && !isConnectMode && !isLoading && activePage && (

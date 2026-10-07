@@ -233,7 +233,7 @@ export default function PostsTable({ notify }) {
                         <DropdownMenuContent align="end">
                           {PUBLISHABLE_STATUSES.has(post.status) && (
                             post.status === 'failed' && NOT_RETRYABLE_CODES.has(post.failureCode) ? (
-                              <DropdownMenuItem disabled className="gap-2" title="Reconnect this account (or fix the media URL) before retrying — retrying now would fail the same way.">
+                              <DropdownMenuItem disabled className="gap-2" title="Retry is unavailable: reconnect this account or fix the media first (retrying would fail the same way), or — if Odito could not confirm whether the post already went out — check the page, since re-sending could create a duplicate. See View error.">
                                 <Send className="h-4 w-4" />
                                 Reconnect Required
                               </DropdownMenuItem>

@@ -138,6 +138,18 @@ export const sidebarSections = [
         label: "Business Profile",
         href: "/app/google-visibility/business-profile",
         icon: Building,
+        children: [
+          {
+            id: "google-visibility-business-profile-overview",
+            label: "Overview",
+            href: "/app/google-visibility/business-profile",
+          },
+          {
+            id: "google-visibility-business-profile-reviews",
+            label: "Reviews",
+            href: "/app/google-visibility/business-profile/reviews",
+          },
+        ],
       },
       {
         id: "google-visibility-search-console",

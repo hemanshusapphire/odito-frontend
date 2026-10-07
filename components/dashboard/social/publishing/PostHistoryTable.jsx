@@ -165,7 +165,7 @@ export default function PostHistoryTable({ notify }) {
                       <TableCell>
                         {post.status === 'failed' && (
                           NOT_RETRYABLE_CODES.has(post.failureCode) ? (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled title="Reconnect this account (or fix the media URL) before retrying — retrying now would fail the same way.">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled title="Retry is unavailable: reconnect this account or fix the media first (retrying would fail the same way), or — if Odito could not confirm whether the post already went out — check the page, since re-sending could create a duplicate. See View error.">
                               <RotateCcw className="h-4 w-4 opacity-40" />
                             </Button>
                           ) : (

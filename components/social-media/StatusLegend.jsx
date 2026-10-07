@@ -1,7 +1,7 @@
 import { CALENDAR_STATUS_META } from '@/lib/socialMediaAIDummyData'
 
-/** Bottom status-color legend + timezone/workflow note for the calendar. */
-export function StatusLegend({ timezone, note }) {
+/** Bottom status-color legend + note for the calendar. */
+export function StatusLegend({ note }) {
   return (
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -13,11 +13,7 @@ export function StatusLegend({ timezone, note }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-400">
-        <span>Timezone: {timezone}</span>
-        <span className="hidden sm:inline">|</span>
-        <span>{note}</span>
-      </div>
+      {note && <div className="text-slate-400">{note}</div>}
     </div>
   )
 }

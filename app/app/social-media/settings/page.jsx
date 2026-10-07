@@ -1,61 +1,54 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { SettingsTabs } from '@/components/social-media/SettingsTabs'
-import { BrandKitPanel } from '@/components/social-media/BrandKitPanel'
-import { BrandPreview } from '@/components/social-media/BrandPreview'
-import { PublishingRules } from '@/components/social-media/PublishingRules'
-import { SettingsActionBar } from '@/components/social-media/SettingsActionBar'
-import { BusinessProfileSettings } from '@/components/social-media/BusinessProfileSettings'
 import { PublishingSettings } from '@/components/social-media/PublishingSettings'
 import { TeamApprovalSettings } from '@/components/social-media/TeamApprovalSettings'
 import { NotificationSettings } from '@/components/social-media/NotificationSettings'
 import SocialMediaToastStack from '@/components/social-media/SocialMediaToastStack'
 import { useToastQueue } from '@/hooks/useToastQueue'
-import {
-  SETTINGS_TABS,
-  BRAND_KIT_DEFAULTS,
-  BRAND_PREVIEW_CONTENT,
-  PUBLISHING_RULES_DEFAULTS,
-} from '@/lib/socialMediaAIDummyData'
+import { useProject } from '@/contexts/ProjectContext'
+import { useApprovalSettings, useUpdateApprovalSettings } from '@/hooks/useSocialMediaAI'
+import { describeApiError } from '@/lib/socialMedia/failureMessages'
+import { SETTINGS_TABS, PUBLISHING_RULES_DEFAULTS } from '@/lib/socialMediaAIDummyData'
 
-const INITIAL_BRAND_KIT = { ...BRAND_KIT_DEFAULTS, logoPreviewUrl: null }
+const APPROVAL_RULE_KEYS = ['contentApprovalRequired', 'designApprovalRequired']
+const PERSISTED_RULE_KEYS = APPROVAL_RULE_KEYS
 
 /**
- * Social Media AI - Settings. Entirely frontend-only, same as the rest of
- * the module: every default comes from lib/socialMediaAIDummyData.js, no
- * API calls, no real persistence. Only the Brand kit tab's identity fields
- * (colors/font/voice/language/phrases/logo) go through an explicit
- * Cancel/Save cycle, matching the reference's bottom action bar; the
- * Approval & publishing rules toggles apply immediately, same as every
- * other switch across this module.
+ * Social Media AI - Settings: application configuration ONLY. The business, brand, services and products are
+ * managed in one place, Business Profile (a link below says so). What is real here:
+ *  - the two approval switches (Content / Design approval required), saved per project by the backend
+ *    approval workflow and deciding how a submitted post is routed.
+ * Still local previews (no backend yet): auto-publish, timezone, default platforms, team and notification
+ * settings — the rules card labels them "Preview only".
  */
 export default function SocialMediaSettingsPage() {
-  const [activeTab, setActiveTab] = useState('brand-kit')
-  const [savedBrandKit, setSavedBrandKit] = useState(INITIAL_BRAND_KIT)
-  const [brandKit, setBrandKit] = useState(INITIAL_BRAND_KIT)
+  const [activeTab, setActiveTab] = useState('publishing')
   const [publishingRules, setPublishingRules] = useState(PUBLISHING_RULES_DEFAULTS)
   const { toasts, notify, dismiss } = useToastQueue()
+  const { activeProjectId } = useProject()
+  const approvalSettings = useApprovalSettings(activeProjectId)
+  const updateApprovalSettings = useUpdateApprovalSettings(activeProjectId)
 
-  function handleBrandKitChange(field, value) {
-    setBrandKit((prev) => ({ ...prev, [field]: value }))
-  }
-
-  function handleLogoChange(url) {
-    setBrandKit((prev) => ({ ...prev, logoPreviewUrl: url }))
-  }
-
-  function handleCancel() {
-    setBrandKit(savedBrandKit)
-    notify('Changes discarded.', 'default')
-  }
-
-  function handleSave() {
-    setSavedBrandKit(brandKit)
-    notify('Settings saved successfully', 'success')
-  }
+  // The two approval switches show (and change) the BACKEND's values; everything
+  // else in `publishingRules` stays a local preview.
+  const settingsReady = !!approvalSettings.data
+  const effectiveRules = settingsReady
+    ? { ...publishingRules, contentApprovalRequired: approvalSettings.data.contentApprovalRequired, designApprovalRequired: approvalSettings.data.designApprovalRequired }
+    : publishingRules
+  const approvalDisabledKeys = settingsReady && !updateApprovalSettings.isPending ? [] : APPROVAL_RULE_KEYS
 
   function toggleRule(key) {
+    if (APPROVAL_RULE_KEYS.includes(key)) {
+      if (!settingsReady) return
+      updateApprovalSettings.mutate({ [key]: !approvalSettings.data[key] }, {
+        onSuccess: () => notify('Approval setting saved.', 'success'),
+        onError: (error) => notify(describeApiError(error, 'Could not save that setting.').message, 'danger'),
+      })
+      return
+    }
     setPublishingRules((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
@@ -71,28 +64,17 @@ export default function SocialMediaSettingsPage() {
     <div className="flex-1 space-y-6 pb-16">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Set the rules for your brand and publishing</p>
+        <p className="mt-1 text-sm text-slate-500">Configure how Odito publishes, who approves, and what you get notified about.</p>
+        <p className="mt-1 text-sm text-slate-400" data-testid="settings-profile-hint">
+          Looking for your business details, brand or products? They are in{' '}
+          <Link href="/app/social-media/business-profile" className="font-medium text-violet-600 hover:text-violet-700">Business Profile</Link>.
+        </p>
       </div>
 
       <SettingsTabs tabs={SETTINGS_TABS} activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === 'business-profile' && <BusinessProfileSettings />}
-
-      {activeTab === 'brand-kit' && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <BrandKitPanel brandKit={brandKit} onChange={handleBrandKitChange} onLogoChange={handleLogoChange} />
-            <BrandPreview brandKit={brandKit} content={BRAND_PREVIEW_CONTENT} />
-          </div>
-
-          <PublishingRules rules={publishingRules} onToggle={toggleRule} onTimezoneChange={handleTimezoneChange} />
-
-          <SettingsActionBar onCancel={handleCancel} onSave={handleSave} />
-        </div>
-      )}
-
       {activeTab === 'publishing' && (
-        <PublishingSettings rules={publishingRules} onToggleRule={toggleRule} onTimezoneChange={handleTimezoneChange} />
+        <PublishingSettings rules={effectiveRules} onToggleRule={toggleRule} onTimezoneChange={handleTimezoneChange} persistedKeys={PERSISTED_RULE_KEYS} disabledKeys={approvalDisabledKeys} />
       )}
 
       {activeTab === 'team-approvals' && <TeamApprovalSettings onInvite={handleInvite} />}

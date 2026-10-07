@@ -29,6 +29,7 @@ export default function ChangeLocationModal({
   locations,
   onSelectLocation,
   selecting,
+  currentLocationId,
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,6 +51,7 @@ export default function ChangeLocationModal({
           locations={locations}
           onSelectLocation={onSelectLocation}
           selecting={selecting}
+          currentLocationId={currentLocationId}
         />
       </DialogContent>
     </Dialog>

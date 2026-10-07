@@ -19,9 +19,11 @@ import { getSocialMediaImage } from '@/lib/socialMediaImages'
  * on top of the image/fallback (platform-icon badges, overlaid headlines) -
  * same layering every one of these cards already had with the old gradient.
  */
-export function SocialMediaImage({ imageId, className = '', imgClassName = '', priority = false, children }) {
+export function SocialMediaImage({ imageId, src = null, alt = '', className = '', imgClassName = '', priority = false, children }) {
   const [errored, setErrored] = useState(false)
-  const asset = getSocialMediaImage(imageId)
+  // `src` is a REAL media URL (a post's uploaded image) and takes precedence
+  // over the registry lookup, which only serves the module's sample imagery.
+  const asset = src ? { src, alt } : getSocialMediaImage(imageId)
   const showFallback = !asset || errored
 
   return (

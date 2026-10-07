@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const ICON_TINTS = [
   'bg-violet-50 text-violet-600',
@@ -8,14 +9,21 @@ const ICON_TINTS = [
   'bg-sky-50 text-sky-600',
 ]
 
-/** One of the four Overview summary tiles (Content reviews, Designs to approve, ...). */
-export function OverviewStatCard({ stat, tintIndex = 0 }) {
+/**
+ * One of the four Overview summary tiles. `value` is a REAL count from the
+ * backend, `null` while it is unavailable. `unavailable` marks a tile whose
+ * backend does not exist yet (shows "—" and says so on hover — never a number
+ * made up to fill the slot); `loading` shows a skeleton instead of the number.
+ */
+export function OverviewStatCard({ stat, value = null, loading = false, unavailable = false, tintIndex = 0 }) {
   const Icon = stat.icon
   const tint = ICON_TINTS[tintIndex % ICON_TINTS.length]
 
   return (
     <Link
       href={stat.href}
+      data-testid={`stat-${stat.id}`}
+      title={unavailable ? 'Not available yet' : undefined}
       className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
     >
       <div className="flex items-center gap-3">
@@ -23,7 +31,11 @@ export function OverviewStatCard({ stat, tintIndex = 0 }) {
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <div className="text-2xl font-bold leading-none text-slate-900">{stat.value}</div>
+          {loading ? (
+            <Skeleton className="h-6 w-10 bg-slate-200" aria-label="Loading count" />
+          ) : (
+            <div className="text-2xl font-bold leading-none text-slate-900" data-testid={`stat-${stat.id}-value`}>{value === null || unavailable ? '—' : value}</div>
+          )}
           <div className="mt-1 text-sm text-slate-500">{stat.label}</div>
         </div>
       </div>

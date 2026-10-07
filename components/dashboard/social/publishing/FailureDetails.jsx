@@ -2,6 +2,7 @@
 
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { AlertCircle } from 'lucide-react'
+import { FAILURE_HEADLINES } from '@/lib/socialMedia/failureMessages'
 
 /**
  * "View error" affordance for a failed SocialPublication — shared by
@@ -17,19 +18,9 @@ import { AlertCircle } from 'lucide-react'
  * still-platform-aware headline in that case, never breaking on an old
  * document.
  */
-const HEADLINES = {
-  INSTAGRAM_PERMISSION_MISSING: 'Instagram publishing permission is missing. Reconnect your Instagram account.',
-  FACEBOOK_PERMISSION_MISSING: 'Facebook publishing permission is missing. Reconnect your Facebook Page.',
-  INSTAGRAM_MEDIA_URL_UNREACHABLE: 'Instagram could not access the uploaded media. Publishing requires a publicly reachable HTTPS media URL.',
-  FACEBOOK_MEDIA_URL_UNREACHABLE: 'Facebook could not access the uploaded media. Publishing requires a publicly reachable HTTPS media URL.',
-  INSTAGRAM_MEDIA_INVALID: 'Instagram could not process this media. It may be corrupt or in an unsupported format.',
-  FACEBOOK_MEDIA_INVALID: 'Facebook could not process this media. It may be corrupt or in an unsupported format.',
-  INSTAGRAM_PROCESSING_TIMEOUT: 'Instagram is still processing this media. Try publishing again in a moment.',
-  FACEBOOK_TOKEN_INVALID: 'Meta denied this request — the Page connection may need to be reconnected.',
-  INSTAGRAM_TOKEN_INVALID: 'Meta denied this request — the Instagram connection may need to be reconnected.',
-  FACEBOOK_RATE_LIMITED: 'Meta is rate-limiting requests for this Page right now. Try again shortly.',
-  INSTAGRAM_RATE_LIMITED: 'Meta is rate-limiting requests for this account right now. Try again shortly.',
-}
+// The code -> headline map lives in lib/socialMedia/failureMessages.js so every
+// social UI (this popover and the Social Media AI module) shares one source.
+const HEADLINES = FAILURE_HEADLINES
 
 // Codes where retrying immediately can't possibly help — the underlying
 // condition (missing permission, or media Meta can never reach) has to be
@@ -41,6 +32,13 @@ export const NOT_RETRYABLE_CODES = new Set([
   'INSTAGRAM_PERMISSION_MISSING',
   'FACEBOOK_MEDIA_URL_UNREACHABLE',
   'INSTAGRAM_MEDIA_URL_UNREACHABLE',
+  // Expired authentication: retrying fails identically until reconnected.
+  'FACEBOOK_TOKEN_INVALID',
+  'INSTAGRAM_TOKEN_INVALID',
+  'ACCOUNT_RECONNECT_REQUIRED',
+  // The post may already be live — the backend refuses to re-send until it
+  // has verified that (see socialPublishingService.js gateUnknownOutcome).
+  'PUBLISH_OUTCOME_UNKNOWN',
 ])
 
 function genericHeadline(platform) {

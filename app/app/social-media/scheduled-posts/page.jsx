@@ -1,143 +1,307 @@
 "use client"
 
-import { Suspense, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { ApprovalTabs } from '@/components/social-media/ApprovalTabs'
-import { ScheduledPostList } from '@/components/social-media/ScheduledPostList'
+import { ScheduledPostList, PostListSkeleton, PostListError } from '@/components/social-media/ScheduledPostList'
 import { ConfirmSchedulePanel } from '@/components/social-media/ConfirmSchedulePanel'
 import { ConnectionWarning } from '@/components/social-media/ConnectionWarning'
+import { ConfirmActionDialog } from '@/components/social-media/ConfirmActionDialog'
+import { PostViewDialog } from '@/components/social-media/PostViewDialog'
 import SocialMediaToastStack from '@/components/social-media/SocialMediaToastStack'
 import { useToastQueue } from '@/hooks/useToastQueue'
+import { useProject } from '@/contexts/ProjectContext'
 import {
-  SCHEDULE_TABS,
-  SCHEDULED_POSTS,
-  PUBLISHED_POSTS,
-  FAILED_POSTS,
-  CONNECTION_WARNING,
-} from '@/lib/socialMediaAIDummyData'
+  useSocialAccounts, useStartMetaConnection, useScheduledPosts, usePublishedPosts, useFailedPosts,
+  useReschedulePost, useUnschedulePost, useCancelPost, useDeletePost, useRetryPost, useDuplicatePost, publishAttemptError,
+} from '@/hooks/useSocialMediaAI'
+import { describeApiError } from '@/lib/socialMedia/failureMessages'
+import { SCHEDULE_TABS } from '@/lib/socialMediaAIDummyData'
 
-const INITIAL_POSTS = [...SCHEDULED_POSTS, ...PUBLISHED_POSTS, ...FAILED_POSTS]
 const VALID_TAB_IDS = new Set(SCHEDULE_TABS.map((tab) => tab.id))
 
+const EMPTY_COPY = {
+  scheduled: { title: 'No scheduled posts', message: 'Posts you schedule will appear here until they are published.' },
+  published: { title: 'Nothing published yet', message: 'Posts that have gone out to Facebook or Instagram will appear here.' },
+  failed: { title: 'No failed posts', message: 'Posts that could not be published will appear here with the reason.' },
+}
+
 /**
- * Social Media AI - Scheduled Posts. Entirely frontend-only, same as the
- * rest of the module: every post comes from lib/socialMediaAIDummyData.js,
- * no API calls, no real Facebook/Instagram publishing. Reuses ApprovalTabs
- * (Content Approvals) as-is - same underline-tabs-with-counts pattern over
- * a differently-shaped post list.
+ * Social Media AI - Scheduled Posts, driven entirely by the real scheduler
+ * backend: every row is a SocialPublication from GET /social/publishing (see
+ * hooks/useSocialMediaAI.js), mapped once in lib/socialMedia/postMapper.js.
+ * Statuses, retry state, failure reasons and what actions are allowed all come
+ * from the backend; every action calls the real endpoint and the lists are
+ * refetched from the database afterwards (nothing is edited in local state).
  */
 function ScheduledPostsPageContent() {
   const searchParams = useSearchParams()
   const requestedTab = searchParams.get('tab')
-  const initialTab = VALID_TAB_IDS.has(requestedTab) ? requestedTab : 'scheduled'
+  const requestedPostId = searchParams.get('post')
 
-  const [posts, setPosts] = useState(INITIAL_POSTS)
-  const [activeTab, setActiveTab] = useState(initialTab)
-  const [selectedPostId, setSelectedPostId] = useState(
-    INITIAL_POSTS.find((p) => p.status === initialTab)?.id ?? null
-  )
-  const [instagramReconnected, setInstagramReconnected] = useState(false)
+  const { activeProjectId } = useProject()
+  const accounts = useSocialAccounts(activeProjectId)
+  const lists = {
+    scheduled: useScheduledPosts(activeProjectId),
+    published: usePublishedPosts(activeProjectId),
+    failed: useFailedPosts(activeProjectId),
+  }
+
+  const [activeTab, setActiveTab] = useState(VALID_TAB_IDS.has(requestedTab) ? requestedTab : 'scheduled')
+  const [selectedPostId, setSelectedPostId] = useState(null)
+  const [busyPostId, setBusyPostId] = useState(null)
+  const [panelPending, setPanelPending] = useState(null) // 'confirm' | 'save' | null
+  const [panelError, setPanelError] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [discardTarget, setDiscardTarget] = useState(null)
+  const [dialogError, setDialogError] = useState(null)
+  const [viewPost, setViewPost] = useState(null)
   const { toasts, notify, dismiss } = useToastQueue()
 
-  const filteredPosts = useMemo(() => posts.filter((p) => p.status === activeTab), [posts, activeTab])
-  const selectedPost = useMemo(() => posts.find((p) => p.id === selectedPostId) || null, [posts, selectedPostId])
-  const showWarning = !instagramReconnected && posts.some((p) => p.status === 'scheduled' && p.connectionAtRisk)
+  const reschedule = useReschedulePost(activeProjectId)
+  const unschedule = useUnschedulePost(activeProjectId)
+  const cancel = useCancelPost(activeProjectId)
+  const remove = useDeletePost(activeProjectId)
+  const retry = useRetryPost(activeProjectId)
+  const duplicate = useDuplicatePost(activeProjectId)
+  const startConnection = useStartMetaConnection(activeProjectId)
+
+  // Deep link (?post=<id>, from the calendar/overview): once data is loaded,
+  // open the tab that actually contains that post and select it — once.
+  const handledDeepLink = useRef(false)
+  useEffect(() => {
+    if (handledDeepLink.current || !requestedPostId) return
+    for (const tab of SCHEDULE_TABS) {
+      const found = lists[tab.id].posts.find((p) => p.id === requestedPostId)
+      if (found) { handledDeepLink.current = true; setActiveTab(tab.id); setSelectedPostId(found.id); return }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedPostId, lists.scheduled.posts, lists.published.posts, lists.failed.posts])
+
+  const active = lists[activeTab]
+  const posts = active.posts
+  const selectedPost = useMemo(
+    () => posts.find((p) => p.id === selectedPostId) || (activeTab === 'scheduled' ? posts.find((p) => p.canEditSchedule) : null) || null,
+    [posts, selectedPostId, activeTab],
+  )
+
+  // Connection state from the SAME status query Connect Accounts uses.
+  const accountIssues = useMemo(() => Object.fromEntries(accounts.attention.map((a) => [a.platform, a.reason])), [accounts.attention])
+  const atRiskCount = lists.scheduled.posts.filter((p) => p.status === 'scheduled' && accountIssues[p.platform]).length
+  const accountNameFor = (post) => (post ? accounts[post.platform]?.name : null)
 
   function handleTabChange(tabId) {
     setActiveTab(tabId)
-    const first = posts.find((p) => p.status === tabId)
-    setSelectedPostId(first?.id ?? null)
+    setSelectedPostId(null)
+    setPanelError(null)
   }
 
-  function handleView(post) {
-    notify('Post preview is on the roadmap.', 'default')
-  }
-
-  function handleDuplicate(post) {
-    const copy = { ...post, id: `${post.id}-copy-${Date.now()}`, title: `${post.title} (Copy)` }
-    setPosts((prev) => [...prev, copy])
-    notify('Post duplicated.', 'success')
-  }
-
-  function handleCancel(post) {
-    setPosts((prev) => prev.filter((p) => p.id !== post.id))
-    if (post.id === selectedPostId) {
-      const remaining = posts.filter((p) => p.status === 'scheduled' && p.id !== post.id)
-      setSelectedPostId(remaining[0]?.id ?? null)
-    }
-    notify('Schedule cancelled.', 'default')
+  function runForPost(post, mutation, variables, { onSuccess, onError } = {}) {
+    setBusyPostId(post.id)
+    mutation.mutate(variables, {
+      onSuccess,
+      onError: onError || ((error) => notify(describeApiError(error).message, 'danger')),
+      onSettled: () => setBusyPostId((current) => (current === post.id ? null : current)),
+    })
   }
 
   function handleRetry(post) {
-    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, status: 'scheduled', failReason: undefined } : p)))
-    notify("Retry scheduled. We'll attempt to publish this again.", 'success')
+    runForPost(post, retry, post.id, {
+      onSuccess: (res) => {
+        // A Meta-rejected attempt is HTTP 200 + publishError; the post is refetched as failed.
+        const rejected = publishAttemptError(res)
+        if (rejected) notify(`${rejected.message}${rejected.requiresReconnect ? ' Reconnect the account to continue.' : ''}`, 'danger')
+        else notify('Post published.', 'success')
+      },
+    })
   }
 
-  function handleDiscard(post) {
-    setPosts((prev) => prev.filter((p) => p.id !== post.id))
-    if (post.id === selectedPostId) setSelectedPostId(null)
-    notify('Failed post discarded.', 'default')
+  function handleDuplicate(post) {
+    runForPost(post, duplicate, post, { onSuccess: () => notify('Duplicated as a draft. It is not scheduled.', 'success') })
   }
 
-  function handleConfirmSchedule(fields) {
-    notify(`Schedule confirmed for ${fields.date} at ${fields.time}.`, 'success')
+  function handleConfirmSchedule({ scheduledAt, timezone }) {
+    if (!selectedPost) return
+    setPanelPending('confirm')
+    setPanelError(null)
+    reschedule.mutate({ publicationId: selectedPost.id, scheduledAt, timezone }, {
+      onSuccess: () => notify('Schedule updated.', 'success'),
+      onError: (error) => setPanelError(describeApiError(error).message),
+      onSettled: () => setPanelPending(null),
+    })
   }
 
   function handleSaveForLater() {
-    notify('Saved for later.', 'default')
+    if (!selectedPost) return
+    setPanelPending('save')
+    setPanelError(null)
+    unschedule.mutate(selectedPost.id, {
+      onSuccess: () => { setSelectedPostId(null); notify('Moved to drafts. Find it in Social → Publishing.', 'default') },
+      onError: (error) => setPanelError(describeApiError(error).message),
+      onSettled: () => setPanelPending(null),
+    })
   }
 
-  function handleReconnected() {
-    setInstagramReconnected(true)
-    setPosts((prev) => prev.map((p) => (p.platform === 'instagram' ? { ...p, connectionAtRisk: false } : p)))
-    notify('Instagram reconnected (preview only).', 'success')
+  function handleConfirmCancel() {
+    const post = cancelTarget
+    setDialogError(null)
+    cancel.mutate(post.id, {
+      onSuccess: () => { setCancelTarget(null); notify('Schedule cancelled.', 'default') },
+      onError: (error) => setDialogError(describeApiError(error).message),
+    })
+  }
+
+  function handleConfirmDiscard() {
+    const post = discardTarget
+    setDialogError(null)
+    remove.mutate({ publicationId: post.id }, {
+      onSuccess: () => { setDiscardTarget(null); notify('Post discarded.', 'default') },
+      onError: (error) => setDialogError(describeApiError(error).message),
+    })
+  }
+
+  function handleReconnect() {
+    startConnection.mutate({ reconnect: true }, {
+      onError: (error) => notify(describeApiError(error, 'Failed to start the Meta connection.').message, 'danger'),
+    })
   }
 
   const cardHandlers = {
     onSelect: setSelectedPostId,
-    onEditSchedule: setSelectedPostId,
-    onView: handleView,
+    onEditSchedule: (id) => { setActiveTab('scheduled'); setSelectedPostId(id) },
+    onView: setViewPost,
     onDuplicate: handleDuplicate,
-    onCancel: handleCancel,
+    onCancel: (post) => { setDialogError(null); setCancelTarget(post) },
     onRetry: handleRetry,
-    onDiscard: handleDiscard,
+    onDiscard: (post) => { setDialogError(null); setDiscardTarget(post) },
+    onReconnect: handleReconnect,
+  }
+
+  const counts = {
+    scheduled: lists.scheduled.isLoading || lists.scheduled.isError ? null : lists.scheduled.total,
+    published: lists.published.isLoading || lists.published.isError ? null : lists.published.total,
+    failed: lists.failed.isLoading || lists.failed.isError ? null : lists.failed.total,
+  }
+
+  const header = (
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Scheduled Posts</h1>
+        <p className="mt-1 text-sm text-slate-500">Approved content, ready to go live</p>
+      </div>
+      <Link
+        href="/app/social/publishing"
+        className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:bg-violet-800"
+      >
+        <Plus className="h-4 w-4" />
+        Schedule New Post
+      </Link>
+    </div>
+  )
+
+  if (!activeProjectId) {
+    return (
+      <div className="flex-1 space-y-6 pb-16">
+        {header}
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm" data-testid="no-project">
+          <p className="text-sm font-semibold text-slate-700">No project selected</p>
+          <p className="mt-1 text-sm text-slate-400">Select or create a project to see its scheduled posts.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex-1 space-y-6 pb-16">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Scheduled Posts</h1>
-          <p className="mt-1 text-sm text-slate-500">Approved content, ready to go live</p>
-        </div>
-        <Link
-          href="/app/social-media/content-approvals"
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:bg-violet-800"
-        >
-          <Plus className="h-4 w-4" />
-          Schedule New Post
-        </Link>
-      </div>
+      {header}
 
-      <ApprovalTabs tabs={SCHEDULE_TABS} posts={posts} activeTab={activeTab} onChange={handleTabChange} />
+      <ApprovalTabs tabs={SCHEDULE_TABS} activeTab={activeTab} onChange={handleTabChange} counts={counts} />
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-5">
-          <ScheduledPostList posts={filteredPosts} selectedPostId={selectedPostId} {...cardHandlers} />
+          {active.isFetching && !active.isLoading && (
+            <p className="flex items-center gap-1.5 text-xs text-slate-400" data-testid="refreshing"><Loader2 className="h-3 w-3 animate-spin" />Refreshing…</p>
+          )}
 
-          {activeTab === 'scheduled' && showWarning && (
-            <ConnectionWarning warning={CONNECTION_WARNING} onReconnected={handleReconnected} />
+          {active.isLoading ? (
+            <PostListSkeleton />
+          ) : active.isError ? (
+            <PostListError message={describeApiError(active.error).message} onRetry={() => active.refetch()} retrying={active.isFetching} />
+          ) : (
+            <ScheduledPostList
+              posts={posts}
+              selectedPostId={selectedPost?.id}
+              busyPostId={busyPostId}
+              accountIssues={accountIssues}
+              emptyTitle={EMPTY_COPY[activeTab].title}
+              emptyMessage={EMPTY_COPY[activeTab].message}
+              emptyAction={activeTab === 'scheduled' ? (
+                <Link href="/app/social/publishing" className="mt-3 text-sm font-semibold text-violet-600 hover:text-violet-700">Create a post</Link>
+              ) : null}
+              {...cardHandlers}
+            />
+          )}
+
+          {active.truncated && (
+            <p className="text-xs text-slate-400">Showing the first 500 posts.</p>
+          )}
+
+          {activeTab === 'scheduled' && (
+            <ConnectionWarning
+              attention={accounts.attention}
+              atRiskCount={atRiskCount}
+              onReconnect={handleReconnect}
+              reconnecting={startConnection.isPending}
+            />
           )}
         </div>
 
-        {activeTab === 'scheduled' && selectedPost && (
+        {activeTab === 'scheduled' && selectedPost && selectedPost.canEditSchedule && (
           <aside className="w-full shrink-0 lg:w-[320px]">
-            <ConfirmSchedulePanel key={selectedPost.id} post={selectedPost} onConfirm={handleConfirmSchedule} onSaveForLater={handleSaveForLater} />
+            <ConfirmSchedulePanel
+              key={selectedPost.id}
+              post={selectedPost}
+              accountName={accountNameFor(selectedPost)}
+              pendingAction={panelPending}
+              error={panelError}
+              onConfirm={handleConfirmSchedule}
+              onSaveForLater={handleSaveForLater}
+            />
           </aside>
         )}
       </div>
+
+      <PostViewDialog post={viewPost} open={!!viewPost} onOpenChange={(open) => !open && setViewPost(null)} />
+
+      <ConfirmActionDialog
+        open={!!cancelTarget}
+        onOpenChange={(open) => { if (!open) setCancelTarget(null) }}
+        title="Cancel this schedule?"
+        description="The post will not be published. It will be marked cancelled and removed from this list."
+        confirmLabel="Cancel schedule"
+        cancelLabel="Keep scheduled"
+        destructive
+        pending={cancel.isPending}
+        error={dialogError}
+        onConfirm={handleConfirmCancel}
+      />
+
+      <ConfirmActionDialog
+        open={!!discardTarget}
+        onOpenChange={(open) => { if (!open) setDiscardTarget(null) }}
+        title="Discard this post?"
+        description={discardTarget?.outcomeUnknown
+          ? 'Only discard this if you have checked your page. If the post is live there, this only removes Odito\'s record of it.'
+          : 'This permanently removes the failed post from Odito.'}
+        confirmLabel="Discard"
+        cancelLabel="Keep"
+        destructive
+        pending={remove.isPending}
+        error={dialogError}
+        onConfirm={handleConfirmDiscard}
+      />
 
       <SocialMediaToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
