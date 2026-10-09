@@ -101,7 +101,10 @@ export function AuthProvider({ children }) {
 
     if (user) {
 
-      socketService.connect(apiService.getToken());
+      // connect() rejects on a failed first attempt; socketService has already
+      // logged the cause and socket.io keeps retrying with bounded backoff, so
+      // this only stops it surfacing as an unhandled promise rejection.
+      Promise.resolve(socketService.connect(apiService.getToken())).catch(() => {});
 
     } else {
 

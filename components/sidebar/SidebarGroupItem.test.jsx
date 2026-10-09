@@ -23,11 +23,12 @@ const toggle = () => screen.getByRole('button', { name: /business profile menu/i
 describe('SidebarGroupItem (Business Profile)', () => {
   beforeEach(() => { mockPathname = '/app/google-visibility/business-profile' })
 
-  it('config exposes Overview + Reviews children under the existing parent href', () => {
+  it('config exposes Overview + Reviews + Posts children under the existing parent href', () => {
     expect(item.href).toBe('/app/google-visibility/business-profile')
     expect(item.children.map((c) => [c.label, c.href])).toEqual([
       ['Overview', '/app/google-visibility/business-profile'],
       ['Reviews', '/app/google-visibility/business-profile/reviews'],
+      ['Posts', '/app/google-visibility/business-profile/posts'],
     ])
   })
 

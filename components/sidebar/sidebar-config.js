@@ -149,6 +149,11 @@ export const sidebarSections = [
             label: "Reviews",
             href: "/app/google-visibility/business-profile/reviews",
           },
+          {
+            id: "google-visibility-business-profile-posts",
+            label: "Posts",
+            href: "/app/google-visibility/business-profile/posts",
+          },
         ],
       },
       {

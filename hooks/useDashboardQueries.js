@@ -1038,6 +1038,7 @@ export function useSyncBusinessProfile(projectId) {
       queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'reviews'] })
       queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'trends'] })
       queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'media'] })
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'posts'] })
     },
   })
 }
@@ -1079,6 +1080,75 @@ export function useBusinessProfileMedia(projectId, { page = 1, limit = 24, categ
     queryFn: () => apiService.getBusinessProfileMedia(projectId, { page, limit, category }),
     enabled: !!projectId && enabled,
     staleTime: staleTimes.STANDARD,
+  })
+}
+
+/**
+ * Paginated, optionally filtered local posts for Google Business Profile.
+ */
+export function useBusinessProfilePosts(
+  projectId,
+  { page = 1, limit = 10, topicType = '', state = '', search = '', sort = 'newest' } = {},
+  { enabled = true } = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.businessProfile.posts(projectId, { page, limit, topicType, state, search, sort }),
+    queryFn: () => apiService.getBusinessProfilePosts(projectId, { page, limit, topicType, state, search, sort }),
+    enabled: !!projectId && enabled,
+    staleTime: staleTimes.STANDARD,
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+/**
+ * Creates and publishes a new local post to Google Business Profile.
+ */
+export function useCreateBusinessProfilePost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (postData) => apiService.createBusinessProfilePost(projectId, postData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'posts'] })
+    },
+  })
+}
+
+/**
+ * Edits an existing local post on Google Business Profile.
+ */
+export function useUpdateBusinessProfilePost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ postId, postData }) => apiService.updateBusinessProfilePost(projectId, postId, postData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'posts'] })
+    },
+  })
+}
+
+/**
+ * Deletes a local post from Google Business Profile.
+ */
+export function useDeleteBusinessProfilePost(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (postId) => apiService.deleteBusinessProfilePost(projectId, postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'posts'] })
+    },
+  })
+}
+
+/**
+ * Standalone sync for Google Business Profile local posts and insights.
+ */
+export function useSyncBusinessProfilePosts(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiService.syncBusinessProfilePosts(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['business-profile', projectId, 'posts'] })
+    },
   })
 }
 
