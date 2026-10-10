@@ -74,6 +74,8 @@ export default function PostCard({ post, onEdit, onDelete }) {
   const imageUrl = firstMedia?.google_url || firstMedia?.source_url
 
   const cta = post.call_to_action
+  // Google's numbers have been stored for this post (metrics_last_synced_at is only set when they were fetched)
+  const measured = !!post.metrics_last_synced_at
   const hasCta = cta && cta.action_type && cta.action_type !== 'ACTION_TYPE_UNSPECIFIED'
 
   return (
@@ -190,17 +192,18 @@ export default function PostCard({ post, onEdit, onDelete }) {
 
       {/* Footer: Insights and Actions */}
       <div className="border-t bg-muted/20 p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        {/* Performance metrics from Google */}
+        {/* Performance metrics from Google. "—" = never measured (Google hasn't reported
+            numbers for this post yet) - a real zero is shown as 0, never conflated with it. */}
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="flex items-center gap-1 text-[11px]" title="Search views">
+          <div className="flex items-center gap-1 text-[11px]" title={measured ? 'Search views' : 'Not measured yet - views appear after the next successful sync'}>
             <Eye className="h-3.5 w-3.5 text-blue-500" />
-            <span className="font-semibold text-foreground">{(post.views_search || 0).toLocaleString()}</span>
+            <span className="font-semibold text-foreground">{measured ? (post.views_search || 0).toLocaleString() : '—'}</span>
             <span>views</span>
           </div>
 
-          <div className="flex items-center gap-1 text-[11px]" title="Button clicks">
+          <div className="flex items-center gap-1 text-[11px]" title={measured ? 'Button clicks' : 'Not measured yet - clicks appear after the next successful sync'}>
             <MousePointerClick className="h-3.5 w-3.5 text-amber-500" />
-            <span className="font-semibold text-foreground">{(post.actions_call_to_action || 0).toLocaleString()}</span>
+            <span className="font-semibold text-foreground">{measured ? (post.actions_call_to_action || 0).toLocaleString() : '—'}</span>
             <span>clicks</span>
           </div>
         </div>

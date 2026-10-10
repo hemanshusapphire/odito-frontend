@@ -8,8 +8,14 @@ export default function PostsKPIs({ summary = {} }) {
     totalPosts = 0,
     livePosts = 0,
     totalViews = 0,
-    totalActions = 0
+    totalActions = 0,
+    postsWithMetrics
   } = summary
+
+  // No post has had its views/clicks measured yet -> show "—", not a misleading 0.
+  // (`postsWithMetrics` undefined = older API: keep showing the numbers.)
+  const metricsKnown = postsWithMetrics === undefined || postsWithMetrics > 0 || totalPosts === 0
+  const notMeasured = 'Not measured yet - sync to load'
 
   const cards = [
     {
@@ -30,16 +36,16 @@ export default function PostsKPIs({ summary = {} }) {
     },
     {
       title: 'Search Views',
-      value: totalViews.toLocaleString(),
-      subtitle: 'Direct views across Search & Maps',
+      value: metricsKnown ? totalViews.toLocaleString() : '—',
+      subtitle: metricsKnown ? 'Direct views across Search & Maps' : notMeasured,
       icon: Eye,
       color: 'text-violet-500',
       bgColor: 'bg-violet-500/10'
     },
     {
       title: 'Action Clicks',
-      value: totalActions.toLocaleString(),
-      subtitle: 'Clicks on call-to-action buttons',
+      value: metricsKnown ? totalActions.toLocaleString() : '—',
+      subtitle: metricsKnown ? 'Clicks on call-to-action buttons' : notMeasured,
       icon: MousePointerClick,
       color: 'text-amber-500',
       bgColor: 'bg-amber-500/10'
