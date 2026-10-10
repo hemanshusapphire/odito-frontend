@@ -95,11 +95,7 @@ export default function RootLayout({ children }) {
         <JsonLd data={getOrganizationJsonLd()} />
         {/* Chat widget. `async` so it never blocks rendering; the widget reads
             data-owner-id from its own script tag. */}
-        <script
-          async
-          src="https://ai-chat-five-self.vercel.app/chatBot.js"
-          data-owner-id="usr_115334307081356802"
-        />
+        
       </head>
 
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>

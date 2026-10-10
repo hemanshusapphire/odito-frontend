@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import apiService from '@/lib/apiService';
+import { mapUrlPoolResponse } from '@/lib/urlPool';
 import { useSubscription } from '@/hooks/useDashboardQueries';
 import { useBuyPagesFlow } from '@/hooks/useBuyPagesFlow';
 import { queryKeys } from '@/lib/query/keys';
@@ -103,13 +104,17 @@ export default function UrlSelectionPageClient({ projectId }) {
           throw new Error(response.message || 'Failed to load URL pool');
         }
 
-        const data = response.data;
-        setUrls(data.urls || []);
-        setTotalDiscovered(data.total_discovered || 0);
-        setTotalQualified(data.total_qualified || 0);
+        const mapped = mapUrlPoolResponse(response.data);
+        if (mapped.poolInconsistent) {
+          throw new Error('The discovered URL list is not available yet. Please try again shortly.');
+        }
+        setLoadError(null);
+        setUrls(mapped.urls);
+        setTotalDiscovered(mapped.totalDiscovered);
+        setTotalQualified(mapped.totalQualified);
         // null = unlimited; only a number when this project has an explicit
         // admin-configured override.
-        setSelectionLimit(data.selection_limit ?? null);
+        setSelectionLimit(mapped.selectionLimit);
         // Initial selection itself is set by the effect below, once the
         // subscription quota (fetched independently) is also ready — see
         // that effect's comment for why this can't be decided here.
